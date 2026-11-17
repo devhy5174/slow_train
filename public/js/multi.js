@@ -117,12 +117,14 @@ const Multi = (() => {
       _removePeer(key);
     });
 
-    // Broadcast move: 원격 플레이어 위치·상태 수신
+    // Broadcast move: 원격 플레이어 위치·방향만 적용 (착석 동기화는 2단계에서 구현)
     _channel.on('broadcast', { event: 'move' }, ({ payload }) => {
       if (!payload || payload.id === _myId) return;
       const a = peers[payload.id];
       if (!a) return;
-      applyActorSnapshot(a, payload);
+      a.g.position.x = payload.x ?? a.g.position.x;
+      a.g.position.z = payload.z ?? a.g.position.z;
+      if (payload.ry != null) a.g.rotation.y = payload.ry;
       a._moving = !!payload.moving;
     });
 
@@ -145,6 +147,7 @@ const Multi = (() => {
 
   // 매 프레임 호출: 원격 플레이어 애니메이션 + 내 위치 브로드캐스트
   let _sendTimer = 0;
+  let _lastSent = null; // 마지막으로 전송한 위치·방향 (변화 없으면 전송 생략)
   function tick(dt) {
     if (!_enabled || !_channel) return;
 
@@ -156,21 +159,30 @@ const Multi = (() => {
       if (a.state !== 'sit' && a.state !== 'hide') animate(a, a._moving, dt);
     }
 
-    // 10fps로 throttle해서 브로드캐스트
+    // 100ms마다 전송 시도
     _sendTimer += dt;
     if (_sendTimer < 0.1 || !P) return;
     _sendTimer = 0;
 
     const snap = actorSnapshot(P);
-    // 키 입력 또는 경로 추종 중이면 moving = true
     const moving = P.path.length > 0 || !!(
       keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD ||
       keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight
     );
+
+    // 위치·방향 변화가 없고 정지 중이면 전송 생략 (불필요한 Broadcast·429 방지)
+    if (_lastSent && !moving &&
+        Math.abs(snap.x  - _lastSent.x)  < 0.01 &&
+        Math.abs(snap.z  - _lastSent.z)  < 0.01 &&
+        Math.abs(snap.ry - _lastSent.ry) < 0.03) return;
+
+    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry };
+
+    // id: _myId 를 spread 뒤에 써야 snap.id('player')를 덮어쓸 수 있음
     _channel.send({
       type: 'broadcast',
       event: 'move',
-      payload: { id: _myId, ...snap, moving },
+      payload: { ...snap, id: _myId, moving },
     });
   }
 
