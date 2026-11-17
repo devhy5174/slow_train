@@ -144,6 +144,7 @@ const Multi = (() => {
     _channel.on('broadcast', { event: 'seat_yield' }, ({ payload }) => {
       if (!P || P.state !== 'sit' || !P.seat || P.seat.id !== payload.seatId) return;
       speak(P, '앗 죄송합니다!', 3.5);
+      broadcastSpeak('앗 죄송합니다!', 3.5); // 사과 대사를 상대방 화면에도 표시
       setTimeout(() => {
         if (P && P.state === 'sit' && P.seat && P.seat.id === payload.seatId) {
           standUp(P);
@@ -151,6 +152,13 @@ const Multi = (() => {
           saveNow();
         }
       }, 1200);
+    });
+
+    // speak: 원격 플레이어 말풍선 수신 → 해당 peer 캐릭터에 표시
+    _channel.on('broadcast', { event: 'speak' }, ({ payload }) => {
+      const a = peers[payload.id];
+      if (!a) return;
+      speak(a, payload.text, payload.sec || 4);
     });
 
     // Broadcast move: 위치·방향·착석 상태 적용
@@ -253,5 +261,15 @@ const Multi = (() => {
     });
   }
 
-  return { connect, tick, disconnect, requestYield };
+  // 내 말풍선을 채널에 브로드캐스트 (다른 플레이어 화면에 표시)
+  function broadcastSpeak(text, sec = 4) {
+    if (!_enabled || !_channel) return;
+    _channel.send({
+      type: 'broadcast',
+      event: 'speak',
+      payload: { id: _myId, text, sec },
+    });
+  }
+
+  return { connect, tick, disconnect, requestYield, broadcastSpeak };
 })();

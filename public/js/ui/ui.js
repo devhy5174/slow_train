@@ -13,7 +13,7 @@ function buildUI() {
   // 말풍선 문구 버튼: 누르면 플레이어 머리 위에 표시
   PHRASES.forEach(t => {
     const b = document.createElement('button'); b.textContent = t;
-    b.onclick = () => { speak(P, t, 4); ph.hidden = true; }; ph.appendChild(b);
+    b.onclick = () => { speak(P, t, 4); Multi.broadcastSpeak(t, 4); ph.hidden = true; }; ph.appendChild(b);
   });
   // 간식 메뉴 버튼: 누르면 가상 구매 → 손에 듦
   MENU.forEach(([n, pr, em]) => {

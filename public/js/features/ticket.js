@@ -134,6 +134,7 @@ function requestSeatYield() {
   // 원격 플레이어인 경우 (NPC도 아니고 나 자신도 아님)
   if (occupantId !== P.id) {
     speak(P, '여기 제자린데요.', 2.5);
+    Multi.broadcastSpeak('여기 제자린데요.', 2.5); // 내 대사를 상대방 화면에도 표시
     Multi.requestYield(seatId);
     return true;
   }
