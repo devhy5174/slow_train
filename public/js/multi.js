@@ -27,6 +27,30 @@ const Multi = (() => {
 
   // ---- 내부 헬퍼 ----
 
+  // 원격 플레이어 착석 적용: 로컬 플레이어 자리 침범 불가, NPC는 비워줌
+  function _applySit(a, seatId) {
+    if (a.state === 'sit' && a.seat?.id === seatId) return; // 이미 해당 자리 착석 중
+    const s = SEATS.find(q => q.id === seatId);
+    if (!s) return;
+    const occupantId = GameState.occ[s.id];
+    if (occupantId === P?.id) return; // 로컬 플레이어 자리 → 착석 거부
+    if (occupantId) {
+      // NPC가 점유 중이면 비워줌
+      const npc = NPCS.find(n => n.id === occupantId);
+      if (npc) standUp(npc);
+    }
+    if (a.state === 'sit') standUp(a); // 다른 자리에 앉아 있었으면 먼저 일어남
+    sitDown(a, s);
+  }
+
+  // 새 접속자 입장 시 내 현재 상태를 즉시 전송 (착석 중이면 착석 위치 공유)
+  function _sendFullState() {
+    if (!_enabled || !_channel || !P) return;
+    const snap = actorSnapshot(P);
+    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId };
+    _channel.send({ type: 'broadcast', event: 'move', payload: { ...snap, id: _myId, moving: false } });
+  }
+
   // 원격 플레이어 캐릭터 생성 (npc: true → saveNow·brain 호출 안 됨)
   function _spawnPeer(peerId, name) {
     if (peers[peerId] || peerId === _myId) return;
@@ -103,12 +127,13 @@ const Multi = (() => {
       _updateHud();
     });
 
-    // Presence join: 새 접속자 입장
+    // Presence join: 새 접속자 입장 — 내 현재 착석 상태도 즉시 전송
     _channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
       if (key === _myId) return;
       console.info('[Multi] 접속자 입장:', newPresences[0]?.name || key);
       _spawnPeer(key, newPresences[0]?.name);
       _updateHud();
+      _sendFullState(); // 새 접속자가 내 현재 위치·착석 상태를 즉시 볼 수 있도록
     });
 
     // Presence leave: 접속 종료
@@ -117,14 +142,21 @@ const Multi = (() => {
       _removePeer(key);
     });
 
-    // Broadcast move: 원격 플레이어 위치·방향만 적용 (착석 동기화는 2단계에서 구현)
+    // Broadcast move: 위치·방향·착석 상태 적용
     _channel.on('broadcast', { event: 'move' }, ({ payload }) => {
       if (!payload || payload.id === _myId) return;
       const a = peers[payload.id];
       if (!a) return;
-      a.g.position.x = payload.x ?? a.g.position.x;
-      a.g.position.z = payload.z ?? a.g.position.z;
-      if (payload.ry != null) a.g.rotation.y = payload.ry;
+      if (payload.state === 'sit' && payload.seatId) {
+        // 착석 상태 적용
+        _applySit(a, payload.seatId);
+      } else {
+        // 이동 중 / 서 있는 상태: 착석 중이었으면 먼저 일어남
+        if (a.state === 'sit') standUp(a);
+        a.g.position.x = payload.x ?? a.g.position.x;
+        a.g.position.z = payload.z ?? a.g.position.z;
+        if (payload.ry != null) a.g.rotation.y = payload.ry;
+      }
       a._moving = !!payload.moving;
     });
 
@@ -170,13 +202,15 @@ const Multi = (() => {
       keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight
     );
 
-    // 위치·방향 변화가 없고 정지 중이면 전송 생략 (불필요한 Broadcast·429 방지)
+    // 상태·위치·방향 변화 없고 정지 중이면 전송 생략 (불필요한 Broadcast·429 방지)
     if (_lastSent && !moving &&
+        snap.state  === _lastSent.state  &&
+        snap.seatId === _lastSent.seatId &&
         Math.abs(snap.x  - _lastSent.x)  < 0.01 &&
         Math.abs(snap.z  - _lastSent.z)  < 0.01 &&
         Math.abs(snap.ry - _lastSent.ry) < 0.03) return;
 
-    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry };
+    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId };
 
     // id: _myId 를 spread 뒤에 써야 snap.id('player')를 덮어쓸 수 있음
     _channel.send({
