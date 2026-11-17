@@ -69,22 +69,24 @@ function shell() {
 const seatLabelMeshes = {};
 
 // 좌석 번호 레이블용 캔버스 머티리얼 생성
-// style: 'reserved'(연회색), 'free'(초록), 'mine'(황금)
+// style: 'reserved'(짙은 남색), 'free'(짙은 초록), 'mine'(황금)
+// 무궁화호 감성: 작은 번호판처럼 등받이 상단에 부착된 느낌
 function makeSeatLabelMat(text, style) {
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
+  const cv = document.createElement('canvas'); cv.width = 80; cv.height = 34;
   const ctx = cv.getContext('2d');
-  if (style === 'mine')     ctx.fillStyle = '#a0720a';
-  else if (style === 'free') ctx.fillStyle = '#3d7a5a';
-  else                       ctx.fillStyle = 'rgba(220,220,220,0.88)';
-  ctx.beginPath(); ctx.roundRect(2, 2, 124, 60, 10); ctx.fill();
-  ctx.fillStyle = style === 'reserved' ? '#1d2f4f' : '#ffffff';
-  ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, 64, 32);
+  if (style === 'mine')      ctx.fillStyle = 'rgba(148,98,8,0.92)';
+  else if (style === 'free') ctx.fillStyle = 'rgba(40,88,58,0.80)';
+  else                       ctx.fillStyle = 'rgba(29,47,79,0.82)';
+  ctx.beginPath(); ctx.roundRect(2, 2, 76, 30, 8); ctx.fill();
+  ctx.fillStyle = '#f0e8d8'; // 아이보리 텍스트
+  ctx.font = `bold ${style === 'free' ? 15 : 18}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 40, 17);
   return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false });
 }
 
 // 모든 좌석 머리받침 위에 번호 레이블 스프라이트 생성 (buildWorld 에서 호출)
 // 머리받침 로컬 위치 (-0.36, 1.5, z) → 월드 x 오프셋: -0.36·cos(yaw)
+// 헤드레스트 상단(y≈1.64) 바로 위 y=1.75에 작은 번호판 형태로 배치
 function buildSeatLabels() {
   SEATS.forEach(s => {
     const lx = s.x - 0.36 * Math.cos(s.yaw);
@@ -92,8 +94,8 @@ function buildSeatLabels() {
       s.seatType === 'free' ? '자유' : String(s.displayNum),
       s.seatType === 'free' ? 'free' : 'reserved'
     ));
-    sp.scale.set(0.42, 0.21, 1);
-    sp.position.set(lx, 1.9, s.z);
+    sp.scale.set(0.26, 0.11, 1); // 소형 번호판 (기존 0.42×0.21의 약 60%)
+    sp.position.set(lx, 1.75, s.z); // 헤드레스트 바로 위 (기존 1.9에서 하향)
     scene.add(sp);
     seatLabelMeshes[s.id] = sp;
   });

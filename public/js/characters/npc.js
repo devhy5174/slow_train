@@ -16,16 +16,26 @@ const NPC_DEFS = [
 ];
 
 // 행위자 머리 위에 말풍선 표시(sec초 뒤 사라짐, 긴 문구는 글자 크기 자동 축소)
+// 따뜻한 아이보리 배경 + 꼬리 삼각형 + 등장/퇴장 페이드 (game.js update에서 처리)
 function speak(a, text, sec = 3) {
-  // 기존 말풍선이 있으면 메모리 해제 후 제거
   if (a.bub) { a.g.remove(a.bub); a.bub.material.map.dispose(); a.bub.material.dispose(); }
-  const cv = document.createElement('canvas'); cv.width = 320; cv.height = 96;
-  const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.strokeStyle = '#1d2f4f'; x.lineWidth = 4;
-  x.fillRect(6, 6, 308, 70); x.strokeRect(6, 6, 308, 70);
-  x.fillStyle = '#1d2f4f'; let fs = 28; x.font = 'bold 28px sans-serif'; while (x.measureText(text).width > 288 && fs > 14) x.font = `bold ${--fs}px sans-serif`;
-  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 160, 42);
-  a.bub = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
-  a.bub.scale.set(1.9, 0.57, 1); a.bub.position.y = 2.15; a.g.add(a.bub); a.bubT = sec;
+  const cv = document.createElement('canvas'); cv.width = 300; cv.height = 90;
+  const ctx = cv.getContext('2d');
+  // 아이보리 말풍선 몸체 (둥근 모서리)
+  ctx.fillStyle = '#f5ecd8';
+  ctx.beginPath(); ctx.roundRect(6, 4, 288, 64, 14); ctx.fill();
+  // 꼬리 삼각형 (캐릭터 방향 아래쪽)
+  ctx.beginPath(); ctx.moveTo(136, 68); ctx.lineTo(164, 68); ctx.lineTo(150, 83); ctx.closePath(); ctx.fill();
+  // 은은한 테두리 (몸체만)
+  ctx.strokeStyle = 'rgba(29,47,79,0.22)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(6, 4, 288, 64, 14); ctx.stroke();
+  // 짙은 남색 텍스트
+  ctx.fillStyle = '#1d2f4f'; let fs = 24; ctx.font = `bold ${fs}px sans-serif`;
+  while (ctx.measureText(text).width > 264 && fs > 13) ctx.font = `bold ${--fs}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 150, 35);
+  // opacity: 0 에서 시작 — game.js update()에서 페이드 인/아웃 처리
+  a.bub = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0 }));
+  a.bub.scale.set(1.6, 0.48, 1); a.bub.position.y = 2.22; a.g.add(a.bub); a.bubT = sec;
 }
 
 // 베타 NPC 행동 결정: 앉아 있기/일어나기/빈 좌석 찾기/걷기/말풍선

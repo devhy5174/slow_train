@@ -22,12 +22,19 @@ function makeChar(shirt, label, o) {
   const limb = (x, y, w, h, c) => { const p = new THREE.Group(); p.position.set(x, y, 0); add(new THREE.BoxGeometry(w, h, w), c, 0, -h / 2 + 0.04, 0, p); g.add(p); return p; };
   g.userData = { aL: limb(-0.24, 0.82, 0.11, 0.36, shirt), aR: limb(0.24, 0.82, 0.11, 0.36, shirt),
                  lL: limb(-0.09, 0.44, 0.14, 0.42, o.pants), lR: limb(0.09, 0.44, 0.14, 0.42, o.pants) };
-  // 이름표: 캔버스에 글자를 그려 스프라이트로 머리 위에 표시(NPC는 회색 톤으로 실제 이용자와 구분)
-  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
-  const x = cv.getContext('2d'); x.fillStyle = o.npc ? 'rgba(91,111,140,.9)' : 'rgba(29,47,79,.9)'; x.fillRect(0, 8, 256, 48);
-  x.fillStyle = '#fff'; x.font = 'bold 28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(label, 128, 33);
+  // 이름표: 텍스트 너비에 맞춘 최소 크기 캔버스, 둥근 모서리, 아이보리 글씨
+  // NPC는 약간 밝은 남색, 플레이어는 짙은 남색으로 구분
+  const _mc = document.createElement('canvas').getContext('2d');
+  _mc.font = 'bold 20px sans-serif';
+  const _nlw = Math.min(Math.ceil(_mc.measureText(label).width) + 26, 210), _nlh = 36;
+  const cv = document.createElement('canvas'); cv.width = _nlw; cv.height = _nlh;
+  const nc = cv.getContext('2d');
+  nc.fillStyle = o.npc ? 'rgba(55,75,110,0.78)' : 'rgba(20,37,65,0.86)';
+  nc.beginPath(); nc.roundRect(2, 2, _nlw - 4, _nlh - 4, 9); nc.fill();
+  nc.fillStyle = '#f0e8d8'; nc.font = 'bold 20px sans-serif'; nc.textAlign = 'center'; nc.textBaseline = 'middle'; nc.fillText(label, _nlw / 2, _nlh / 2);
+  const _spSy = 0.14, _spSx = (_nlw / 256) * 0.9; // 스프라이트 크기: 텍스트 길이 비례, 최대 약 0.74
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
-  sp.scale.set(1.2, 0.3, 1); sp.position.y = 1.6; g.add(sp); g.userData.label = sp; // 숨기(웅크림) 때 이름표 크기 보정용
+  sp.scale.set(_spSx, _spSy, 1); sp.position.y = 1.6; sp.userData.baseScaleY = _spSy; g.add(sp); g.userData.label = sp;
   scene.add(g); return g;
 }
 
@@ -42,7 +49,7 @@ function mkActor(id, name, o) {
 function animate(a, moving, dt) {
   const u = a.g.userData, sit = a.state === 'sit', hide = a.state === 'hide';
   // 숨기: 몸을 낮춰 웅크린 자세(이름표는 납작해지지 않게 보정)
-  const sy = hide ? 0.62 : 1; a.g.scale.y = sy; u.label.scale.y = 0.3 / sy; u.label.position.y = 1.6 / sy;
+  const sy = hide ? 0.62 : 1; a.g.scale.y = sy; u.label.scale.y = (u.label.userData.baseScaleY || 0.3) / sy; u.label.position.y = 1.6 / sy;
   if (moving) a.t += dt * 9;
   const sw = moving ? Math.sin(a.t) * 0.7 : 0; // 걸을 때 팔다리 흔들림 각도
   u.lL.rotation.x = sit ? -1.45 : sw; u.lR.rotation.x = sit ? -1.45 : -sw;

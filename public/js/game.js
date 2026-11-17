@@ -26,8 +26,13 @@ function update(dt) {
   $('bExit').hidden = P.state !== 'hide'; // 숨어 있을 때만 '나가기' 버튼 표시
   SCN.forEach(o => { o.m.position.x -= TRAIN * o.k * dt; if (o.m.position.x < -48) o.m.position.x += o.p; }); // 창밖 풍경 흘러가기 + 반복
   separate();
-  // 수명이 다한 말풍선 제거(메모리 해제)
-  for (const a of [P, ...NPCS, V, C]) if (a.bub && (a.bubT -= dt) <= 0) { a.g.remove(a.bub); a.bub.material.map.dispose(); a.bub.material.dispose(); a.bub = null; }
+  // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거
+  for (const a of [P, ...NPCS, V, C]) {
+    if (!a.bub) continue;
+    a.bubT -= dt;
+    if (a.bubT <= 0) { a.g.remove(a.bub); a.bub.material.map.dispose(); a.bub.material.dispose(); a.bub = null; }
+    else { const u = a.bub.userData; u.fi = Math.min(1, (u.fi || 0) + dt / 0.3); a.bub.material.opacity = u.fi * Math.min(1, a.bubT / 0.4); }
+  }
   $('stand').hidden = P.state !== 'sit'; // 앉아 있을 때만 '일어나기' 버튼 표시
 }
 
