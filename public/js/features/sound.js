@@ -80,7 +80,12 @@ function initEarphoneUI() {
   const btn = $('bEarphone'), volEar = $('volEar');
   if (!btn) return;
 
+  // 이어폰이 기차음을 음소거한 경우를 추적 (사용자가 먼저 음소거했으면 복원하지 않음)
+  let _mutedByEarphone = false;
+
   const syncBtn = () => { btn.textContent = EarphoneMusic.playing ? '🎵' : '🎧'; };
+  // bMute 아이콘을 현재 RailSound 상태에 맞춰 갱신
+  const syncMute = () => { const mb = $('bMute'); if (mb) mb.textContent = RailSound.muted || RailSound.volume === 0 ? '🔇' : '🔊'; };
 
   btn.onclick = () => {
     if (!EarphoneMusic.audio) {
@@ -93,10 +98,14 @@ function initEarphoneUI() {
       EarphoneMusic.audio.pause();
       EarphoneMusic.playing = false;
       toast('이어폰을 뺐어요.');
+      // 이어폰이 직접 음소거한 경우에만 기차음 복원
+      if (_mutedByEarphone) { _mutedByEarphone = false; RailSound.setMuted(false); syncMute(); }
     } else {
       EarphoneMusic.audio.play().catch(() => toast('음악 파일을 찾을 수 없어요.'));
       EarphoneMusic.playing = true;
       toast('이어폰을 꽂았어요. 🎧');
+      // 기차음이 켜져 있을 때만 음소거 (이미 꺼져 있으면 건드리지 않음)
+      if (!RailSound.muted) { _mutedByEarphone = true; RailSound.setMuted(true); syncMute(); }
     }
     syncBtn();
   };
