@@ -79,6 +79,35 @@ function highlightMySeat() {
   })();
 }
 
+// ----- 자리 반환 요청 -----
+
+// 플레이어 지정석에 앉은 베타 NPC에게 자리 반환 요청
+// - NPC: "앗 죄송합니다!" 말풍선 → 1.2초 후 일어나 통로로 이동
+// - 향후 실제 이용자가 앉은 경우는 서버 측 권한 확인 후 처리 (현재 미구현)
+// - 반환값: 요청 성공 여부 (NPC가 앉아 있던 경우 true)
+function requestSeatYield() {
+  if (!GameState.ticket) return false;
+  const seatId = GameState.ticket.seatId;
+  const occupantId = GameState.occ[seatId];
+  if (!occupantId) return false; // 이미 비어 있음
+
+  // 베타 NPC인지 확인 (실제 이용자 ID는 'npc' 로 시작하지 않음)
+  const npc = NPCS.find(n => n.id === occupantId);
+  if (!npc) return false;
+
+  // 사과 말풍선 표시 → 짧은 지연 후 일어나 걷기
+  speak(npc, '앗 죄송합니다!', 3.5);
+  setTimeout(() => {
+    if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
+      standUp(npc);
+      goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
+      npc.timer = rnd(8, 15); // 한동안 통로를 걸어다닌 뒤 다시 착석 시도
+    }
+  }, 1200);
+
+  return true;
+}
+
 // 버튼 이벤트 연결 — buildUI() 에서 호출
 // 무임승차자는 두 버튼 모두 숨기고, 승차권 구매자는 모두 표시
 function initTicketUI() {

@@ -125,9 +125,11 @@ function initInput() {
     const s = h.object.userData;
     const isOcc = !!GameState.occ[s.id];
     if (!isOcc) h.object.material.opacity = 0.6; // 빈 자리만 노랗게
-    // 좌석 번호와 상태 조합 (내 자리 · 착석 중 · 비어 있음)
+    // 좌석 번호와 상태 조합 (내 자리 / 내 자리 착석 중 / 착석 중 / 비어 있음)
+    const isMyTicketSeat = !!(GameState.ticket && GameState.ticket.seatId === s.id);
     let tipText = s.seatType === 'free' ? '자유석' : `${s.displayNum}번석`;
-    if (GameState.ticket && GameState.ticket.seatId === s.id) tipText += ' · 내 자리';
+    if (isMyTicketSeat && isOcc) tipText += ' · 내 자리 (클릭해서 비워달라기)';
+    else if (isMyTicketSeat) tipText += ' · 내 자리';
     else if (isOcc) tipText += ' · 착석 중';
     tip.textContent = tipText;
     tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.style.display = 'block';
@@ -141,7 +143,13 @@ function initInput() {
     if (V.active && ray.intersectObject(V.g, true)[0]) return openShop(); // 판매원 클릭
     const nk = ray.intersectObjects(nookHits)[0]; // 의자 등받이 사이 빈 공간(숨는 곳) 터치
     if (nk && (!h || nk.distance < h.distance)) return void askNook(nk.object.userData);
-    if (h) return void goSeat(P, h.object.userData); // 다른 승객이 앉은 좌석은 거부됨
+    if (h) {
+      // 내 지정석에 베타 NPC가 앉아 있으면 자리 반환 요청
+      if (GameState.ticket && h.object.userData.id === GameState.ticket.seatId && GameState.occ[h.object.userData.id]) {
+        requestSeatYield(); return;
+      }
+      return void goSeat(P, h.object.userData); // 그 외 빈 좌석 착석 / 다른 사람 좌석은 거부
+    }
     const p = new THREE.Vector3(); // 그 외: 바닥 터치 이동
     if (ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p)) goFloor(P, p.x, p.z);
   });
