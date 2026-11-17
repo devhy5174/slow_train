@@ -96,7 +96,9 @@ function showTicket() {
     _maybeGreet();
 
   } else if (state === 'other_seat') {
-    // 지정석 안내 + 1.6초 뒤 선택 모달 표시
+    // 지정석 안내: 승무원이 약 4초 머물다 자연스럽게 이동 (강제 아님)
+    // 1.6초 뒤 선택 모달 표시 → 승무원은 잠시 기다렸다 간다는 뉘앙스
+    C.pause = 4;
     const n = GameState.ticket ? GameState.ticket.displayNum : '?';
     speak(C, `지정석은 ${n}번입니다. 안내해 드릴까요?`, 5);
     setTimeout(() => {
