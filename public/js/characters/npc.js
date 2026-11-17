@@ -18,6 +18,7 @@ const NPC_DEFS = [
 // 행위자 머리 위에 말풍선 표시(sec초 뒤 사라짐, 긴 문구는 글자 크기 자동 축소)
 // 따뜻한 아이보리 배경 + 꼬리 삼각형 + 등장/퇴장 페이드 (game.js update에서 처리)
 function speak(a, text, sec = 3) {
+  a.bubText = text; // 말풍선 텍스트 보존 (멀티 동기화·디버깅용)
   if (a.bub) { a.g.remove(a.bub); a.bub.material.map.dispose(); a.bub.material.dispose(); }
   const cv = document.createElement('canvas'); cv.width = 300; cv.height = 90;
   const ctx = cv.getContext('2d');

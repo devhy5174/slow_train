@@ -17,6 +17,7 @@ function makeSnack(name) {
 
 // 행위자의 오른손에 간식을 쥐여 줌(기존 것은 교체). 40초 뒤 자동으로 사라짐(다 먹음)
 function setHeld(a, name) {
+  a.heldName = name; // 간식 이름 보존 (멀티 동기화용)
   const arm = a.g.userData.aR; if (a.held) arm.remove(a.held);
   const m = makeSnack(name); m.position.set(0, -0.3, 0.05); arm.add(m); a.held = m; a.heldT = 40;
 }

@@ -25,6 +25,11 @@ const Multi = (() => {
   ];
   let _paletteIdx = 0;
 
+  // 판매원 동기화용 상태 (호스트만 V를 직접 운영하고 비호스트에 브로드캐스트)
+  let _vMoving     = false; // 비호스트: 받은 판매원 이동 여부
+  let _vSendTimer  = 0;     // 호스트: 판매원 상태 전송 타이머
+  let _vWasActive  = false; // 판매원 등장/퇴장 변화 감지
+
   // ---- 내부 헬퍼 ----
 
   // 원격 플레이어 착석 적용: 로컬 플레이어·NPC 자리 침범 불가
@@ -45,8 +50,9 @@ const Multi = (() => {
   function _sendFullState() {
     if (!_enabled || !_channel || !P) return;
     const snap = actorSnapshot(P);
-    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId };
-    _channel.send({ type: 'broadcast', event: 'move', payload: { ...snap, id: _myId, moving: false } });
+    const heldName = P.held ? (P.heldName || null) : null;
+    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId, heldName };
+    _channel.send({ type: 'broadcast', event: 'move', payload: { ...snap, id: _myId, moving: false, heldName } });
   }
 
   // 원격 플레이어 캐릭터 생성 (npc: true → saveNow·brain 호출 안 됨)
@@ -78,6 +84,29 @@ const Multi = (() => {
     const ticket = GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음(무임승차)';
     const remotePart = remoteCount > 0 ? ` · 실제 승객 ${remoteCount}명` : '';
     $('hc').textContent = `승객 ${total}명 (베타 승객 ${NPC_DEFS.length}명 포함${remotePart}) · ${ticket}`;
+  }
+
+  // UUID 오름차순 정렬 → 가장 작은 ID가 호스트 (NPC·판매원 AI 실행 담당)
+  // 싱글플레이(_enabled=false)에서도 항상 true 반환 → vendorTick 정상 작동
+  function _isHost() {
+    if (!_enabled) return true;
+    const allIds = [_myId, ...Object.keys(peers)];
+    return allIds.sort()[0] === _myId;
+  }
+
+  // 판매원 현재 상태를 채널에 한 번 전송 (신규 접속자 대상 또는 주기 브로드캐스트)
+  function _sendVendorState() {
+    if (!_channel || !V) return;
+    _channel.send({
+      type: 'broadcast', event: 'vendor_state',
+      payload: {
+        active: V.active, visible: V.g.visible,
+        x: V.g.position.x, z: V.g.position.z, ry: V.g.rotation.y,
+        moving: V.active && !V.pause && V.path.length > 0,
+        bubText: V.bub ? (V.bubText || null) : null,
+        bubSec: V.bub ? V.bubT : 0,
+      },
+    });
   }
 
   // ---- 공개 API ----
@@ -131,7 +160,8 @@ const Multi = (() => {
       console.info('[Multi] 접속자 입장:', newPresences[0]?.name || key);
       _spawnPeer(key, newPresences[0]?.name);
       _updateHud();
-      _sendFullState(); // 새 접속자가 내 현재 위치·착석 상태를 즉시 볼 수 있도록
+      _sendFullState();
+      if (_isHost()) _sendVendorState(); // 호스트라면 판매원 현재 상태도 즉시 알려줌
     });
 
     // Presence leave: 접속 종료
@@ -161,6 +191,24 @@ const Multi = (() => {
       speak(a, payload.text, payload.sec || 4);
     });
 
+    // vendor_state: 호스트가 전송하는 판매원 위치·상태 → 비호스트에서만 적용
+    _channel.on('broadcast', { event: 'vendor_state' }, ({ payload }) => {
+      if (_isHost() || !V) return; // 호스트는 자신이 직접 운영하므로 무시
+      V.active = payload.active;
+      V.g.visible = !!payload.visible;
+      if (payload.active) {
+        if (payload.x  != null) V.g.position.x = payload.x;
+        if (payload.z  != null) V.g.position.z = payload.z;
+        if (payload.ry != null) V.g.rotation.y = payload.ry;
+        _vMoving = !!payload.moving;
+        // 말풍선: 텍스트가 새로 생겼을 때만 speak() 호출
+        if (payload.bubText && (!V.bub || V.bubText !== payload.bubText))
+          speak(V, payload.bubText, Math.max(0.5, payload.bubSec || 3));
+      } else {
+        _vMoving = false;
+      }
+    });
+
     // Broadcast move: 위치·방향·착석 상태 적용
     _channel.on('broadcast', { event: 'move' }, ({ payload }) => {
       if (!payload || payload.id === _myId) return;
@@ -177,6 +225,14 @@ const Multi = (() => {
         if (payload.ry != null) a.g.rotation.y = payload.ry;
       }
       a._moving = !!payload.moving;
+      // 간식 동기화: heldName 변경 시 setHeld 또는 제거
+      if ('heldName' in payload) {
+        const hn = payload.heldName || null;
+        if (hn !== (a.heldName || null)) {
+          if (hn) setHeld(a, hn);
+          else if (a.held) { a.g.userData.aR.remove(a.held); a.held = null; a.heldName = null; }
+        }
+      }
     });
 
     // 채널 구독 — 모든 상태 변화를 콘솔에 출력해 디버깅 가능하게 함
@@ -210,32 +266,51 @@ const Multi = (() => {
       if (a.state !== 'sit' && a.state !== 'hide') animate(a, a._moving, dt);
     }
 
+    // 판매원 동기화: 호스트는 상태 주기 전송, 비호스트는 받은 상태로 애니메이션
+    if (_isHost()) {
+      _vSendTimer += dt;
+      const vJustChanged = V.active !== _vWasActive;
+      _vWasActive = V.active;
+      if (vJustChanged || (V.active && _vSendTimer >= 0.2)) {
+        _vSendTimer = 0;
+        _sendVendorState();
+      }
+    } else if (V.active) {
+      // 비호스트: vendorTick 미실행 → 카트 손잡이 자세·이동 애니메이션 직접 처리
+      const vu = V.g.userData;
+      vu.aL.rotation.x = vu.aR.rotation.x = -1.2;
+      animate(V, _vMoving, dt);
+      if (_vMoving && V.wheels) V.wheels.forEach(w => w.rotation.x += dt * 5);
+    }
+
     // 100ms마다 전송 시도
     _sendTimer += dt;
     if (_sendTimer < 0.1 || !P) return;
     _sendTimer = 0;
 
     const snap = actorSnapshot(P);
+    const heldName = P.held ? (P.heldName || null) : null; // 간식 만료(held=null) 시 null
     const moving = P.path.length > 0 || !!(
       keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD ||
       keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight
     );
 
-    // 상태·위치·방향 변화 없고 정지 중이면 전송 생략 (불필요한 Broadcast·429 방지)
+    // 상태·위치·방향·간식 변화 없고 정지 중이면 전송 생략 (불필요한 Broadcast 방지)
     if (_lastSent && !moving &&
-        snap.state  === _lastSent.state  &&
-        snap.seatId === _lastSent.seatId &&
+        snap.state   === _lastSent.state  &&
+        snap.seatId  === _lastSent.seatId &&
+        heldName     === _lastSent.heldName &&
         Math.abs(snap.x  - _lastSent.x)  < 0.01 &&
         Math.abs(snap.z  - _lastSent.z)  < 0.01 &&
         Math.abs(snap.ry - _lastSent.ry) < 0.03) return;
 
-    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId };
+    _lastSent = { x: snap.x, z: snap.z, ry: snap.ry, state: snap.state, seatId: snap.seatId, heldName };
 
     // id: _myId 를 spread 뒤에 써야 snap.id('player')를 덮어쓸 수 있음
     _channel.send({
       type: 'broadcast',
       event: 'move',
-      payload: { ...snap, id: _myId, moving },
+      payload: { ...snap, id: _myId, moving, heldName },
     });
   }
 
@@ -274,5 +349,5 @@ const Multi = (() => {
   // 피어 액터 목록 반환 (game.js 말풍선 페이드 루프에서 사용)
   function getPeers() { return Object.values(peers); }
 
-  return { connect, tick, disconnect, requestYield, broadcastSpeak, getPeers };
+  return { connect, tick, disconnect, requestYield, broadcastSpeak, getPeers, isHost: () => _isHost() };
 })();

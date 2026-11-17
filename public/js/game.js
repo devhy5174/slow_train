@@ -40,7 +40,7 @@ function update(dt) {
     const m = stepPath(n, dt);
     if (n.state !== "sit") animate(n, m, dt);
   }
-  vendorTick(dt);
+  if (Multi.isHost()) vendorTick(dt); // 호스트만 판매원 AI 실행 (멀티: 비호스트는 위치 수신)
   updateShop();
   heldTick(dt);
   conductorTick(dt);
