@@ -56,6 +56,33 @@ function table(z) {
   scene.add(g);
 }
 
+// ===== 무궁화호 지붕 =====
+let trainRoof;
+
+function buildRoof() {
+  trainRoof = new THREE.Group();
+  scene.add(trainRoof);
+
+  const L = CAR.L;
+  const W = CAR.W;
+
+  // 아이보리색 지붕
+  box(trainRoof, L + 0.4, 0.18, W + 0.4, 0xf1eee5, 0, 2.35, 0);
+
+  // 지붕 중앙의 살짝 높은 부분
+  box(trainRoof, L + 0.2, 0.12, W * 0.65, 0xe0e5e8, 0, 2.47, 0);
+
+  // 처음에는 내부가 보이도록 숨김
+  trainRoof.visible = false;
+}
+
+//지붕 상태를 변경하는 함수
+function updateRoof(distance) {
+  if (trainRoof) {
+    trainRoof.visible = distance > 25;
+  }
+}
+
 // 객차 한쪽 창가 벽 생성(창문 8개 + 무늬 띠). sg: -1 왼쪽 / +1 오른쪽
 // 카메라가 그쪽 바깥에 있으면 game.js 루프에서 숨겨 내부가 보이게 함
 function wallSide(sg) {
@@ -65,6 +92,17 @@ function wallSide(sg) {
     g = new THREE.Group();
   scene.add(g);
   walls[sg] = g;
+
+  // ===== 무궁화호 외관 =====
+  box(g, L, 0.65, 0.035, 0x5b8fc5, 0, 0.42, zw + sg * 0.095);
+  box(g, L, 0.07, 0.04, 0xf8f4e9, 0, 0.79, zw + sg * 0.12);
+  box(g, L, 0.18, 0.04, 0x315c8e, 0, 0.08, zw + sg * 0.12);
+  box(g, L, 0.12, 0.04, 0xf7f0df, 0, 1.96, zw + sg * 0.12);
+
+  // ===== 기존 객차 벽과 창문 =====
+
+  box(g, L, 0.9, 0.15, CREAM, 0, 0.45, zw);
+
   box(g, L, 0.9, 0.15, CREAM, 0, 0.45, zw);
   box(g, L, 0.7, 0.15, CREAM, 0, 2.25, zw); // 창 아래/위 벽
   for (let i = 0; i < 7; i++)
@@ -111,6 +149,7 @@ function shell() {
       box(scene, 0.15, H, 1.95, CREAM, (e * L) / 2, H / 2, 1.625),
       box(scene, 0.15, 0.6, 1.3, CREAM, (e * L) / 2, 2.3, 0),
     );
+  buildRoof();
 }
 
 // ----- 좌석 번호 레이블 -----

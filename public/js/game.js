@@ -330,12 +330,22 @@ function startLoop() {
     if (GameState.ended) return; // 강제 퇴장 후에는 더 이상 갱신/렌더하지 않음
     update(Math.min(clock.getDelta(), 0.05));
     if (ctl) ctl.update();
-    for (const e of [-1, 1])
-      ends[e].forEach(
-        (m) => (m.visible = !(e * cam.position.x > CAR.L / 2 + 0.2)),
-      ); // 끝 벽 바깥에서 보면 숨김
-    for (const s of [-1, 1])
-      walls[s].visible = !(s * cam.position.z > CAR.W / 2 + 0.3); // 바깥쪽에서 보면 해당 벽 숨김
+    // 카메라 거리에 따라 지붕 표시
+    updateRoof(cam.position.distanceTo(ctl.target));
+    const distance = cam.position.distanceTo(ctl.target);
+    // 카메라가 멀어지면 객차 앞뒤 벽 표시
+    for (const e of [-1, 1]) {
+      ends[e].forEach((m) => {
+        m.visible = distance > 25 || !(e * cam.position.x > CAR.L / 2 + 0.2);
+      });
+    }
+
+    // 가까이에서는 내부가 보이도록 벽 숨김
+    // 멀리에서는 외관이 보이도록 벽 표시
+    for (const s of [-1, 1]) {
+      walls[s].visible =
+        distance > 25 || !(s * cam.position.z > CAR.W / 2 + 0.3);
+    }
     renderer.render(scene, cam);
   })();
 }
