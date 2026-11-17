@@ -379,7 +379,7 @@ function fit() {
       ? new THREE.Vector3(9.4, 17.7, 0)
       : new THREE.Vector3(0, 11, 13.8); // 세로(모바일)=위에서 / 가로(PC)=비스듬히
   const d =
-    (portrait ? Math.max(22.7, 10.3 / a) : Math.max(11, 18 / (t * a))) * 1.08;
+    (portrait ? Math.max(17.5, 8.0 / a) : Math.max(8.5, 14 / (t * a))) * 1.0;
   cam.position.copy(
     dir
       .normalize()
