@@ -12,6 +12,31 @@
 
 ---
 
+## 2026-11-17 — 역무원 검표 이벤트 확장 구현 (F-09b)
+
+**한 일**
+- 좌석 상태 판별 함수 `getPlayerSeatState()` 추가
+  - `own_seat` / `other_seat` / `free_seat` / `standing` / `free_rider` 5분기
+- `showTicket()` 좌석 상태별 반응 분기
+  - **본인 지정석**: "확인했습니다. 편안한 여행 되세요!" + 가끔 인사 대사
+  - **타인 지정석 임시 착석**: "지정석은 N번입니다. 안내해 드릴까요?" → 1.6초 후 선택 모달
+  - **자유석**: "좋은 여행 되세요!" (정상 통과)
+  - **통로 대기**: 지정석 번호 안내 + 화살표 자동 표시
+  - **무임승차**: 기존 강제 퇴장 흐름 유지
+- 역무원 인사 대사 3종 추가 (`CONDUCTOR_GREETINGS`), 90초 쿨다운·45% 확률
+- `#seatGuideModal` 신규 팝업: "자리 안내받기" → 화살표 표시 / "괜찮습니다" → 닫기
+- `openTicket()` 에 "다른 승객의 지정석에 착석 중" 힌트 텍스트 추가
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/features/conductor.js` | `getPlayerSeatState`, `showTicket` 분기, `acceptSeatGuide`, `declineSeatGuide`, `_maybeGreet` 추가 |
+| `index.html` | `#seatGuideModal` 추가 |
+| `js/ui/ui.js` | `sgYes`·`sgNo` 버튼 이벤트 연결 |
+
+---
+
 ## 2026-11-17 — UI 디자인 개선: 이름표·말풍선·좌석 번호
 
 **한 일**

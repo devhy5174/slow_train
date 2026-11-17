@@ -26,9 +26,10 @@ function buildUI() {
   initModals(); initSoundUI(); initTicketUI();
 }
 
-// 표 검사/숨는 곳/퇴장 팝업의 버튼 이벤트 연결
+// 표 검사/지정석 안내/숨는 곳/퇴장 팝업의 버튼 이벤트 연결
 function initModals() {
   $('tkShow').onclick = showTicket; $('tkNone').onclick = noTicket;
+  $('sgYes').onclick = acceptSeatGuide; $('sgNo').onclick = declineSeatGuide;
   $('nkYes').onclick = () => { $('nkModal').hidden = true; if (pendingNook) enterNook(pendingNook); };
   $('nkNo').onclick = () => { $('nkModal').hidden = true; pendingNook = null; };
   $('endBtn').onclick = () => location.reload();

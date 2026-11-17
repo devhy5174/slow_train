@@ -1,11 +1,26 @@
 /* =====================================================
-   9. 승무원 표 검사 (conductor.js)
+   9. 역무원 표 검사 (conductor.js)
    흐름: 등장 → 통로 이동 → 플레이어와 같은 라인에서 멈춰 검표 팝업
-         → [보여주기] 인사 후 계속 이동 / [표 없음] 5초 카운트다운 후 강제 퇴장
+         → 좌석 상태별 반응 분기 → 계속 이동
    임의 규칙: 숨어 있는(hide) 플레이어는 검표하지 않음
+
+   좌석 상태별 반응 (getPlayerSeatState 참고):
+     own_seat   → 정상 통과 + 가끔 인사 대사
+     other_seat → 지정석 번호 안내 + 자리 안내 선택 모달
+     free_seat  → 정상 통과
+     standing   → 지정석 번호 안내 + 자리 찾기 화살표 자동 표시
+     free_rider → 기존 강제 퇴장 흐름 유지
    ===================================================== */
 
 const INSPECT_GAP = 60; // 승무원이 다시 등장하는 간격(초)
+
+// 검표 성공 후 가끔 사용하는 따뜻한 인사 대사 (쿨다운 적용)
+const CONDUCTOR_GREETINGS = [
+  '오늘은 창밖 풍경이 참 좋네요.',
+  '느린 기차에서는 서두르지 않으셔도 됩니다.',
+  '편안한 여행 되시길 바랍니다.',
+];
+let _lastGreetedAt = -Infinity; // 마지막 인사 시각 (ms) — 90초 쿨다운
 
 // 승무원 생성(모자 쓴 파란 제복). 처음엔 숨겨 두고 conductorTick이 등장시킴(입장 약 25초 뒤)
 function makeConductor() {
@@ -13,46 +28,128 @@ function makeConductor() {
   C.g.visible = false; C.active = false; C.timer = 25; C.dir = -1; C.speed = 0.9; C.mode = 'walk'; C.pause = 0;
 }
 
-// 승무원 스케줄(매 프레임): 등장 → 통로 이동 → 같은 라인에서 멈춰 검표 → 인사하고 계속 이동 → 퇴장 → 일정 시간 뒤 반대편에서 재등장
+// 승무원 스케줄(매 프레임): 등장 → 이동 → 같은 라인에서 멈춰 검표 → 계속 이동 → 퇴장
 function conductorTick(dt) {
-  // 아직 등장 전: 대기 시간이 끝나면 한쪽 문에서 등장
   if (!C.active) {
     if ((C.timer -= dt) > 0) return;
     C.active = true; C.g.visible = true; C.g.position.set(-C.dir * 7.7, 0, 0); C.path = [{ x: C.dir * 7.7, z: 0 }];
     C.checked = false; C.mode = 'walk'; C.pause = 0; speak(C, '승차권 검사 시간입니다~', 4); return;
   }
-  if (C.mode === 'popup') { animate(C, false, dt); return; } // 표 팝업 대기 중에는 멈춰 있음
-  // 잠깐 멈춤(검표 직전/인사 중): 끝나면 검표 팝업 열기
+  if (C.mode === 'popup') { animate(C, false, dt); return; }
   if (C.pause > 0) { C.pause -= dt; animate(C, false, dt); if (C.pause <= 0 && C.mode === 'ask') { C.mode = 'popup'; openTicket(); } return; }
   const m = stepPath(C, dt); animate(C, m, dt);
-  // 플레이어와 같은 라인(x)에서 만나면 검표 시작(숨어 있거나 이미 퇴장 카운트 중이면 건너뜀)
   if (!C.checked && !GameState.kick && P.state !== 'hide' && Math.abs(C.g.position.x - P.g.position.x) < 0.9) {
     C.checked = true; C.mode = 'ask'; C.pause = 1.5; GameState.inspecting = true; P.path = []; cancelRes(P);
     Object.keys(keys).forEach(k => keys[k] = false); speak(C, '표 검사하겠습니다.', 3); return;
   }
-  // 반대편 끝에 도착하면 퇴장하고 다음 등장까지 대기(방향 반전)
   if (!C.path.length) { C.active = false; C.g.visible = false; C.timer = INSPECT_GAP; C.dir *= -1; }
 }
 
-// 표 검사 팝업 열기: 가진 표 목록(무임승차면 비어 있음) + '표 없음' 버튼. 표를 선택해야 '보여주기'가 켜짐
+// ----- 좌석 상태 판별 -----
+
+// 플레이어의 현재 좌석 상태를 반환
+// own_seat: 본인 지정석 착석 / other_seat: 타인 지정석 임시 착석
+// free_seat: 자유석 착석   / standing: 통로 대기  / free_rider: 무임승차
+function getPlayerSeatState() {
+  if (!GameState.hasTicket) return 'free_rider';
+  if (P.state !== 'sit' || !P.seat) return 'standing';
+  if (P.seat.seatType === 'free') return 'free_seat';
+  if (GameState.ticket && P.seat.id === GameState.ticket.seatId) return 'own_seat';
+  return 'other_seat'; // 타인 지정석에 임시 착석 중
+}
+
+// ----- 표 검사 팝업 -----
+
+// 표 검사 팝업 열기: 가진 표 목록(무임승차면 비어 있음) + 현재 좌석 상태 힌트
 function openTicket() {
   const list = $('tkList'); list.innerHTML = ''; $('tkShow').disabled = true;
-  if (!GameState.hasTicket) list.innerHTML = '<p>가지고 있는 표가 없어요.</p>';
-  else {
-    // 발급된 승차권의 지정석 번호 포함 (가상 승차권, 결제 없음)
+  if (!GameState.hasTicket) {
+    list.innerHTML = '<p>가지고 있는 표가 없어요.</p>';
+  } else {
     const seatText = GameState.ticket ? ` · ${GameState.ticket.displayNum}번 지정석` : '';
     const label = `🎫 승차권 · 서울 → 부산 · ${GameState.carId}호차${seatText} (가상)`;
     const b = document.createElement('button'); b.className = 'tk'; b.textContent = label;
     b.onclick = () => { b.classList.toggle('on'); $('tkShow').disabled = !b.classList.contains('on'); };
     list.appendChild(b);
+    // 타인 지정석 임시 착석 중이면 작은 힌트 표시
+    if (getPlayerSeatState() === 'other_seat') {
+      const hint = document.createElement('p');
+      hint.style.cssText = 'font-size:12px;color:var(--sub);margin:6px 0 0;';
+      hint.textContent = '(현재 다른 승객의 지정석에 착석 중)';
+      list.appendChild(hint);
+    }
   }
   $('tkModal').hidden = false;
 }
 
-// '보여주기': 표를 확인받고 승무원이 인사한 뒤 계속 지나감
-function showTicket() { $('tkModal').hidden = true; GameState.inspecting = false; C.mode = 'walk'; C.pause = 1.5; speak(C, '확인 감사합니다. 좋은 여행 되세요!', 4); }
+// '보여주기': 좌석 상태별 반응 분기 후 승무원 계속 이동
+function showTicket() {
+  $('tkModal').hidden = true;
+  GameState.inspecting = false;
+  C.mode = 'walk'; C.pause = 1.5;
 
-// '표 없음': 승무원 안내 말풍선 + 화면 중앙 5초 카운트다운 → 강제 퇴장
+  const state = getPlayerSeatState();
+
+  if (state === 'own_seat') {
+    // 정상 통과 + 가끔 따뜻한 인사 대사
+    speak(C, '확인했습니다. 편안한 여행 되세요!', 4);
+    _maybeGreet();
+
+  } else if (state === 'other_seat') {
+    // 지정석 안내 + 1.6초 뒤 선택 모달 표시
+    const n = GameState.ticket ? GameState.ticket.displayNum : '?';
+    speak(C, `지정석은 ${n}번입니다. 안내해 드릴까요?`, 5);
+    setTimeout(() => {
+      if (!GameState.ended && P.state === 'sit') {
+        $('seatGuideNum').textContent = `${n}번`;
+        $('seatGuideModal').hidden = false;
+      }
+    }, 1600);
+
+  } else if (state === 'free_seat') {
+    // 자유석은 그냥 통과
+    speak(C, '확인했습니다. 좋은 여행 되세요!', 4);
+
+  } else if (state === 'standing') {
+    // 통로 대기: 지정석 번호 안내 + 화살표 자동 표시
+    if (GameState.ticket) {
+      speak(C, `${GameState.ticket.displayNum}번 지정석으로 안내해 드릴게요.`, 4);
+      setTimeout(() => { if (!GameState.ended) highlightMySeat(); }, 1500);
+    } else {
+      speak(C, '확인했습니다. 좋은 여행 되세요!', 4);
+    }
+
+  } else {
+    speak(C, '확인했습니다. 좋은 여행 되세요!', 4);
+  }
+}
+
+// 가끔(45% 확률, 90초 쿨다운) 짧은 인사 대사 추가 (own_seat 정상 통과 시)
+function _maybeGreet() {
+  const now = performance.now();
+  if (now - _lastGreetedAt < 90000) return;
+  if (Math.random() > 0.45) return;
+  _lastGreetedAt = now;
+  setTimeout(() => { if (!GameState.ended) speak(C, pick(CONDUCTOR_GREETINGS), 4); }, 2800);
+}
+
+// ----- 지정석 안내 모달 처리 -----
+
+// '자리 안내받기': 내 자리 찾기 화살표 표시 + 안내 토스트
+function acceptSeatGuide() {
+  $('seatGuideModal').hidden = true;
+  highlightMySeat(); // ticket.js — 지정석 위 5초 화살표
+  if (GameState.ticket) toast(`${GameState.ticket.displayNum}번 지정석으로 안내해 드릴게요.`);
+}
+
+// '괜찮습니다': 모달 닫기만
+function declineSeatGuide() {
+  $('seatGuideModal').hidden = true;
+}
+
+// ----- 무임승차 처리 -----
+
+// '표 없음': 승무원 안내 말풍선 + 5초 카운트다운 → 강제 퇴장
 function noTicket() {
   $('tkModal').hidden = true; speak(C, '승차권이 없으시군요. 5초 후 하차 조치됩니다.', 5);
   C.mode = 'walk'; C.pause = 8; GameState.kick = { t: 5 }; $('kickN').textContent = '5'; $('kick').hidden = false;
@@ -67,10 +164,9 @@ function kickTick(dt) {
 
 // 접속 종료: 렌더/소리를 멈추고 종료 화면 표시(버튼으로 처음 화면 복귀)
 function endGame() {
-  // 강제 퇴장 시 승차권 반환 — GameState.ended 설정 전에 저장해야 saveNow()가 동작함
   GameState.ticket = null;
-  clearSeatArrow(); // 내 자리 찾기 화살표가 표시 중이면 제거
-  saveNow();        // ticketSeatId: null 로 저장 → 다음 접속 시 새 좌석 배정
+  clearSeatArrow();
+  saveNow();
   GameState.ended = true; GameState.kick = null; $('kick').hidden = true;
   clearInterval(RailSound.timer); if (RailSound.master) RailSound.master.gain.value = 0; if (RailSound.audio) RailSound.audio.pause();
   $('endScr').hidden = false;

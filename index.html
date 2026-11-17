@@ -72,6 +72,16 @@
     </div>
   </div>
 
+  <!-- 지정석 안내 팝업 (타인 지정석 임시 착석 → 검표 시 표시) -->
+  <div class="modal" id="seatGuideModal" hidden>
+    <div class="card">
+      <h2>💺 지정석 안내</h2>
+      <p>승무원: 승객님의 지정석은 <strong><span id="seatGuideNum"></span></strong>입니다.</p>
+      <p>지정석으로 안내해 드릴까요?</p>
+      <div class="row"><button id="sgYes">자리 안내받기</button><button id="sgNo" class="free">괜찮습니다</button></div>
+    </div>
+  </div>
+
   <!-- 숨는 곳(의자 틈) 발견 팝업 -->
   <div class="modal" id="nkModal" hidden>
     <div class="card">
