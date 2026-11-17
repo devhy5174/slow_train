@@ -287,8 +287,7 @@ function showTicket() {
     // 자유석: 정상 통과
     speak(C, "확인했습니다. 좋은 여행 되세요!", 4);
   } else if (state === "standing") {
-    // 통로 대기: 지정석 번호 안내 + 화살표 자동 표시
-    // [향후] 5초 UI에서 버튼 미클릭 후 자동 통과 케이스와 동일 처리
+    // 통로 대기: 지정석 번호 안내 + 황금 경로 점선 + 자동 이동
     if (GameState.ticket) {
       speak(
         C,
@@ -296,7 +295,7 @@ function showTicket() {
         4,
       );
       setTimeout(() => {
-        if (!GameState.ended) highlightMySeat();
+        if (!GameState.ended) startSeatGuidance();
       }, 1500);
     } else {
       speak(C, "확인했습니다. 좋은 여행 되세요!", 4);
@@ -322,10 +321,10 @@ function _maybeGreet() {
 // other_seat 케이스에서 1.6초 후 표시되는 선택 팝업 처리
 // [Supabase SYNC-4] 이 UI는 검표 대상자에게만 표시. 타 승객에겐 렌더 안 함.
 
-// '자리 안내받기': 내 자리 찾기 화살표 표시 + 안내 토스트
+// '자리 안내받기': 황금 점선 경로 + 자동 이동
 function acceptSeatGuide() {
   $("seatGuideModal").hidden = true;
-  highlightMySeat(); // ticket.js — 지정석 위 5초 화살표
+  startSeatGuidance(); // ticket.js — 황금 경로 점선 + 자동 이동
   if (GameState.ticket)
     toast(`${GameState.ticket.displayNum}번 지정석으로 안내해 드릴게요.`);
 }
@@ -363,6 +362,7 @@ function kickTick(dt) {
 function endGame() {
   GameState.ticket = null;
   clearSeatArrow();
+  clearSeatGuidance(); // 황금 경로 점선도 정리
   saveNow(); // GameState.ended 설정 전에 호출해야 saveNow()가 동작함
   GameState.ended = true;
   GameState.kick = null;
