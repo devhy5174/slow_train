@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Supabase 환경변수는 Netlify 대시보드 > Site settings > Environment variables에서 설정하세요:
+#   SUPABASE_URL = https://your-project.supabase.co
+#   SUPABASE_KEY = your-anon-public-key

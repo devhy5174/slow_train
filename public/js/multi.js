@@ -1,0 +1,177 @@
+/* =====================================================
+   15. 멀티플레이 (multi.js)
+   Supabase Realtime Presence + Broadcast 기반
+   - Presence : 접속자 목록 관리 (접속·퇴장 추적)
+   - Broadcast: 위치·방향·상태 10fps 동기화 (저지연)
+   회원가입·DB 테이블 불필요 — Realtime 채널만 사용합니다.
+   ===================================================== */
+
+const Multi = (() => {
+
+  // 원격 플레이어 맵: peerId → Actor 객체
+  const peers = {};
+  let _channel = null;
+  let _myId    = null;
+  let _enabled = false;
+
+  // 원격 플레이어용 색상 팔레트 (내 캐릭터·베타 NPC와 시각적으로 구분)
+  const PALETTES = [
+    { shirt: 0x4a90d9, hair: 0x2c1810, skin: 0xffd9b3, pants: 0x2d4a6b },
+    { shirt: 0x7bc88a, hair: 0x5a3426, skin: 0xf0c090, pants: 0x3a4a2b },
+    { shirt: 0xe8a034, hair: 0x1a1a2e, skin: 0xffd9b3, pants: 0x4a2b1a },
+    { shirt: 0xd44fa0, hair: 0x3c2a1a, skin: 0xf5c8a0, pants: 0x2a2a4a },
+    { shirt: 0x9b59b6, hair: 0x4a3426, skin: 0xffe0b3, pants: 0x1a3a2a },
+    { shirt: 0xe74c3c, hair: 0x2a1a0a, skin: 0xf0c890, pants: 0x2a3a4a },
+  ];
+  let _paletteIdx = 0;
+
+  // ---- 내부 헬퍼 ----
+
+  // 원격 플레이어 캐릭터 생성 (npc: true → saveNow·brain 호출 안 됨)
+  function _spawnPeer(peerId, name) {
+    if (peers[peerId] || peerId === _myId) return;
+    const pal = PALETTES[_paletteIdx % PALETTES.length];
+    _paletteIdx++;
+    const a = mkActor(`peer_${peerId}`, name || '승객', { ...pal, npc: true });
+    a.g.position.set(0, 0, 0);
+    a._moving = false;
+    peers[peerId] = a;
+  }
+
+  // 원격 플레이어 캐릭터 제거 및 점유 좌석 해제
+  function _removePeer(peerId) {
+    const a = peers[peerId];
+    if (!a) return;
+    if (a.state === 'sit' && a.seat && GameState.occ[a.seat.id] === a.id)
+      delete GameState.occ[a.seat.id];
+    scene.remove(a.g);
+    delete peers[peerId];
+    _updateHud();
+  }
+
+  // HUD 승객 수 텍스트 갱신
+  function _updateHud() {
+    const remoteCount = Object.keys(peers).length;
+    const total = 1 + remoteCount + NPC_DEFS.length;
+    const ticket = GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음(무임승차)';
+    const remotePart = remoteCount > 0 ? ` · 실제 승객 ${remoteCount}명` : '';
+    $('hc').textContent = `승객 ${total}명 (베타 승객 ${NPC_DEFS.length}명 포함${remotePart}) · ${ticket}`;
+  }
+
+  // ---- 공개 API ----
+
+  // 입장 직후 1회 호출: Supabase 채널에 연결하고 Presence 등록
+  async function connect(name, carId) {
+    // 환경변수 없으면 싱글플레이 모드로 조용히 진행
+    if (!window.SUPABASE_URL || !window.SUPABASE_KEY) {
+      console.info('[Multi] Supabase 환경변수 없음 — 싱글플레이 모드');
+      return;
+    }
+    if (typeof supabase === 'undefined') {
+      console.warn('[Multi] Supabase SDK 로드 실패');
+      return;
+    }
+
+    // 각 플레이어는 고유 UUID로 식별 (로그인 불필요)
+    _myId = crypto.randomUUID();
+
+    const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY, {
+      realtime: { params: { eventsPerSecond: 10 } },
+    });
+
+    // 채널 이름은 객차 ID 기반으로 분리 (다른 객차 플레이어와 섞이지 않음)
+    _channel = sb.channel(`train_car_${carId}`, {
+      config: {
+        broadcast: { self: false },   // 내 브로드캐스트는 수신 안 함
+        presence:  { key: _myId },
+      },
+    });
+
+    // Presence sync: 채널 현재 상태 전체 갱신 (최초 연결 시 기존 접속자 처리)
+    _channel.on('presence', { event: 'sync' }, () => {
+      const state = _channel.presenceState();
+      for (const [id, presences] of Object.entries(state)) {
+        if (id !== _myId && !peers[id]) _spawnPeer(id, presences[0]?.name);
+      }
+      // 목록에서 사라진 접속자 제거
+      for (const id of Object.keys(peers)) {
+        if (!state[id]) _removePeer(id);
+      }
+      _updateHud();
+    });
+
+    // Presence join: 새 접속자 입장
+    _channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      if (key === _myId) return;
+      _spawnPeer(key, newPresences[0]?.name);
+      _updateHud();
+    });
+
+    // Presence leave: 접속 종료
+    _channel.on('presence', { event: 'leave' }, ({ key }) => {
+      _removePeer(key);
+    });
+
+    // Broadcast move: 원격 플레이어 위치·상태 수신
+    _channel.on('broadcast', { event: 'move' }, ({ payload }) => {
+      if (!payload || payload.id === _myId) return;
+      const a = peers[payload.id];
+      if (!a) return;
+      applyActorSnapshot(a, payload);
+      a._moving = !!payload.moving;
+    });
+
+    // 채널 구독 시작 → 완료 후 내 Presence 등록
+    _channel.subscribe(async (status) => {
+      if (status !== 'SUBSCRIBED') return;
+      _enabled = true;
+      await _channel.track({ name, x: 0, z: 0, ry: 0, state: 'idle' });
+      console.info('[Multi] Supabase Realtime 연결 완료');
+    });
+  }
+
+  // 매 프레임 호출: 원격 플레이어 애니메이션 + 내 위치 브로드캐스트
+  let _sendTimer = 0;
+  function tick(dt) {
+    if (!_enabled || !_channel) return;
+
+    // 강제 퇴장 시 연결 종료 (1회)
+    if (GameState.ended) { disconnect(); return; }
+
+    // 원격 플레이어 걷기 애니메이션 갱신
+    for (const a of Object.values(peers)) {
+      if (a.state !== 'sit' && a.state !== 'hide') animate(a, a._moving, dt);
+    }
+
+    // 10fps로 throttle해서 브로드캐스트
+    _sendTimer += dt;
+    if (_sendTimer < 0.1 || !P) return;
+    _sendTimer = 0;
+
+    const snap = actorSnapshot(P);
+    // 키 입력 또는 경로 추종 중이면 moving = true
+    const moving = P.path.length > 0 || !!(
+      keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD ||
+      keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight
+    );
+    _channel.send({
+      type: 'broadcast',
+      event: 'move',
+      payload: { id: _myId, ...snap, moving },
+    });
+  }
+
+  // 접속 종료 시 호출 (강제 퇴장·탭 닫기)
+  async function disconnect() {
+    if (!_channel) return;
+    _enabled = false;
+    for (const id of Object.keys(peers)) _removePeer(id);
+    await _channel.unsubscribe();
+    _channel = null;
+  }
+
+  // 탭 닫기·새로고침 시에도 Presence 해제
+  window.addEventListener('pagehide', () => disconnect());
+
+  return { connect, tick, disconnect };
+})();

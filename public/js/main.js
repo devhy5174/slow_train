@@ -22,5 +22,6 @@ $('form').addEventListener('submit', e => {
   $('hc').textContent = `승객 ${1 + NPC_DEFS.length}명 (베타 승객 ${NPC_DEFS.length}명 포함) · ${GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음(무임승차)'}`;
   Object.assign(RailSound, { muted: !!(settings && settings.muted), volume: settings && typeof settings.volume === 'number' ? settings.volume : 0.6 });
   build(saved); RailSound.start(); // 입장 버튼 클릭 직후 시작(브라우저 자동재생 정책)
+  Multi.connect(name, GameState.carId); // Supabase Realtime 멀티플레이 연결
   if (GameState.hasTicket) showMyTicket(); // 승차권 구매자에게 지정석 안내 팝업
 });

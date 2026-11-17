@@ -1,5 +1,30 @@
 # DEVLOG — 개발 일지
 
+## 2026-11-17 — 멀티플레이 1단계: Supabase Realtime 연결 + 위치 동기화
+
+**변경 파일**
+- `public/js/multi.js` (신규): Supabase Realtime Presence + Broadcast 모듈
+- `index.html`: Supabase UMD CDN + `<!-- ENV_INJECT -->` 주석 + multi.js 스크립트 태그 추가
+- `public/js/game.js`: `update()`에 `Multi.tick(dt)` 추가
+- `public/js/main.js`: 입장 직후 `Multi.connect(name, carId)` 호출 추가
+- `vite.config.js`: `inject-env` 플러그인으로 HTML에 환경변수 인라인 주입
+- `netlify.toml` (신규): 빌드 커맨드 + publish 디렉토리 설정
+- `.env` (신규, gitignore): Supabase URL·Key 로컬 보관
+- `.gitignore`: `.env` 항목 추가
+
+**구현 내용**
+- 회원가입·DB 테이블 없이 Supabase Realtime Presence + Broadcast만 사용
+- Presence: 접속자 입장/퇴장 감지 → 원격 캐릭터 자동 생성·제거
+- Broadcast: 10fps throttle로 위치·방향·착석 상태 동기화
+- 원격 플레이어는 `npc: true` Actor로 생성 → 기존 베타 NPC와 구분, saveNow·brain 호출 안 함
+- Supabase 환경변수 없으면 조용히 싱글플레이 모드로 fallback
+- HUD 승객 수에 실제 접속자 수 반영
+- `pagehide` 이벤트로 탭 닫기 시 Presence 해제
+
+**다음 할 일**
+- 착석·말풍선·승무원 검표 동기화 (2단계)
+- 객차 배정 로직 (Supabase DB 활용, 최대 24명)
+
 ## 2026-11-17 — 객차 하부 구조 추가 (대차·바퀴·철로)
 
 **한 일**

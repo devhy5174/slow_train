@@ -118,6 +118,10 @@
 <!-- ===== 외부 라이브러리 (CDN) ===== -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<!-- Supabase 환경변수 주입 (vite.config.js의 inject-env 플러그인이 이 주석을 대체) -->
+<!-- ENV_INJECT -->
 
 <!--
   ===== 게임 스크립트 (순서 중요!) =====
@@ -138,6 +142,7 @@
 <script src="js/ui/ui.js"></script>                <!-- 12. 하단 버튼/팝업 UI -->
 <script src="js/features/ticket.js"></script>      <!-- 12.5. 승차권 발급·표시 -->
 <script src="js/game.js"></script>                <!-- 13. 게임 루프/시작/카메라 -->
+<script src="js/multi.js"></script>               <!-- 15. 멀티플레이 (Supabase Realtime) -->
 <script src="js/main.js"></script>                <!-- 14. 시작 화면 → 게임 진입 -->
 </body>
 </html>
