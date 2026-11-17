@@ -12,6 +12,37 @@
 
 ---
 
+## 2026-11-17 — 좌석 번호 Sprite → 등받이 부착 Mesh로 교체
+
+**한 일**
+- 기존 `THREE.Sprite` (카메라 추적 빌보드) 방식을 `THREE.Mesh + PlaneGeometry` (고정 Mesh)로 완전 교체
+- 번호판을 벤치 그룹의 자식 오브젝트로 추가 → 의자와 함께 움직이고 회전
+- 머리받침 뒷면(-x 면, x=-0.45)에서 2mm 바깥(x=-0.452)에 부착하여 z-fighting 방지
+- `benchGroups` 맵을 추가하여 `bench()` 호출 시 그룹 참조를 저장하고 `buildSeatLabels()`에서 활용
+- 텍스트 방향 수학적 검증: `rotation.y = -π/2`로 벤치 로컬 -x 방향을 바라봄
+  - yaw=0 좌석: 세계 -x 방향, yaw=π 좌석: 세계 +x 방향 → 각각 뒤에서 접근하는 플레이어에게 정면 가독성 ✓
+- 텍스트 스타일: 투명 배경 + 짙은 남색/초록/황금 텍스트 (아이보리 헤드레스트에 프린트된 느낌)
+- `plane.raycast = () => {}` 적용 → 좌석 클릭 레이캐스트에 간섭 없음
+- 비밀공간(nook) 힌트용 초록빛 Sprite 추가 및 색상 수정
+
+**문제 → 해결**
+- 문제: 기존 Sprite가 항상 카메라를 향해 회전 → "공중에 뜬 직사각형" 느낌
+- 해결: Mesh로 교체하여 의자와 같은 방향에 고정, 벤치 자식 오브젝트로 등록
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/world/scene.js` | `benchGroups` 맵 추가, `bench()`에 저장, `makeSeatLabelMat` → MeshBasicMaterial, `buildSeatLabels` → Mesh+PlaneGeometry로 교체 |
+| `js/game.js` | `buildSeatLabels` 주석 갱신 |
+| `js/features/nook.js` | 힌트 구체 Sprite 색상 초록으로 변경 |
+
+**다음에 할 일**
+- 실제 카메라 시점에서 번호 가독성 확인 (특히 측면 접근 시)
+- UI 디자인 개선 작업 계속
+
+---
+
 ## 2026-11-17 — 검표 5초 자동 판정 구현
 
 **한 일**

@@ -12,14 +12,21 @@ function box(parent, w, h, d, color, x, y, z, shadow = true) {
   m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
 }
 
+// 벤치 그룹 참조 저장 맵 (buildSeatLabels에서 자식 번호판 추가용)
+const benchGroups = {};
+// 머리받침 메쉬 저장 맵 — 키: `${benchId}:${0|1}` (0=z<0, 1=z>0)
+const headrestMeshes = {};
+
 // 2인용 파란 좌석(벤치) 1개 생성 — BENCHES 데이터 기준으로 배치
 function bench(b) {
   const g = new THREE.Group(); g.position.set(b.x, 0, b.side * 1.6); g.rotation.y = b.yaw;
+  benchGroups[b.id] = g; // 번호판 추가를 위해 저장
   box(g, 0.62, 0.36, 1.78, NAVY, 0, 0.18, 0); // 좌석 받침
   for (const z of [-0.45, 0.45]) {
     box(g, 0.66, 0.16, 0.84, BLUE, 0.02, 0.44, z);                      // 방석
     box(g, 0.16, 0.9, 0.84, BLUE, -0.3, 0.95, z).rotation.z = 0.1;      // 등받이(살짝 기울임)
-    box(g, 0.18, 0.28, 0.55, 0xf4efe3, -0.36, 1.5, z);                  // 머리받침 흰 덮개
+    const hr = box(g, 0.18, 0.28, 0.55, 0xf4efe3, -0.36, 1.5, z);       // 머리받침 흰 덮개
+    headrestMeshes[`${b.id}:${z > 0 ? 1 : 0}`] = hr; // 내 자리 강조용으로 참조 보관
   }
   box(g, 0.5, 0.1, 0.08, NAVY, 0, 0.62, 0); // 두 좌석 사이 팔걸이
   scene.add(g);
@@ -65,50 +72,71 @@ function shell() {
 }
 
 // ----- 좌석 번호 레이블 -----
-// seatId → THREE.Sprite 맵. refreshSeatLabels()에서 황금색 갱신에 사용
+// seatId → Mesh 맵. refreshSeatLabels()에서 황금색 갱신에 사용
 const seatLabelMeshes = {};
 
-// 좌석 번호 레이블용 캔버스 머티리얼 생성
+// 좌석 번호 레이블용 캔버스 머티리얼 생성 (MeshBasicMaterial)
 // style: 'reserved'(짙은 남색), 'free'(짙은 초록), 'mine'(황금)
-// 무궁화호 감성: 작은 번호판처럼 등받이 상단에 부착된 느낌
+// 투명 배경 + 텍스트만 → 머리받침 아이보리 면에 직접 프린트된 느낌
 function makeSeatLabelMat(text, style) {
-  const cv = document.createElement('canvas'); cv.width = 80; cv.height = 34;
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
   const ctx = cv.getContext('2d');
-  if (style === 'mine')      ctx.fillStyle = 'rgba(148,98,8,0.92)';
-  else if (style === 'free') ctx.fillStyle = 'rgba(40,88,58,0.80)';
-  else                       ctx.fillStyle = 'rgba(29,47,79,0.82)';
-  ctx.beginPath(); ctx.roundRect(2, 2, 76, 30, 8); ctx.fill();
-  ctx.fillStyle = '#f0e8d8'; // 아이보리 텍스트
-  ctx.font = `bold ${style === 'free' ? 15 : 18}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, 40, 17);
-  return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false });
+  ctx.clearRect(0, 0, 128, 64);
+  if (style === 'mine')      ctx.fillStyle = '#c8a010';
+  else if (style === 'free') ctx.fillStyle = '#1a5244';
+  else                       ctx.fillStyle = '#1d2f4f';
+  ctx.font = `bold ${style === 'free' ? 30 : 40}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 32);
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false });
 }
 
-// 모든 좌석 머리받침 위에 번호 레이블 스프라이트 생성 (buildWorld 에서 호출)
-// 머리받침 로컬 위치 (-0.36, 1.5, z) → 월드 x 오프셋: -0.36·cos(yaw)
-// 헤드레스트 상단(y≈1.64) 바로 위 y=1.75에 작은 번호판 형태로 배치
+// 모든 좌석 머리받침 뒷면(-x 면)에 번호 Mesh 를 벤치 자식으로 추가 (buildWorld 에서 호출)
+// 벤치 로컬 좌표 기준: 머리받침 중심 (-0.36, 1.5, zLocal), 뒷면 x = -0.45
+// rotation.y = +π/2 → 벤치 로컬 +x 방향을 바라봄(머리받침 앞면)
+// 텍스트 방향: yaw=0 → 세계 +x, yaw=π → 세계 -x (각각 앞에서 보는 플레이어 기준 정면)
 function buildSeatLabels() {
   SEATS.forEach(s => {
-    const lx = s.x - 0.36 * Math.cos(s.yaw);
-    const sp = new THREE.Sprite(makeSeatLabelMat(
-      s.seatType === 'free' ? '자유' : String(s.displayNum),
-      s.seatType === 'free' ? 'free' : 'reserved'
-    ));
-    sp.scale.set(0.26, 0.11, 1); // 소형 번호판 (기존 0.42×0.21의 약 60%)
-    sp.position.set(lx, 1.75, s.z); // 헤드레스트 바로 위 (기존 1.9에서 하향)
-    scene.add(sp);
-    seatLabelMeshes[s.id] = sp;
+    const benchId = s.id.replace(/-\d+$/, '');
+    const g = benchGroups[benchId];
+    if (!g) return;
+    const zLocal = s.z - g.position.z; // 벤치 그룹 로컬 z 오프셋
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.28, 0.14),
+      makeSeatLabelMat(
+        s.seatType === 'free' ? '자유' : String(s.displayNum),
+        s.seatType === 'free' ? 'free' : 'reserved'
+      )
+    );
+    // 머리받침 앞면(x=-0.27)에서 2mm 바깥에 부착하여 z-fighting 방지
+    plane.position.set(-0.268, 1.5, zLocal);
+    plane.rotation.y = Math.PI / 2; // 벤치 로컬 +x 방향을 바라봄(머리받침 앞면)
+    plane.userData.isSeatLabel = true;
+    plane.raycast = () => {}; // 좌석 클릭 레이캐스트에 간섭 방지
+    g.add(plane);
+    seatLabelMeshes[s.id] = plane;
   });
 }
 
-// 플레이어 지정석 레이블을 황금색으로 갱신 (assignTicket 후 호출)
+// 플레이어 지정석 레이블 황금색 + 머리받침 강조색으로 갱신 (assignTicket 후 호출)
 function refreshSeatLabels() {
   if (!GameState.ticket) return;
-  const sp = seatLabelMeshes[GameState.ticket.seatId];
-  if (!sp) return;
-  const old = sp.material;
-  sp.material = makeSeatLabelMat(String(GameState.ticket.displayNum), 'mine');
-  old.map.dispose(); old.dispose();
+  // 번호 레이블 황금색
+  const plane = seatLabelMeshes[GameState.ticket.seatId];
+  if (plane) {
+    const old = plane.material;
+    plane.material = makeSeatLabelMat(String(GameState.ticket.displayNum), 'mine');
+    old.map.dispose(); old.dispose();
+  }
+  // 머리받침 색상 강조 — 무궁화호 카펫 느낌의 따뜻한 적색
+  const s = SEATS.find(seat => seat.id === GameState.ticket.seatId);
+  if (!s) return;
+  const benchId = s.id.replace(/-\d+$/, '');
+  const g = benchGroups[benchId];
+  if (!g) return;
+  const zLocal = s.z - g.position.z;
+  const hr = headrestMeshes[`${benchId}:${zLocal > 0 ? 1 : 0}`];
+  if (hr) hr.material = mat(0xc44433); // 내 자리만 따뜻한 적색
 }
 
 // ----- 창밖 풍경 -----

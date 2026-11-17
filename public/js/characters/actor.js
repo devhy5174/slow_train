@@ -23,13 +23,13 @@ function makeChar(shirt, label, o) {
   g.userData = { aL: limb(-0.24, 0.82, 0.11, 0.36, shirt), aR: limb(0.24, 0.82, 0.11, 0.36, shirt),
                  lL: limb(-0.09, 0.44, 0.14, 0.42, o.pants), lR: limb(0.09, 0.44, 0.14, 0.42, o.pants) };
   // 이름표: 텍스트 너비에 맞춘 최소 크기 캔버스, 둥근 모서리, 아이보리 글씨
-  // NPC는 약간 밝은 남색, 플레이어는 짙은 남색으로 구분
+  // NPC는 남색, 플레이어는 따뜻한 적갈색으로 명확히 구분
   const _mc = document.createElement('canvas').getContext('2d');
   _mc.font = 'bold 20px sans-serif';
   const _nlw = Math.min(Math.ceil(_mc.measureText(label).width) + 26, 210), _nlh = 36;
   const cv = document.createElement('canvas'); cv.width = _nlw; cv.height = _nlh;
   const nc = cv.getContext('2d');
-  nc.fillStyle = o.npc ? 'rgba(55,75,110,0.78)' : 'rgba(20,37,65,0.86)';
+  nc.fillStyle = o.npc ? 'rgba(55,75,110,0.78)' : 'rgba(140,55,30,0.92)';
   nc.beginPath(); nc.roundRect(2, 2, _nlw - 4, _nlh - 4, 9); nc.fill();
   nc.fillStyle = '#f0e8d8'; nc.font = 'bold 20px sans-serif'; nc.textAlign = 'center'; nc.textBaseline = 'middle'; nc.fillText(label, _nlw / 2, _nlh / 2);
   const _spSy = 0.14, _spSx = (_nlw / 256) * 0.9; // 스프라이트 크기: 텍스트 길이 비례, 최대 약 0.74

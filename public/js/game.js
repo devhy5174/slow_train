@@ -22,7 +22,13 @@ function update(dt) {
   } else moving = stepPath(P, dt);
   if (P.state !== 'sit') animate(P, moving, dt);
   for (const n of NPCS) { brain(n, dt); const m = stepPath(n, dt); if (n.state !== 'sit') animate(n, m, dt); }
-  vendorTick(dt); updateShop(); heldTick(dt); conductorTick(dt); kickTick(dt);
+  vendorTick(dt); updateShop(); heldTick(dt); conductorTick(dt); kickTick(dt); nookTick();
+  // 카메라 타겟을 플레이어 위치로 이동(줌·회전 오프셋 유지)
+  if (ctl && P) {
+    const dx = P.g.position.x - ctl.target.x, dz = P.g.position.z - ctl.target.z;
+    ctl.target.x += dx; ctl.target.z += dz; ctl.target.y = 0.6;
+    cam.position.x += dx; cam.position.z += dz;
+  }
   $('bExit').hidden = P.state !== 'hide'; // 숨어 있을 때만 '나가기' 버튼 표시
   SCN.forEach(o => { o.m.position.x -= TRAIN * o.k * dt; if (o.m.position.x < -48) o.m.position.x += o.p; }); // 창밖 풍경 흘러가기 + 반복
   separate();
@@ -76,7 +82,7 @@ function buildWorld() {
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.16, 0.85), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0, depthWrite: false }));
     m.position.set(s.x, 0.54, s.z); m.userData = s; scene.add(m); hits.push(m);
   });
-  buildSeatLabels(); // 머리받침 위 번호 레이블 스프라이트 추가
+  buildSeatLabels(); // 머리받침 뒷면에 번호 Mesh 부착
 }
 
 // 플레이어·베타 NPC·판매원·승무원·숨는 곳·UI 생성
