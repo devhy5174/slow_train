@@ -10,11 +10,14 @@ export default defineConfig(({ mode }) => {
         // index.html의 <!-- ENV_INJECT --> 주석을 Supabase 설정 인라인 스크립트로 치환
         name: 'inject-env',
         transformIndexHtml(html) {
+          // loadEnv는 .env 파일만 읽으므로, Netlify process.env도 fallback으로 사용
+          const url = env.SUPABASE_URL || process.env.SUPABASE_URL || '';
+          const key = env.SUPABASE_KEY || process.env.SUPABASE_KEY || '';
           return html.replace(
             '<!-- ENV_INJECT -->',
             `<script>
-  window.SUPABASE_URL = ${JSON.stringify(env.SUPABASE_URL || '')};
-  window.SUPABASE_KEY = ${JSON.stringify(env.SUPABASE_KEY || '')};
+  window.SUPABASE_URL = ${JSON.stringify(url)};
+  window.SUPABASE_KEY = ${JSON.stringify(key)};
 </script>`
           )
         },
