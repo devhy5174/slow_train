@@ -36,14 +36,19 @@ function update(dt) {
   } else moving = stepPath(P, dt);
   if (P.state !== "sit") animate(P, moving, dt);
   for (const n of NPCS) {
-    brain(n, dt);
-    const m = stepPath(n, dt);
-    if (n.state !== "sit") animate(n, m, dt);
+    if (Multi.isHost()) {
+      brain(n, dt);
+      const m = stepPath(n, dt);
+      if (n.state !== "sit") animate(n, m, dt);
+    } else {
+      // 비호스트: brain·이동 계산 없이 받은 moving 상태로 애니메이션만 처리
+      if (n.state !== "sit") animate(n, n._npcMoving || false, dt);
+    }
   }
   if (Multi.isHost()) vendorTick(dt); // 호스트만 판매원 AI 실행 (멀티: 비호스트는 위치 수신)
   updateShop();
   heldTick(dt);
-  conductorTick(dt);
+  if (Multi.isHost()) conductorTick(dt); // 호스트만 역무원 AI 실행 (비호스트는 Multi.tick에서 애니메이션)
   kickTick(dt);
   nookTick();
   // 카메라 타겟을 플레이어 위치로 이동(줌·회전 오프셋 유지)

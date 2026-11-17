@@ -25,10 +25,19 @@ const Multi = (() => {
   ];
   let _paletteIdx = 0;
 
-  // 판매원 동기화용 상태 (호스트만 V를 직접 운영하고 비호스트에 브로드캐스트)
-  let _vMoving     = false; // 비호스트: 받은 판매원 이동 여부
-  let _vSendTimer  = 0;     // 호스트: 판매원 상태 전송 타이머
-  let _vWasActive  = false; // 판매원 등장/퇴장 변화 감지
+  // 판매원 동기화용 상태
+  let _vMoving     = false;
+  let _vSendTimer  = 0;
+  let _vWasActive  = false;
+
+  // 베타 NPC 동기화용 상태
+  let _npcSendTimer = 0;
+  let _npcSynced    = false; // 비호스트: 최초 수신 여부 (초기 배치 초기화 1회용)
+
+  // 역무원 동기화용 상태
+  let _cMoving     = false;
+  let _cSendTimer  = 0;
+  let _cWasActive  = false;
 
   // ---- 내부 헬퍼 ----
 
@@ -103,6 +112,55 @@ const Multi = (() => {
     return allIds.sort()[0] === _myId;
   }
 
+  // 호스트 NPC 착석 상태 적용: 로컬 플레이어 지정석 보호, NPC끼리 충돌 방지
+  function _applyNpcSit(n, seatId) {
+    if (n.state === 'sit' && n.seat?.id === seatId) return;
+    if (GameState.ticket && seatId === GameState.ticket.seatId) return; // 내 지정석 침범 방지
+    if (GameState.occ[seatId] === P?.id) return; // 내가 앉아있는 자리 침범 방지
+    const s = SEATS.find(q => q.id === seatId);
+    if (!s) return;
+    if (n.state === 'sit') standUp(n);
+    // 그 자리의 다른 NPC를 먼저 비움
+    if (GameState.occ[s.id]) {
+      const other = NPCS.find(m => m.id === GameState.occ[s.id]);
+      if (other) standUp(other); else delete GameState.occ[s.id];
+    }
+    if (!GameState.occ[s.id]) sitDown(n, s);
+  }
+
+  // NPC 전체 현재 상태를 한 번 전송
+  function _sendNpcStates() {
+    if (!_channel) return;
+    _channel.send({
+      type: 'broadcast', event: 'npc_states',
+      payload: {
+        npcs: NPCS.map((n, idx) => ({
+          idx,
+          x: n.g.position.x, z: n.g.position.z, ry: n.g.rotation.y,
+          state: n.state, seatId: n.seat ? n.seat.id : null,
+          moving: n.state !== 'sit' && n.path.length > 0,
+          bubText: n.bub ? (n.bubText || null) : null,
+          bubSec: n.bub ? n.bubT : 0,
+        })),
+      },
+    });
+  }
+
+  // 역무원 현재 상태를 한 번 전송
+  function _sendConductorState() {
+    if (!_channel || !C) return;
+    _channel.send({
+      type: 'broadcast', event: 'conductor_state',
+      payload: {
+        active: C.active, visible: C.g.visible,
+        x: C.g.position.x, z: C.g.position.z, ry: C.g.rotation.y,
+        moving: C.active && !C.pause && C.path.length > 0,
+        bubText: C.bub ? (C.bubText || null) : null,
+        bubSec: C.bub ? C.bubT : 0,
+      },
+    });
+  }
+
   // 판매원 현재 상태를 채널에 한 번 전송 (신규 접속자 대상 또는 주기 브로드캐스트)
   function _sendVendorState() {
     if (!_channel || !V) return;
@@ -170,7 +228,11 @@ const Multi = (() => {
       _spawnPeer(key, newPresences[0]?.name);
       _updateHud();
       _sendFullState();
-      if (_isHost()) _sendVendorState(); // 호스트라면 판매원 현재 상태도 즉시 알려줌
+      if (_isHost()) {
+        _sendVendorState();    // 판매원 현재 위치
+        _sendNpcStates();      // 베타 NPC 현재 위치·착석
+        _sendConductorState(); // 역무원 현재 위치
+      }
     });
 
     // Presence leave: 접속 종료
@@ -216,6 +278,62 @@ const Multi = (() => {
       } else {
         _vMoving = false;
       }
+    });
+
+    // npc_states: 호스트가 전송하는 베타 승객 위치·상태 → 비호스트에서만 적용
+    _channel.on('broadcast', { event: 'npc_states' }, ({ payload }) => {
+      if (_isHost() || !payload?.npcs) return;
+      if (!_npcSynced) {
+        // 첫 수신 시 로컬 NPC 초기 배치 초기화 → 호스트 상태로 덮어씀
+        _npcSynced = true;
+        NPCS.forEach(n => { if (n.state === 'sit') standUp(n); });
+      }
+      for (const snap of payload.npcs) {
+        const n = NPCS[snap.idx];
+        if (!n) continue;
+        n._npcMoving = snap.moving;
+        if (snap.state === 'sit' && snap.seatId) {
+          _applyNpcSit(n, snap.seatId);
+        } else {
+          if (n.state === 'sit') standUp(n);
+          n.g.position.x = snap.x;
+          n.g.position.z = snap.z;
+          n.g.rotation.y = snap.ry;
+        }
+        // NPC 말풍선 동기화
+        if (snap.bubText && (!n.bub || n.bubText !== snap.bubText))
+          speak(n, snap.bubText, Math.max(0.5, snap.bubSec || 3));
+      }
+    });
+
+    // conductor_state: 호스트가 전송하는 역무원 위치·상태 → 비호스트에서만 적용
+    _channel.on('broadcast', { event: 'conductor_state' }, ({ payload }) => {
+      if (_isHost() || !C) return;
+      C.active = payload.active;
+      C.g.visible = !!payload.visible;
+      if (payload.active) {
+        if (payload.x  != null) C.g.position.x = payload.x;
+        if (payload.z  != null) C.g.position.z = payload.z;
+        if (payload.ry != null) C.g.rotation.y = payload.ry;
+        _cMoving = !!payload.moving;
+        if (payload.bubText && (!C.bub || C.bubText !== payload.bubText))
+          speak(C, payload.bubText, Math.max(0.5, payload.bubSec || 3));
+      } else {
+        _cMoving = false;
+      }
+    });
+
+    // conduct_inspect: 역무원이 나에게 접근 → 나만 검표 팝업 표시, 나머지는 애니메이션만
+    _channel.on('broadcast', { event: 'conduct_inspect' }, ({ payload }) => {
+      if (payload.targetId !== _myId) return;
+      if (GameState.kick || P.state === 'hide' || GameState.inspecting) return;
+      C.checked = true;
+      GameState.inspecting = true;
+      P.path = [];
+      cancelRes(P);
+      Object.keys(keys).forEach(k => keys[k] = false);
+      speak(C, '표 검사하겠습니다.', 3);
+      setTimeout(() => { if (!GameState.ended && GameState.inspecting) openTicket(); }, 1500);
     });
 
     // Broadcast move: 위치·방향·착석 상태 적용
@@ -294,6 +412,43 @@ const Multi = (() => {
       vu.aL.rotation.x = vu.aR.rotation.x = -1.2;
       animate(V, _vMoving, dt);
       if (_vMoving && V.wheels) V.wheels.forEach(w => w.rotation.x += dt * 5);
+    }
+
+    // 베타 NPC 상태 동기화 (호스트만 200ms마다 전송)
+    if (_isHost()) {
+      _npcSendTimer += dt;
+      if (_npcSendTimer >= 0.2) { _npcSendTimer = 0; _sendNpcStates(); }
+    }
+
+    // 역무원 상태 동기화 (호스트만 전송 / 비호스트는 받은 상태로 애니메이션)
+    if (_isHost()) {
+      _cSendTimer += dt;
+      const cJustChanged = C.active !== _cWasActive;
+      _cWasActive = C.active;
+      if (cJustChanged || (C.active && _cSendTimer >= 0.2)) {
+        _cSendTimer = 0;
+        _sendConductorState();
+      }
+      // 피어 플레이어 검표: 역무원이 가까이 가면 해당 플레이어에게 conduct_inspect 전송
+      if (C.active && C.mode === 'walk') {
+        if (!C._peerChecked) C._peerChecked = {};
+        for (const [peerId, peerActor] of Object.entries(peers)) {
+          if (!C._peerChecked[peerId] &&
+              peerActor.state !== 'hide' && !GameState.kick &&
+              Math.abs(C.g.position.x - peerActor.g.position.x) < 0.9) {
+            C._peerChecked[peerId] = true;
+            C.pause = Math.max(C.pause, 5); // 검표 시간 동안 멈춤
+            speak(C, '표 검사하겠습니다.', 3);
+            _channel.send({ type: 'broadcast', event: 'conduct_inspect',
+              payload: { targetId: peerId } });
+            break; // 한 번에 한 명씩만 처리
+          }
+        }
+      }
+      if (!C.active) C._peerChecked = {}; // 역무원 퇴장 시 다음 등장을 위해 초기화
+    } else if (C.active) {
+      // 비호스트: conductorTick 미실행 → 애니메이션 직접 처리
+      animate(C, _cMoving, dt);
     }
 
     // 100ms마다 전송 시도
