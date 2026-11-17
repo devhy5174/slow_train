@@ -105,46 +105,54 @@ function getPlayerSeatState() {
 //   서버가 "검표 시작" 이벤트를 emit → 클라이언트는 UI만 표시.
 //   타이머 만료도 서버 기준 → 클라이언트는 서버 "판정 완료" 이벤트 수신 후 처리.
 function openTicket() {
-  _clearInspectTimer(); // 혹시 중복 호출됐을 때 기존 타이머 정리
+  _clearInspectTimer();
 
-  // 카운트다운 숫자 표시 요소
+  // ---- UI 구성 ----
   const list = $('tkList'); list.innerHTML = '';
+
+  // 카운트다운 숫자 (즉시 "5초" 표시)
   _inspectCountEl = document.createElement('p');
-  _inspectCountEl.style.cssText = 'font-size:22px;font-weight:700;color:var(--red);margin:4px 0 6px;';
+  _inspectCountEl.style.cssText = 'font-size:22px;font-weight:700;color:var(--red);margin:4px 0 2px;';
+  _inspectCountEl.textContent = '5초 안에 제출해 주세요';
   list.appendChild(_inspectCountEl);
 
-  // 타인 지정석 임시 착석 중이면 작은 힌트
+  // 자동 확인 안내 문구
+  const autoNote = document.createElement('p');
+  autoNote.style.cssText = 'font-size:12px;color:var(--sub);margin:0 0 4px;';
+  autoNote.textContent = '5초 내 미제출 시 자동으로 확인됩니다';
+  list.appendChild(autoNote);
+
+  // 타인 지정석 임시 착석 중이면 추가 힌트
   if (GameState.hasTicket && getPlayerSeatState() === 'other_seat') {
     const hint = document.createElement('p');
-    hint.style.cssText = 'font-size:12px;color:var(--sub);margin:0;';
+    hint.style.cssText = 'font-size:12px;color:var(--sub);margin:4px 0 0;';
     hint.textContent = '(현재 다른 승객의 지정석에 착석 중)';
     list.appendChild(hint);
   }
 
-  // 버튼: '승차권 제출하기' (항상 활성, 클릭 즉시 판정)
   $('tkShow').textContent = '승차권 제출하기';
   $('tkShow').disabled = false;
-  $('tkNone').hidden = true; // 자동 판정이므로 불필요
-
+  $('tkNone').hidden = true;
   $('tkModal').hidden = false;
 
-  // 1초마다 카운트다운 갱신
-  let remaining = 5;
-  const _tick = () => {
-    if (_inspectCountEl) _inspectCountEl.textContent = `${remaining}초 안에 제출해 주세요`;
-    remaining--;
-  };
-  _tick(); // 즉시 첫 번째 표시
+  // ---- 카운트다운 (1초마다 갱신) ----
+  // remaining=4부터 시작 → 1초 뒤 "4초", …, 4초 뒤 "1초", 5초 뒤 자동 판정
+  // setTimeout 하나로만 최종 트리거 → setInterval/setTimeout 경쟁 조건 없음
+  let remaining = 4;
   _inspectInterval = setInterval(() => {
-    if (remaining > 0) { _tick(); }
-    else if (_inspectCountEl) { _inspectCountEl.textContent = '자동 확인 중...'; }
+    if (remaining > 0) {
+      if (_inspectCountEl) _inspectCountEl.textContent = `${remaining}초 안에 제출해 주세요`;
+      remaining--;
+    } else {
+      // 카운트다운 종료: 인터벌 자체를 정리하고 단일 타이머로 최종 판정
+      clearInterval(_inspectInterval); _inspectInterval = null;
+      if (_inspectCountEl) _inspectCountEl.textContent = '자동 확인 중...';
+      _inspectTimer = setTimeout(() => {
+        _inspectTimer = null;
+        if (!GameState.ended) processTicketCheck();
+      }, 600); // "자동 확인 중..." 잠깐 보여주고 판정
+    }
   }, 1000);
-
-  // 5초 후 자동 판정
-  _inspectTimer = setTimeout(() => {
-    _inspectTimer = null;
-    if (!GameState.ended) processTicketCheck();
-  }, 5000);
 }
 
 // 타이머와 카운트다운 인터벌을 모두 정리하는 내부 헬퍼
@@ -208,6 +216,8 @@ function showTicket() {
       if (!GameState.ended && P.state === 'sit') {
         $('seatGuideNum').textContent = `${n}번`;
         $('seatGuideModal').hidden = false;
+        // 3초 후 자동 닫힘 (응답 없을 경우)
+        setTimeout(() => { $('seatGuideModal').hidden = true; }, 3000);
       }
     }, 1600);
 
