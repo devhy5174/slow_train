@@ -119,13 +119,14 @@ function requestSeatYield() {
   const npc = NPCS.find(n => n.id === occupantId);
   if (!npc) return false;
 
-  // 사과 말풍선 표시 → 짧은 지연 후 일어나 걷기
-  speak(npc, '앗 죄송합니다!', 3.5);
+  // 플레이어 말풍선 → 1초 뒤 NPC 사과 → 1.2초 뒤 일어나 걷기
+  speak(P, '여기 제자린데요.', 2.5);
+  setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
   setTimeout(() => {
     if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
       standUp(npc);
       goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
-      npc.timer = rnd(8, 15); // 한동안 통로를 걸어다닌 뒤 다시 착석 시도
+      npc.timer = rnd(8, 15);
     }
   }, 1200);
 
