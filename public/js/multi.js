@@ -32,6 +32,15 @@ const Multi = (() => {
 
   // ---- 내부 헬퍼 ----
 
+  // 원격 플레이어 숨기 적용: 해당 nookId 위치로 hideIn
+  function _applyHide(a, nookId) {
+    if (a.state === 'hide' && a.nook?.id === nookId) return; // 이미 같은 곳에 숨어 있음
+    const n = NOOKS.find(q => q.id === nookId);
+    if (!n) return;
+    if (a.state === 'sit') standUp(a);
+    hideIn(a, n);
+  }
+
   // 원격 플레이어 착석 적용: 로컬 플레이어·NPC 자리 침범 불가
   // NPC를 비우지 않는 이유: 각 클라이언트의 NPC 배치가 독립적이라
   // 강제로 비우면 로컬 GameState.occ가 깨져 로컬 플레이어가 그 자리에 앉을 수 있게 됨
@@ -217,9 +226,13 @@ const Multi = (() => {
       if (payload.state === 'sit' && payload.seatId) {
         // 착석 상태 적용
         _applySit(a, payload.seatId);
+      } else if (payload.state === 'hide' && payload.nookId) {
+        // 숨기 상태 적용
+        _applyHide(a, payload.nookId);
       } else {
-        // 이동 중 / 서 있는 상태: 착석 중이었으면 먼저 일어남
+        // 이동 중 / 서 있는 상태: 이전 상태에서 먼저 빠져나옴
         if (a.state === 'sit') standUp(a);
+        if (a.state === 'hide') exitNook(a);
         a.g.position.x = payload.x ?? a.g.position.x;
         a.g.position.z = payload.z ?? a.g.position.z;
         if (payload.ry != null) a.g.rotation.y = payload.ry;

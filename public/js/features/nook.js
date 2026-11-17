@@ -85,8 +85,8 @@ function nookTick() {
 // 숨는 곳을 터치하면 '들어가 볼까?' 팝업을 띄움(표 검사 중이거나 이미 점유 시 무시)
 function askNook(n) {
   if (GameState.inspecting) return;
-  // 이미 누군가 숨어 있으면 입장 불가 (싱글플레이 + 향후 멀티플레이 대비)
-  const occupied = [P, ...NPCS].some(
+  // 이미 누군가 숨어 있으면 입장 불가 (로컬 플레이어·NPC·원격 플레이어 모두 체크)
+  const occupied = [P, ...NPCS, ...Multi.getPeers()].some(
     (a) => a.state === "hide" && a.nook && a.nook.id === n.id,
   );
   if (occupied) {
