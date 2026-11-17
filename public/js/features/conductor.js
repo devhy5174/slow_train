@@ -6,7 +6,6 @@
    ===================================================== */
 
 const INSPECT_GAP = 60; // 승무원이 다시 등장하는 간격(초)
-const TICKET = { label: '🎫 승차권 · 서울 → 부산 · 3호차 (가상)' }; // 가상 승차권(결제 없음)
 
 // 승무원 생성(모자 쓴 파란 제복). 처음엔 숨겨 두고 conductorTick이 등장시킴(입장 약 25초 뒤)
 function makeConductor() {
@@ -40,7 +39,10 @@ function openTicket() {
   const list = $('tkList'); list.innerHTML = ''; $('tkShow').disabled = true;
   if (!GameState.hasTicket) list.innerHTML = '<p>가지고 있는 표가 없어요.</p>';
   else {
-    const b = document.createElement('button'); b.className = 'tk'; b.textContent = TICKET.label;
+    // 발급된 승차권의 지정석 번호 포함 (가상 승차권, 결제 없음)
+    const seatText = GameState.ticket ? ` · ${GameState.ticket.displayNum}번 지정석` : '';
+    const label = `🎫 승차권 · 서울 → 부산 · ${GameState.carId}호차${seatText} (가상)`;
+    const b = document.createElement('button'); b.className = 'tk'; b.textContent = label;
     b.onclick = () => { b.classList.toggle('on'); $('tkShow').disabled = !b.classList.contains('on'); };
     list.appendChild(b);
   }

@@ -34,6 +34,7 @@
     <span id="hint">WASD/방향키 이동 · 바닥 터치 이동 · 좌석 터치 착석 · 드래그 회전 · 휠/핀치 확대</span>
     <button id="bSay" class="alt">말풍선</button>
     <button id="bShop" class="alt" disabled>말걸기</button>
+    <button id="bTicket" class="alt" hidden>🎫 승차권 확인</button>
     <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기">🔊</button>
     <input id="vol" type="range" min="0" max="1" step="0.05" aria-label="볼륨">
     <button id="bDrop" class="alt" hidden>간식 버리기</button>
@@ -45,6 +46,20 @@
   <div class="panel" id="phr" hidden></div>
   <div class="panel" id="menu" hidden></div>
   <div id="toast" hidden></div>
+
+  <!-- 내 승차권 확인 팝업 (입장 직후 자동 표시 + 버튼으로 재확인) -->
+  <div class="modal" id="myTicketModal" hidden>
+    <div class="card">
+      <h2>🎫 승차권</h2>
+      <div class="ticket-info">
+        <div class="ticket-row"><span>이름</span><strong id="myTicketName"></strong></div>
+        <div class="ticket-row"><span>객차</span><strong id="myTicketCar"></strong></div>
+        <div class="ticket-row"><span>지정석</span><strong id="myTicketSeat"></strong></div>
+      </div>
+      <p class="ticket-note">가상 승차권 · 결제 없음</p>
+      <div class="row"><button id="myTicketClose">확인</button></div>
+    </div>
+  </div>
 
   <!-- 승차권 검사 팝업 -->
   <div class="modal" id="tkModal" hidden>
@@ -110,6 +125,7 @@
 <script src="js/features/nook.js"></script>        <!-- 10. 숨는 곳 -->
 <script src="js/features/vendor.js"></script>      <!-- 11. 간식 판매원 -->
 <script src="js/ui/ui.js"></script>                <!-- 12. 하단 버튼/팝업 UI -->
+<script src="js/features/ticket.js"></script>      <!-- 12.5. 승차권 발급·표시 -->
 <script src="js/game.js"></script>                <!-- 13. 게임 루프/시작/카메라 -->
 <script src="js/main.js"></script>                <!-- 14. 시작 화면 → 게임 진입 -->
 </body>

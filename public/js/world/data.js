@@ -24,10 +24,12 @@ for (const side of [-1, 1]) {
 
 // 좌석 목록: 벤치 1개당 좌석 2개(예: N1L-1, TLA-2). 총 32석
 // seatType: 'reserved' = 지정석 (일반 2인석, 24개) / 'free' = 자유석 (중앙 테이블석, 8개)
+// displayNum: 화면 표시용 번호 (지정석 1~24, 자유석 null)
 //
 // 향후 승차권 시스템에서 각 좌석의 상태는 GameState.occ로 관리:
 //   현재: occ[seatId] = actorId
 //   향후: occ[seatId] = { reservedBy: userId | null, occupiedBy: actorId | null }
+let _reservedCount = 0;
 const SEATS = BENCHES.flatMap(b => [0, 1].map(i => ({
   id: `${b.id}-${i + 1}`,
   x: b.x,
@@ -35,6 +37,7 @@ const SEATS = BENCHES.flatMap(b => [0, 1].map(i => ({
   yaw: b.yaw,
   zone: b.zone,
   seatType: b.zone === 'normal' ? 'reserved' : 'free',
+  displayNum: b.zone === 'normal' ? ++_reservedCount : null,
 })));
 
 // 좌석 점유 테이블은 GameState.occ(state.js)에서 관리합니다.

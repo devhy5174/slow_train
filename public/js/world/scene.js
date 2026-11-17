@@ -64,6 +64,51 @@ function shell() {
     box(scene, 0.15, 0.6, 1.3, CREAM, e * L / 2, 2.3, 0));
 }
 
+// ----- 좌석 번호 레이블 -----
+// seatId → THREE.Sprite 맵. refreshSeatLabels()에서 황금색 갱신에 사용
+const seatLabelMeshes = {};
+
+// 좌석 번호 레이블용 캔버스 머티리얼 생성
+// style: 'reserved'(연회색), 'free'(초록), 'mine'(황금)
+function makeSeatLabelMat(text, style) {
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  if (style === 'mine')     ctx.fillStyle = '#a0720a';
+  else if (style === 'free') ctx.fillStyle = '#3d7a5a';
+  else                       ctx.fillStyle = 'rgba(220,220,220,0.88)';
+  ctx.beginPath(); ctx.roundRect(2, 2, 124, 60, 10); ctx.fill();
+  ctx.fillStyle = style === 'reserved' ? '#1d2f4f' : '#ffffff';
+  ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 32);
+  return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false });
+}
+
+// 모든 좌석 머리받침 위에 번호 레이블 스프라이트 생성 (buildWorld 에서 호출)
+// 머리받침 로컬 위치 (-0.36, 1.5, z) → 월드 x 오프셋: -0.36·cos(yaw)
+function buildSeatLabels() {
+  SEATS.forEach(s => {
+    const lx = s.x - 0.36 * Math.cos(s.yaw);
+    const sp = new THREE.Sprite(makeSeatLabelMat(
+      s.seatType === 'free' ? '자유' : String(s.displayNum),
+      s.seatType === 'free' ? 'free' : 'reserved'
+    ));
+    sp.scale.set(0.42, 0.21, 1);
+    sp.position.set(lx, 1.9, s.z);
+    scene.add(sp);
+    seatLabelMeshes[s.id] = sp;
+  });
+}
+
+// 플레이어 지정석 레이블을 황금색으로 갱신 (assignTicket 후 호출)
+function refreshSeatLabels() {
+  if (!GameState.ticket) return;
+  const sp = seatLabelMeshes[GameState.ticket.seatId];
+  if (!sp) return;
+  const old = sp.material;
+  sp.material = makeSeatLabelMat(String(GameState.ticket.displayNum), 'mine');
+  old.map.dispose(); old.dispose();
+}
+
 // ----- 창밖 풍경 -----
 const TRAIN = 3; // 열차 속도(풍경이 지나가는 속도): 천천히
 

@@ -62,7 +62,7 @@ function initRenderer() {
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.62; ground.receiveShadow = true; scene.add(ground);
 }
 
-// 객차·창밖 풍경·좌석·테이블·좌석 터치 영역 생성
+// 객차·창밖 풍경·좌석·테이블·좌석 터치 영역·좌석 번호 레이블 생성
 function buildWorld() {
   shell(); scenery(); BENCHES.forEach(bench); [-1, 1].forEach(s => table(s * 1.6));
   // 좌석마다 보이지 않는 터치 영역(마우스를 올리면 노랗게 표시)
@@ -70,6 +70,7 @@ function buildWorld() {
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.16, 0.85), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0, depthWrite: false }));
     m.position.set(s.x, 0.54, s.z); m.userData = s; scene.add(m); hits.push(m);
   });
+  buildSeatLabels(); // 머리받침 위 번호 레이블 스프라이트 추가
 }
 
 // 플레이어·베타 NPC·판매원·승무원·숨는 곳·UI 생성
@@ -77,10 +78,12 @@ function spawnActors() {
   const nick = $('hn').textContent;
   P = mkActor('player', nick, { shirt: 0xe8553d, hair: 0x4a3426, skin: 0xffd9b3, pants: 0x3b4a6b });
   P.g.position.set(-6.6, 0, 0); P.g.rotation.y = Math.PI / 2;
-  // 베타 승객: 일부(3명)는 앉고 나머지는 통로를 걸음
+  // NPC 착석 전에 플레이어 지정석 먼저 배정 → NPC가 그 자리를 피해 앉음
+  assignTicket();
+  // 베타 승객: 일부(3명)는 앉고 나머지는 통로를 걸음 (플레이어 지정석 제외)
   NPC_DEFS.forEach((d, i) => {
     const n = mkActor('npc' + i, d.name, { ...d, npc: true }); NPCS.push(n);
-    const free = SEATS.filter(s => !GameState.occ[s.id]);
+    const free = SEATS.filter(s => !GameState.occ[s.id] && !(GameState.ticket && s.id === GameState.ticket.seatId));
     if (i < 3) sitDown(n, pick(free)); else { n.g.position.set(rnd(-4, 5), 0, rnd(-0.4, 0.4)); n.g.rotation.y = rnd(0, 6); }
   });
   makeVendor(); makeConductor(); makeNooks(); buildUI();
@@ -113,12 +116,21 @@ function initInput() {
     ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), cam);
     return ray.intersectObjects(hits)[0];
   };
-  // 마우스 호버: 빈 좌석을 노랗게 + 좌석 ID 툴팁 표시(터치 기기에서는 생략)
+  // 마우스 호버: 빈 좌석을 노랗게 + 좌석 번호·상태 툴팁 표시(터치 기기에서는 생략)
   dom.addEventListener('pointermove', e => {
     hits.forEach(m => m.material.opacity = 0); tip.style.display = 'none';
     if (e.pointerType !== 'mouse' || e.buttons) return;
     const h = pickSeat(e);
-    if (h && !GameState.occ[h.object.userData.id]) { h.object.material.opacity = 0.6; tip.textContent = h.object.userData.id; tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.style.display = 'block'; }
+    if (!h) return;
+    const s = h.object.userData;
+    const isOcc = !!GameState.occ[s.id];
+    if (!isOcc) h.object.material.opacity = 0.6; // 빈 자리만 노랗게
+    // 좌석 번호와 상태 조합 (내 자리 · 착석 중 · 비어 있음)
+    let tipText = s.seatType === 'free' ? '자유석' : `${s.displayNum}번석`;
+    if (GameState.ticket && GameState.ticket.seatId === s.id) tipText += ' · 내 자리';
+    else if (isOcc) tipText += ' · 착석 중';
+    tip.textContent = tipText;
+    tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.style.display = 'block';
   });
   // 클릭/탭 판정: 누른 위치와 뗀 위치가 거의 같을 때만 '클릭'(드래그 회전과 구분)
   let down = null;

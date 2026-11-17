@@ -23,7 +23,7 @@ function buildUI() {
   });
   // 하단 바 버튼 연결
   $('bSay').onclick = () => panel('phr'); $('bShop').onclick = openShop; $('bDrop').onclick = dropHeld; $('bExit').onclick = () => exitNook(P);
-  initModals(); initSoundUI();
+  initModals(); initSoundUI(); initTicketUI();
 }
 
 // 표 검사/숨는 곳/퇴장 팝업의 버튼 이벤트 연결

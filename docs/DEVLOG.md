@@ -12,6 +12,45 @@
 
 ---
 
+## 2026-11-17 — 승차권 발급 및 좌석 번호 표시 구현
+
+**한 일**
+- 승차권 구매 시 지정석(1~24번) 자동 배정 (`assignTicket`)
+- 입장 직후 승차권 팝업 자동 표시 (`#myTicketModal`)
+- 하단 바 `🎫 승차권 확인` 버튼 추가 (무임승차자 숨김)
+- 머리받침 위 좌석 번호 레이블 스프라이트 추가 (`buildSeatLabels`)
+  - 지정석: 연회색 배경 + 번호, 내 지정석: 황금색 배경
+  - 자유석: 초록 배경 + "자유"
+- 호버 툴팁 개선: 좌석 ID → `"5번석 · 내 자리"` / `"자유석 · 착석 중"` 등
+- 승무원 검표 팝업에 지정석 번호 포함 (`"1호차 · 7번 지정석 (가상)"`)
+- NPC 착석 전 플레이어 지정석 선점 → NPC 중복 착석 방지
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/state.js` | `ticket: null` 필드 추가 |
+| `js/world/data.js` | `displayNum: 1~24` 추가 (자유석 null) |
+| `js/world/scene.js` | `seatLabelMeshes`, `buildSeatLabels()`, `refreshSeatLabels()` 추가 |
+| `js/features/ticket.js` | **신규**: `assignTicket()`, `showMyTicket()`, `initTicketUI()` |
+| `js/features/conductor.js` | `TICKET` 상수 제거, `openTicket()` 동적 레이블로 교체 |
+| `js/game.js` | `buildWorld`에 `buildSeatLabels`, `spawnActors`에 `assignTicket` + NPC 필터, `initInput` 툴팁 개선 |
+| `js/ui/ui.js` | `initTicketUI()` 호출 추가 |
+| `js/main.js` | 입장 후 `showMyTicket()` 자동 호출 |
+| `index.html` | `#myTicketModal`, `#bTicket`, `ticket.js` 로드 추가 |
+| `css/style.css` | 승차권 팝업 레이아웃 스타일 추가 |
+
+**설계 결정**
+- 검표용 `#tkModal`과 확인용 `#myTicketModal`을 분리 → 두 흐름 독립 유지
+- `assignTicket()`은 `spawnActors()` 내에서 NPC 착석 전에 호출 → `GameState.occ`에는 미등록, NPC 필터로만 보호
+- `ticket.js`는 ui.js 뒤 game.js 앞에 로드 → `initTicketUI()`가 `buildUI()` 내에서 안전하게 호출됨
+- `roundRect` 사용: 구형 WebView(iOS 15 미만) 미지원 가능성 있으나 기능 동작에는 무관
+
+**검증**
+- `npm run build` 오류 없음
+
+---
+
 ## 2026-11-17 — 멀티플레이 확장 대비 상태 구조 정리
 
 **목적**

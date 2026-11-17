@@ -26,6 +26,12 @@ const GameState = {
   inspecting: false, // 승무원 검표 진행 중 (이동 입력·착석 클릭 차단)
   kick: null,        // 강제 퇴장 카운트다운 { t: 남은 초 } | null
 
+  // ----- 발급된 승차권 -----
+  // 승차권 구매 시에만 존재: { carId, seatId, displayNum }
+  // 무임승차 시 null, 객차 이동 시 반환 후 재발급
+  // 향후: Supabase에서 발급·유지·반환 처리
+  ticket: null,
+
   // ----- 좌석 점유 테이블 -----
   // 현재 구조: occ[seatId] = actorId
   //   - 플레이어·NPC 공용, 중복 착석 방지에 사용
