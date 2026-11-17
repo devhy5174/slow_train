@@ -27,18 +27,16 @@ const Multi = (() => {
 
   // ---- 내부 헬퍼 ----
 
-  // 원격 플레이어 착석 적용: 로컬 플레이어 자리 침범 불가, NPC는 비워줌
+  // 원격 플레이어 착석 적용: 로컬 플레이어·NPC 자리 침범 불가
+  // NPC를 비우지 않는 이유: 각 클라이언트의 NPC 배치가 독립적이라
+  // 강제로 비우면 로컬 GameState.occ가 깨져 로컬 플레이어가 그 자리에 앉을 수 있게 됨
   function _applySit(a, seatId) {
     if (a.state === 'sit' && a.seat?.id === seatId) return; // 이미 해당 자리 착석 중
     const s = SEATS.find(q => q.id === seatId);
     if (!s) return;
     const occupantId = GameState.occ[s.id];
     if (occupantId === P?.id) return; // 로컬 플레이어 자리 → 착석 거부
-    if (occupantId) {
-      // NPC가 점유 중이면 비워줌
-      const npc = NPCS.find(n => n.id === occupantId);
-      if (npc) standUp(npc);
-    }
+    if (occupantId && NPCS.some(n => n.id === occupantId)) return; // 베타 NPC 자리 → 착석 거부
     if (a.state === 'sit') standUp(a); // 다른 자리에 앉아 있었으면 먼저 일어남
     sitDown(a, s);
   }
