@@ -73,11 +73,11 @@ function initSoundUI() {
   initEarphoneUI();
 }
 
-// 이어폰 가야금 음악 — sounds/gayageum.mp4 파일을 반복 재생/정지
+// 이어폰 가야금 음악 재생/정지 + 볼륨 슬라이더
 const EarphoneMusic = { audio: null, playing: false };
 
 function initEarphoneUI() {
-  const btn = $('bEarphone');
+  const btn = $('bEarphone'), volEar = $('volEar');
   if (!btn) return;
 
   const syncBtn = () => { btn.textContent = EarphoneMusic.playing ? '🎵' : '🎧'; };
@@ -87,7 +87,7 @@ function initEarphoneUI() {
       // 첫 클릭 시 오디오 객체 생성 (브라우저 자동재생 정책: 클릭 후 생성해야 허용)
       EarphoneMusic.audio = new Audio('sounds/gugak-bgm.mp3');
       EarphoneMusic.audio.loop = true;
-      EarphoneMusic.audio.volume = 0.7;
+      EarphoneMusic.audio.volume = +volEar.value;
     }
     if (EarphoneMusic.playing) {
       EarphoneMusic.audio.pause();
@@ -100,6 +100,9 @@ function initEarphoneUI() {
     }
     syncBtn();
   };
+
+  // 슬라이더 조작 시 즉시 볼륨 반영
+  volEar.oninput = () => { if (EarphoneMusic.audio) EarphoneMusic.audio.volume = +volEar.value; };
 
   syncBtn();
 }

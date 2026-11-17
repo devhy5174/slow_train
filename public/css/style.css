@@ -91,14 +91,8 @@ html, body {
 /* 조작 힌트 문구는 한 줄을 다 차지하며 가운데 정렬 */
 #hint { flex-basis: 100%; text-align: center; font-size: 12px; opacity: .85; }
 
-/* 우하단 정보(ⓘ) 버튼 */
-#bInfo {
-  position: absolute; right: 14px; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  width: 32px; height: 32px; border-radius: 50%; border: 0;
-  background: rgba(29,47,79,.7); color: #fff; font-size: 15px; font-weight: 700;
-  cursor: pointer; line-height: 1; z-index: 4;
-}
-#bInfo:hover { background: rgba(29,47,79,.95); }
+/* 이어폰 볼륨 슬라이더 — 기차 볼륨 슬라이더보다 살짝 짧게 */
+#volEar { width: 70px; accent-color: #57a0c9; }
 
 /* 좌석 ID 툴팁(마우스 호버) */
 #tip {
