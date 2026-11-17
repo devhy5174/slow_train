@@ -11,15 +11,29 @@
      - GameState.ticket 은 서버 응답값으로 채움
    ===================================================== */
 
-// 지정석(seatType === 'reserved') 중 NPC와 플레이어 미착석 좌석을 무작위 배정
+// 지정석 배정: 저장된 좌석 복구 우선, 실패 시 새 무작위 배정
+// savedSeatId: 이전 세션에서 저장된 ticketSeatId (같은 닉네임 재접속 시 전달)
 // spawnActors()에서 NPC 착석 전에 호출해야 NPC와 충돌하지 않음
-function assignTicket() {
+function assignTicket(savedSeatId) {
   if (!GameState.hasTicket) return; // 무임승차면 발급하지 않음
+
+  // 1순위: 저장된 지정석 복구 (새로고침·재접속 유예)
+  if (savedSeatId) {
+    const saved = SEATS.find(s => s.id === savedSeatId && s.seatType === 'reserved');
+    if (saved && !GameState.occ[saved.id]) {
+      GameState.ticket = { carId: GameState.carId, seatId: saved.id, displayNum: saved.displayNum };
+      refreshSeatLabels();
+      return;
+    }
+    // 저장된 좌석이 이미 점유됐으면 새 배정으로 넘어감
+  }
+
+  // 2순위: 빈 지정석 무작위 배정
   const available = SEATS.filter(s => s.seatType === 'reserved' && !GameState.occ[s.id]);
-  if (!available.length) return;   // 싱글플레이에서는 발생하지 않는 방어 코드
+  if (!available.length) return; // 싱글플레이에서는 발생하지 않는 방어 코드
   const seat = pick(available);
   GameState.ticket = { carId: GameState.carId, seatId: seat.id, displayNum: seat.displayNum };
-  refreshSeatLabels(); // 내 지정석 레이블 황금색으로 갱신
+  refreshSeatLabels();
 }
 
 // 내 승차권 팝업 표시 — 검표 중이거나 무임승차면 무시

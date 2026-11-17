@@ -67,6 +67,10 @@ function kickTick(dt) {
 
 // 접속 종료: 렌더/소리를 멈추고 종료 화면 표시(버튼으로 처음 화면 복귀)
 function endGame() {
+  // 강제 퇴장 시 승차권 반환 — GameState.ended 설정 전에 저장해야 saveNow()가 동작함
+  GameState.ticket = null;
+  clearSeatArrow(); // 내 자리 찾기 화살표가 표시 중이면 제거
+  saveNow();        // ticketSeatId: null 로 저장 → 다음 접속 시 새 좌석 배정
   GameState.ended = true; GameState.kick = null; $('kick').hidden = true;
   clearInterval(RailSound.timer); if (RailSound.master) RailSound.master.gain.value = 0; if (RailSound.audio) RailSound.audio.pause();
   $('endScr').hidden = false;

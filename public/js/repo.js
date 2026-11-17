@@ -15,13 +15,16 @@
 
 // 브라우저 localStorage 기반 저장소
 const LocalRepo = {
-  // ----- 프로필(닉네임·앉은 좌석·위치·객차) -----
-  // v2: carId 추가
+  // ----- 프로필(닉네임·승차권·앉은 좌석·위치·객차) -----
+  // v2: carId, ticketSeatId 추가
+  // 저장 형태: { nickname, carId, ticketSeatId, seatId, x, z, updatedAt }
+  //   ticketSeatId: 발급된 지정석 ID (무임승차·강제퇴장 시 null)
+  //                 새로고침 시 복구 시도, 좌석이 이미 점유됐으면 새 배정
+  //                 향후 Supabase에서 60초 유예 시간 + 서버 측 반환 처리 예정
   key: 'slowtrain:profile:v2',
   // 저장된 프로필 불러오기(없거나 깨졌으면 null)
   async loadProfile() { try { return JSON.parse(localStorage.getItem(this.key) || 'null'); } catch { return null; } },
   // 프로필 저장(저장 시각 updatedAt 자동 추가)
-  // 저장 형태: { nickname, carId, seatId, x, z, updatedAt }
   async saveProfile(p) { try { localStorage.setItem(this.key, JSON.stringify({ ...p, updatedAt: Date.now() })); } catch {} },
 
   // ----- 사운드 설정(음소거/볼륨) -----

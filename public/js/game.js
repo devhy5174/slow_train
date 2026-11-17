@@ -31,13 +31,14 @@ function update(dt) {
   $('stand').hidden = P.state !== 'sit'; // 앉아 있을 때만 '일어나기' 버튼 표시
 }
 
-// 현재 프로필(닉네임·객차·좌석·위치)을 Repo에 저장
+// 현재 프로필(닉네임·객차·좌석·승차권·위치)을 Repo에 저장
 function saveNow() {
   if (!P || GameState.ended) return;
   Repo.saveProfile({
     nickname: P.name,
     carId: GameState.carId,
     seatId: P.seat ? P.seat.id : null,
+    ticketSeatId: GameState.ticket ? GameState.ticket.seatId : null,
     x: P.g.position.x,
     z: P.g.position.z,
   });
@@ -74,12 +75,14 @@ function buildWorld() {
 }
 
 // 플레이어·베타 NPC·판매원·승무원·숨는 곳·UI 생성
-function spawnActors() {
+// profile: 저장된 프로필 (같은 닉네임일 때 티켓 복구 시도)
+function spawnActors(profile) {
   const nick = $('hn').textContent;
   P = mkActor('player', nick, { shirt: 0xe8553d, hair: 0x4a3426, skin: 0xffd9b3, pants: 0x3b4a6b });
   P.g.position.set(-6.6, 0, 0); P.g.rotation.y = Math.PI / 2;
-  // NPC 착석 전에 플레이어 지정석 먼저 배정 → NPC가 그 자리를 피해 앉음
-  assignTicket();
+  // 같은 닉네임으로 재접속하면 저장된 지정석 복구 시도, 다른 닉네임이면 새 배정
+  const savedTicketSeatId = (profile && profile.nickname === nick) ? profile.ticketSeatId : null;
+  assignTicket(savedTicketSeatId);
   // 베타 승객: 일부(3명)는 앉고 나머지는 통로를 걸음 (플레이어 지정석 제외)
   NPC_DEFS.forEach((d, i) => {
     const n = mkActor('npc' + i, d.name, { ...d, npc: true }); NPCS.push(n);
@@ -179,7 +182,7 @@ function startLoop() {
 
 // 게임 시작(입장 직후 1회 호출): 위 단계들을 순서대로 실행
 function build(profile) {
-  initRenderer(); buildWorld(); spawnActors(); restoreProfile(profile);
+  initRenderer(); buildWorld(); spawnActors(profile); restoreProfile(profile);
   initCamera(); initInput(); initAutoSave(); startLoop();
 }
 

@@ -12,6 +12,35 @@
 
 ---
 
+## 2026-11-17 — 승차권 유지 및 세션 복구 구현
+
+**한 일**
+- **새로고침 시 같은 좌석 복구**: 같은 닉네임으로 재접속하면 저장된 `ticketSeatId` 복구 시도. 좌석이 비어 있으면 그 자리 복구, 이미 점유됐으면 새 좌석 배정
+- **강제 퇴장 시 승차권 반환**: `endGame()` 에서 `GameState.ticket = null` + `saveNow()` 호출 (ended 설정 전) → 다음 접속 시 새 좌석 배정
+- **`saveNow()`에 ticketSeatId 추가**: 4초 자동저장·탭 종료(pagehide)·숨김(visibilitychange) 시 함께 저장
+- 다른 닉네임 접속 시 저장된 ticketSeatId를 적용하지 않음 (본인 확인)
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/game.js` | `saveNow()` ticketSeatId 포함, `spawnActors(profile)` 프로필 수신, `build(profile)` 연결 |
+| `js/features/ticket.js` | `assignTicket(savedSeatId)` — 복구 1순위, 새 배정 2순위 |
+| `js/features/conductor.js` | `endGame()` — ticket null 처리 → saveNow → ended 순서 |
+| `js/repo.js` | 프로필 필드 주석에 ticketSeatId 문서화 |
+
+**세션별 동작 정리**
+
+| 상황 | 결과 |
+|---|---|
+| 새로고침 (같은 닉네임, 승차권 구매) | 기존 지정석 복구 |
+| 새로고침 (같은 닉네임, 무임승차) | 티켓 없음 (hasTicket=false) |
+| 새로고침 (다른 닉네임) | 새 좌석 배정 |
+| 강제 퇴장 후 재접속 + 승차권 구매 | 새 좌석 배정 (반환됨) |
+| 탭 닫기/네트워크 끊김 | 티켓 유지 (향후 Supabase 60초 유예 처리 예정) |
+
+---
+
 ## 2026-11-17 — 내 자리 찾기: 황금빛 강조 → 3D 화살표로 교체
 
 **한 일**
