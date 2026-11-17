@@ -91,8 +91,31 @@ html, body {
 /* 조작 힌트 문구는 한 줄을 다 차지하며 가운데 정렬 */
 #hint { flex-basis: 100%; text-align: center; font-size: 12px; opacity: .85; }
 
-/* 이어폰 볼륨 슬라이더 — 기차 볼륨 슬라이더보다 살짝 짧게 */
-#volEar { width: 70px; accent-color: #57a0c9; }
+/* 소리 컨트롤 묶음 박스 (기차음 + 이어폰) */
+.sound-group {
+  display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; flex-shrink: 0;
+  background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px; padding: 5px 9px;
+}
+.sound-group input[type=range] { width: 62px; }
+.sound-group #vol { accent-color: #f2b632; }
+.sound-group #volEar { accent-color: #57a0c9; }
+.sound-group button.icon { font-size: 16px; padding: 4px 8px; }
+/* 기차음/이어폰 구분선 */
+.sound-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.28); flex-shrink: 0; }
+
+/* 모바일: 하단 바 컴팩트 */
+@media (max-width: 600px) {
+  .bar { font-size: 11px; gap: 7px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .bar button { padding: 6px 10px; font-size: 11px; }
+  .bar button.icon { font-size: 16px; padding: 4px 9px; }
+  #hint { font-size: 10px; }
+  .sound-group input[type=range] { width: 54px; }
+}
+
+/* Netlify 무료 플랜 배지 숨김 */
+.netlify-badge, [data-netlify-identity-button],
+#netlify-modal-overlay, .nf-badge { display: none !important; }
 
 /* 좌석 ID 툴팁(마우스 호버) */
 #tip {
