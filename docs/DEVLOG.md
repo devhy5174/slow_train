@@ -1,5 +1,24 @@
 # DEVLOG — 개발 일지
 
+## 2026-11-17 — 이어폰 버튼(가야금 음악) + 저작권 안내 팝업 추가
+
+**변경 파일**
+- `index.html`: 🎧 이어폰 버튼, ℹ 정보 버튼, 음악 저작권 안내 팝업 추가
+- `public/css/style.css`: `#bInfo` 우하단 원형 버튼 스타일 추가
+- `public/js/features/sound.js`: `EarphoneMusic`, `initEarphoneUI()` 추가
+- `public/js/ui/ui.js`: `bInfo`, `infoClose` 버튼 이벤트 연결
+- `public/sounds/국악 배경음악 #131.mp3` (신규): CC BY 4.0 국악 배경음악
+
+**구현 내용**
+- 하단 바에 🎧 이어폰 버튼 추가 — 클릭 시 가야금 음악 반복 재생, 재클릭 시 정지
+- 재생 중 아이콘이 🎵로 변경되어 상태 표시
+- 브라우저 자동재생 정책 대응: 첫 클릭 시점에 `new Audio()` 생성
+- 파일명의 `#` 문자 URL 인코딩 처리 (`encodeURIComponent`)
+- 우하단 ℹ 버튼 → 팝업으로 음악 저작권 안내 표시 (CC BY 4.0, 공유마당 출처 링크 포함)
+
+**다음 할 일**
+- 없음 (사용자 테스트 후 볼륨 기본값 조정 가능)
+
 ## 2026-11-17 — 멀티플레이 1단계: Supabase Realtime 연결 + 위치 동기화
 
 **변경 파일**

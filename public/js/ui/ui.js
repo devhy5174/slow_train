@@ -23,6 +23,7 @@ function buildUI() {
   });
   // 하단 바 버튼 연결
   $('bSay').onclick = () => panel('phr'); $('bShop').onclick = openShop; $('bDrop').onclick = dropHeld; $('bExit').onclick = () => exitNook(P);
+  $('bInfo').onclick = () => { $('infoModal').hidden = false; };
   initModals(); initSoundUI(); initTicketUI();
 }
 
@@ -33,4 +34,5 @@ function initModals() {
   $('nkYes').onclick = () => { $('nkModal').hidden = true; if (pendingNook) enterNook(pendingNook); };
   $('nkNo').onclick = () => { $('nkModal').hidden = true; pendingNook = null; };
   $('endBtn').onclick = () => location.reload();
+  $('infoClose').onclick = () => { $('infoModal').hidden = true; };
 }

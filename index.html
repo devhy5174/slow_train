@@ -38,6 +38,7 @@
     <button id="bFindSeat" class="alt" hidden>📍 내 자리 찾기</button>
     <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기">🔊</button>
     <input id="vol" type="range" min="0" max="1" step="0.05" aria-label="볼륨">
+    <button id="bEarphone" class="alt icon" aria-label="이어폰 꽂기/빼기">🎧</button>
     <button id="bDrop" class="alt" hidden>간식 버리기</button>
     <button id="bExit" class="alt" hidden>나가기</button>
     <button id="stand" hidden>일어나기</button>
@@ -110,6 +111,24 @@
 
   <!-- 상단 정보 바: 닉네임(#hn) / 승객 수·승차권 상태(#hc) -->
   <header class="hud"><strong>느린 기차</strong><span id="hn"></span><span id="hc"></span></header>
+
+  <!-- 우하단 정보 버튼 -->
+  <button id="bInfo" aria-label="저작권 정보">ℹ</button>
+
+  <!-- 음악 저작권 안내 팝업 -->
+  <div class="modal" id="infoModal" hidden>
+    <div class="card">
+      <h2>🎵 음악 저작권 안내</h2>
+      <div class="ticket-info">
+        <div class="ticket-row"><span>곡명</span><strong>국악 배경음악 #131</strong></div>
+        <div class="ticket-row"><span>저작자</span><strong>공유마당</strong></div>
+        <div class="ticket-row"><span>출처</span><strong>한국저작권위원회 공유마당</strong></div>
+        <div class="ticket-row"><span>라이선스</span><strong>CC BY 4.0 (저작자 표시)</strong></div>
+      </div>
+      <p class="ticket-note"><a href="https://gongu.copyright.or.kr/gongu/wrt/wrt/view.do?menuNo=200020&wrtSn=13379714" target="_blank" rel="noopener">원본 음원 보러가기 →</a></p>
+      <div class="row"><button id="infoClose">닫기</button></div>
+    </div>
+  </div>
 </div>
 
 <!-- 좌석 ID 툴팁(마우스를 좌석 위에 올릴 때) -->

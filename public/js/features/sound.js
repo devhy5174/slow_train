@@ -70,4 +70,37 @@ function initSoundUI() {
   document.addEventListener('pointerdown', () => { if (RailSound.ctx && RailSound.ctx.state === 'suspended') RailSound.ctx.resume(); });
   vol.oninput = () => { RailSound.setVolume(+vol.value); if (RailSound.muted && +vol.value > 0) RailSound.setMuted(false); sync(); };
   sync();
+  initEarphoneUI();
+}
+
+// 이어폰 가야금 음악 — sounds/gayageum.mp4 파일을 반복 재생/정지
+const EarphoneMusic = { audio: null, playing: false };
+
+function initEarphoneUI() {
+  const btn = $('bEarphone');
+  if (!btn) return;
+
+  const syncBtn = () => { btn.textContent = EarphoneMusic.playing ? '🎵' : '🎧'; };
+
+  btn.onclick = () => {
+    if (!EarphoneMusic.audio) {
+      // 첫 클릭 시 오디오 객체 생성 (브라우저 자동재생 정책: 클릭 후 생성해야 허용)
+      // 파일명의 #은 URL 프래그먼트로 오인되므로 반드시 인코딩
+      EarphoneMusic.audio = new Audio('sounds/' + encodeURIComponent('국악 배경음악 #131.mp3'));
+      EarphoneMusic.audio.loop = true;
+      EarphoneMusic.audio.volume = 0.7;
+    }
+    if (EarphoneMusic.playing) {
+      EarphoneMusic.audio.pause();
+      EarphoneMusic.playing = false;
+      toast('이어폰을 뺐어요.');
+    } else {
+      EarphoneMusic.audio.play().catch(() => toast('음악 파일을 찾을 수 없어요.'));
+      EarphoneMusic.playing = true;
+      toast('이어폰을 꽂았어요. 🎧');
+    }
+    syncBtn();
+  };
+
+  syncBtn();
 }
