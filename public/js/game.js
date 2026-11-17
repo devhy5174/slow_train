@@ -65,7 +65,8 @@ function update(dt) {
   Multi.tick(dt); // 멀티플레이 위치 동기화
   separate();
   // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거
-  for (const a of [P, ...NPCS, V, C]) {
+  // 원격 플레이어(피어) 말풍선도 포함해야 상대방 화면에서 보임
+  for (const a of [P, ...NPCS, V, C, ...Multi.getPeers()]) {
     if (!a.bub) continue;
     a.bubT -= dt;
     if (a.bubT <= 0) {

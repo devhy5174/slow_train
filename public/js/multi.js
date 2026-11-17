@@ -271,5 +271,8 @@ const Multi = (() => {
     });
   }
 
-  return { connect, tick, disconnect, requestYield, broadcastSpeak };
+  // 피어 액터 목록 반환 (game.js 말풍선 페이드 루프에서 사용)
+  function getPeers() { return Object.values(peers); }
+
+  return { connect, tick, disconnect, requestYield, broadcastSpeak, getPeers };
 })();
