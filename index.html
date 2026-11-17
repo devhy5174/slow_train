@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>느린 기차</title>
+<!-- 모든 스타일은 css/style.css 한 곳에서 관리 -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== 시작 화면: 승차권 모양 입장 폼 (닉네임 + 입장 방식 선택) ===== -->
+<main class="start" id="start">
+  <form class="ticket" id="form">
+    <div class="ticket-main">
+      <h1>느린 기차</h1>
+      <p>천천히 달리는 무궁화호에 오르세요.</p>
+      <p class="note">승차권 구매는 가상(결제 없음)이에요. 무임승차는 승무원 검표 때 퇴장될 수 있어요.</p>
+      <label for="nick">닉네임</label>
+      <input id="nick" maxlength="10" placeholder="예: 여행자" autocomplete="off">
+    </div>
+    <div class="ticket-btns">
+      <button type="submit" data-mode="ticket">🎫 승차권 사고 탑승</button>
+      <button type="submit" data-mode="free" class="free">무임승차로 탑승</button>
+    </div>
+  </form>
+</main>
+
+<!-- ===== 게임 화면: 3D 캔버스는 js/game.js가 #game 맨 앞에 삽입 ===== -->
+<div id="game">
+
+  <!-- 하단 조작 바: 힌트 / 말풍선 / 말걸기 / 소리 / 간식 버리기 / 나가기 / 일어나기 -->
+  <div class="bar">
+    <span id="hint">WASD/방향키 이동 · 바닥 터치 이동 · 좌석 터치 착석 · 드래그 회전 · 휠/핀치 확대</span>
+    <button id="bSay" class="alt">말풍선</button>
+    <button id="bShop" class="alt" disabled>말걸기</button>
+    <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기">🔊</button>
+    <input id="vol" type="range" min="0" max="1" step="0.05" aria-label="볼륨">
+    <button id="bDrop" class="alt" hidden>간식 버리기</button>
+    <button id="bExit" class="alt" hidden>나가기</button>
+    <button id="stand" hidden>일어나기</button>
+  </div>
+
+  <!-- 말풍선 문구 선택 패널 / 간식 메뉴 패널 / 상단 알림 -->
+  <div class="panel" id="phr" hidden></div>
+  <div class="panel" id="menu" hidden></div>
+  <div id="toast" hidden></div>
+
+  <!-- 승차권 검사 팝업 -->
+  <div class="modal" id="tkModal" hidden>
+    <div class="card">
+      <h2>🎫 승차권 검사</h2>
+      <p>승무원: 표를 보여주세요.</p>
+      <div id="tkList"></div>
+      <div class="row"><button id="tkShow" disabled>보여주기</button><button id="tkNone" class="free">표 없음</button></div>
+    </div>
+  </div>
+
+  <!-- 숨는 곳(의자 틈) 발견 팝업 -->
+  <div class="modal" id="nkModal" hidden>
+    <div class="card">
+      <h2>🔍 공간을 발견했다!</h2>
+      <p>들어가 볼까?</p>
+      <div class="row"><button id="nkYes">들어가기</button><button id="nkNo" class="free">안 들어가기</button></div>
+    </div>
+  </div>
+
+  <!-- 무임승차 강제 퇴장 카운트다운 -->
+  <div class="modal" id="kick" hidden>
+    <div class="card">
+      <h2>🚫 무임승차 확인</h2>
+      <p>승차권이 없어 <b id="kickN">5</b>초 후 강제 퇴장되며 접속이 종료됩니다.</p>
+    </div>
+  </div>
+
+  <!-- 접속 종료 화면 -->
+  <div class="modal" id="endScr" hidden>
+    <div class="card">
+      <h2>접속이 종료되었습니다</h2>
+      <p>승차권 없이 탑승하여 퇴장 조치되었습니다.</p>
+      <div class="row"><button id="endBtn">처음 화면으로</button></div>
+    </div>
+  </div>
+
+  <!-- 상단 정보 바: 닉네임(#hn) / 승객 수·승차권 상태(#hc) -->
+  <header class="hud"><strong>느린 기차</strong><span id="hn"></span><span id="hc"></span></header>
+</div>
+
+<!-- 좌석 ID 툴팁(마우스를 좌석 위에 올릴 때) -->
+<div id="tip"></div>
+
+<!-- ===== 외부 라이브러리 (CDN) ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<!--
+  ===== 게임 스크립트 (순서 중요!) =====
+  앞 파일에서 선언한 전역 변수/함수를 뒤 파일이 사용하므로 아래 순서를 바꾸지 마세요.
+-->
+<script src="js/state.js"></script>               <!-- 0. 게임 상태 저장소 (GameState) -->
+<script src="js/repo.js"></script>                <!-- 1. 저장소 어댑터 -->
+<script src="js/world/data.js"></script>           <!-- 2. 객차 배치 데이터 -->
+<script src="js/core.js"></script>                <!-- 3. 전역 상태 + 공용 헬퍼 -->
+<script src="js/world/scene.js"></script>          <!-- 4. 객차/창밖 풍경 3D -->
+<script src="js/characters/actor.js"></script>     <!-- 5. 캐릭터/행위자 -->
+<script src="js/characters/npc.js"></script>       <!-- 6. 말풍선 + 베타 NPC -->
+<script src="js/features/sound.js"></script>       <!-- 7. 주행 사운드 -->
+<script src="js/features/snack.js"></script>       <!-- 8. 손에 든 간식 -->
+<script src="js/features/conductor.js"></script>   <!-- 9. 승무원 표 검사 -->
+<script src="js/features/nook.js"></script>        <!-- 10. 숨는 곳 -->
+<script src="js/features/vendor.js"></script>      <!-- 11. 간식 판매원 -->
+<script src="js/ui/ui.js"></script>                <!-- 12. 하단 버튼/팝업 UI -->
+<script src="js/game.js"></script>                <!-- 13. 게임 루프/시작/카메라 -->
+<script src="js/main.js"></script>                <!-- 14. 시작 화면 → 게임 진입 -->
+</body>
+</html>

@@ -1,0 +1,140 @@
+/* =====================================================
+   느린 기차 — 전체 스타일
+   구성: 1) 공통(변수/리셋)  2) 시작 화면(승차권)  3) 게임 화면(HUD/하단 바)
+         4) 패널(말풍선/간식 메뉴)  5) 팝업(모달/카드)
+   ===================================================== */
+
+/* ---------- 1) 공통: 색상 변수 + 다크모드 + 리셋 ---------- */
+:root {
+  --navy: #1d2f4f; --blue: #2f62b0; --red: #e8553d;
+  --paper: #e9eef2; --ink: #1d2f4f; --sub: #4b5d78; --line: #9fb0c2; --field: #fff;
+  box-sizing: border-box;
+  /* 노치/홈바가 있는 모바일 기기에서 내용이 가려지지 않게 안전 영역 확보 */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* 다크 모드: 종이/글자/테두리 색만 어둡게 교체 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #26364f; --ink: #f1f4f8; --sub: #b5c2d4; --line: #5b6f8c; --field: #1a2638;
+  }
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%;
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background: var(--navy); color: var(--ink);
+}
+/* hidden 속성이 다른 display 규칙에 덮이지 않도록 강제 */
+[hidden] { display: none !important; }
+
+/* ---------- 2) 시작 화면: 승차권 ---------- */
+.start { height: 100%; display: grid; place-items: center; padding: 16px; }
+.ticket {
+  display: flex; width: min(560px, 100%); background: var(--paper);
+  border-radius: 10px; overflow: hidden; border-top: 10px solid var(--red);
+}
+/* 승차권 왼쪽(입력부): 점선으로 오른쪽 버튼부와 구분 */
+.ticket-main {
+  flex: 1; padding: 22px 24px; border-right: 3px dashed var(--line);
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.ticket h1 { margin: 0; font-size: 30px; }
+.ticket p { margin: 0 0 10px; color: var(--sub); }
+.ticket label { font-weight: 700; font-size: 14px; }
+.ticket input {
+  font: inherit; color: var(--ink); padding: 10px 12px; border: 2px solid var(--line);
+  border-radius: 6px; background: var(--field); width: 100%;
+}
+.ticket button {
+  width: 110px; border: 0; background: var(--blue); color: #fff;
+  font: inherit; font-weight: 700; cursor: pointer; padding: 12px;
+}
+.ticket button:hover { background: #1c3a6b; }
+/* 키보드 접근성: 포커스 표시 */
+.ticket input:focus-visible, .ticket button:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+.note { font-size: 12px; }
+/* 승차권 오른쪽(입장 버튼 2개) */
+.ticket-btns { display: flex; flex-direction: column; width: 132px; }
+.ticket-btns button { width: 100%; flex: 1; font-size: 14px; }
+.ticket-btns .free { background: #6b7a8f; }
+.ticket-btns .free:hover { background: #4b5d78; }
+
+/* ---------- 3) 게임 화면 ---------- */
+#game { position: fixed; inset: 0; display: none; }
+#game canvas { display: block; width: 100%; height: 100%; }
+
+/* 상단 정보 바(HUD) */
+.hud {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  background: rgba(29, 47, 79, .88); color: #fff; font-size: 14px;
+}
+.hud strong { font-size: 18px; margin-right: auto; }
+
+/* 하단 조작 바 */
+.bar {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(29, 47, 79, .82); color: #fff; font-size: 13px;
+}
+.bar button {
+  font: inherit; font-weight: 700; border: 0; border-radius: 6px;
+  background: #e8553d; color: #fff; padding: 8px 16px; cursor: pointer;
+}
+.bar button:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+.bar button.alt { background: var(--blue); }
+.bar button:disabled { opacity: .45; cursor: not-allowed; }
+.bar button.icon { font-size: 18px; padding: 5px 12px; line-height: 1.2; }
+.bar input[type=range] { width: 90px; accent-color: #f2b632; }
+/* 조작 힌트 문구는 한 줄을 다 차지하며 가운데 정렬 */
+#hint { flex-basis: 100%; text-align: center; font-size: 12px; opacity: .85; }
+
+/* 좌석 ID 툴팁(마우스 호버) */
+#tip {
+  position: fixed; pointer-events: none; background: var(--navy); color: #fff;
+  padding: 2px 8px; border-radius: 4px; font-size: 12px; display: none; transform: translate(-50%, -140%);
+}
+/* 상단 알림(토스트) */
+#toast {
+  position: absolute; left: 50%; top: calc(64px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  background: var(--navy); color: #fff; padding: 10px 16px; border-radius: 8px;
+  max-width: 90%; z-index: 5; text-align: center;
+}
+
+/* ---------- 4) 패널: 말풍선 선택 / 간식 메뉴 ---------- */
+.panel {
+  position: absolute; left: 50%; bottom: calc(112px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  width: min(420px, calc(100% - 24px)); background: var(--paper); color: var(--ink);
+  border-radius: 10px; border-top: 6px solid var(--red); padding: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px; max-height: 50vh; overflow: auto;
+}
+.panel button {
+  font: inherit; color: var(--ink); background: var(--field); border: 2px solid var(--line);
+  border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+.panel button.item { width: 100%; display: flex; justify-content: space-between; } /* 간식 메뉴 한 줄 */
+.panel button:hover { border-color: var(--blue); }
+.panel button:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+.panel h2 { margin: 0; width: 100%; font-size: 16px; }
+
+/* ---------- 5) 팝업(모달) + 카드 ---------- */
+.modal { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); display: grid; place-items: center; z-index: 10; padding: 16px; }
+.card {
+  background: var(--paper); color: var(--ink); border-radius: 12px; border-top: 8px solid var(--red);
+  padding: 18px; width: min(380px, 100%); text-align: center;
+}
+.card h2 { margin: 0 0 6px; font-size: 20px; }
+.card p { margin: 6px 0; }
+.card .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.card button {
+  font: inherit; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 16px;
+  background: var(--blue); color: #fff; cursor: pointer;
+}
+.card button.free { background: #6b7a8f; }
+.card button:disabled { opacity: .45; cursor: not-allowed; }
+.card button:focus-visible { outline: 3px solid #f2b632; outline-offset: 2px; }
+/* 승차권 선택 버튼(표 검사 팝업) — 선택되면 노란색 강조 */
+.card button.tk { display: block; width: 100%; margin-top: 8px; background: var(--field); color: var(--ink); border: 2px solid var(--line); }
+.card button.tk.on { border-color: #f2b632; background: #fff3cf; color: #1d2f4f; }
