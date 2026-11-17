@@ -12,6 +12,33 @@
 
 ---
 
+## 2026-11-17 — 내 자리 찾기 기능 구현
+
+**한 일**
+- 하단 바에 `📍 내 자리 찾기` 버튼 추가 (무임승차자 숨김)
+- 클릭 시 플레이어 지정석 위에 황금빛 플레인 오버레이를 3초간 펄스 표시
+  - 페이드 인(0~400ms) → 펄스 3회 → 페이드 아웃(2400~3000ms)
+  - `THREE.PlaneGeometry` + `MeshBasicMaterial` (기존 좌석 메쉬 미변경)
+  - 여러 번 클릭 시 기존 효과 취소 후 재시작 (중첩·오류 없음)
+- 자동 이동 없음 — 이용자가 직접 걸어가도록 유지
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/features/ticket.js` | `highlightMySeat()` 추가, `initTicketUI()`에 `bFindSeat` 연결 |
+| `index.html` | `#bFindSeat` 버튼 추가 (`bTicket` 옆) |
+
+**설계 결정**
+- 하이라이트는 별도 `PlaneGeometry`로 구현 — 파란 좌석 메쉬 완전 불변
+- `requestAnimationFrame` 루프 내에서 `hmat.opacity`만 갱신 — Three.js 렌더 루프와 독립적으로 동작
+- 모듈 레벨 변수(`_hlMesh`, `_hlRaf`)로 중복 클릭 방지 및 메모리 정리
+
+**검증**
+- `npm run build` 오류 없음
+
+---
+
 ## 2026-11-17 — 승차권 발급 및 좌석 번호 표시 구현
 
 **한 일**
