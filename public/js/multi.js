@@ -140,6 +140,19 @@ const Multi = (() => {
       _removePeer(key);
     });
 
+    // seat_yield: 내 지정석 자리를 비워달라는 요청 수신 → NPC와 동일한 흐름으로 자동 처리
+    _channel.on('broadcast', { event: 'seat_yield' }, ({ payload }) => {
+      if (!P || P.state !== 'sit' || !P.seat || P.seat.id !== payload.seatId) return;
+      speak(P, '앗 죄송합니다!', 3.5);
+      setTimeout(() => {
+        if (P && P.state === 'sit' && P.seat && P.seat.id === payload.seatId) {
+          standUp(P);
+          goFloor(P, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
+          saveNow();
+        }
+      }, 1200);
+    });
+
     // Broadcast move: 위치·방향·착석 상태 적용
     _channel.on('broadcast', { event: 'move' }, ({ payload }) => {
       if (!payload || payload.id === _myId) return;
@@ -230,5 +243,15 @@ const Multi = (() => {
   // 탭 닫기·새로고침 시에도 Presence 해제
   window.addEventListener('pagehide', () => disconnect());
 
-  return { connect, tick, disconnect };
+  // 내 지정석을 점유한 원격 플레이어에게 자리 반환 요청 전송
+  function requestYield(seatId) {
+    if (!_enabled || !_channel) return;
+    _channel.send({
+      type: 'broadcast',
+      event: 'seat_yield',
+      payload: { seatId, fromName: P?.name || '' },
+    });
+  }
+
+  return { connect, tick, disconnect, requestYield };
 })();

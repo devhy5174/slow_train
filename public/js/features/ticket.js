@@ -105,32 +105,40 @@ function clearSeatArrow() {
 
 // ----- 자리 반환 요청 -----
 
-// 플레이어 지정석에 앉은 베타 NPC에게 자리 반환 요청
+// 플레이어 지정석에 앉은 베타 NPC 또는 원격 플레이어에게 자리 반환 요청
 // - NPC: "앗 죄송합니다!" 말풍선 → 1.2초 후 일어나 통로로 이동
-// - 향후 실제 이용자가 앉은 경우는 서버 측 권한 확인 후 처리 (현재 미구현)
-// - 반환값: 요청 성공 여부 (NPC가 앉아 있던 경우 true)
+// - 원격 플레이어: seat_yield Broadcast 전송 → 상대방이 사과 후 자동으로 일어남
+// - 반환값: 요청 성공 여부
 function requestSeatYield() {
   if (!GameState.ticket) return false;
   const seatId = GameState.ticket.seatId;
   const occupantId = GameState.occ[seatId];
   if (!occupantId) return false; // 이미 비어 있음
 
-  // 베타 NPC인지 확인 (실제 이용자 ID는 'npc' 로 시작하지 않음)
+  // 베타 NPC인지 확인
   const npc = NPCS.find(n => n.id === occupantId);
-  if (!npc) return false;
+  if (npc) {
+    // 플레이어 말풍선 → 1초 뒤 NPC 사과 → 1.2초 뒤 일어나 걷기
+    speak(P, '여기 제자린데요.', 2.5);
+    setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
+    setTimeout(() => {
+      if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
+        standUp(npc);
+        goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
+        npc.timer = rnd(8, 15);
+      }
+    }, 1200);
+    return true;
+  }
 
-  // 플레이어 말풍선 → 1초 뒤 NPC 사과 → 1.2초 뒤 일어나 걷기
-  speak(P, '여기 제자린데요.', 2.5);
-  setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
-  setTimeout(() => {
-    if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
-      standUp(npc);
-      goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
-      npc.timer = rnd(8, 15);
-    }
-  }, 1200);
+  // 원격 플레이어인 경우 (NPC도 아니고 나 자신도 아님)
+  if (occupantId !== P.id) {
+    speak(P, '여기 제자린데요.', 2.5);
+    Multi.requestYield(seatId);
+    return true;
+  }
 
-  return true;
+  return false;
 }
 
 // 버튼 이벤트 연결 — buildUI() 에서 호출
