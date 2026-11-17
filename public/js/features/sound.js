@@ -85,8 +85,7 @@ function initEarphoneUI() {
   btn.onclick = () => {
     if (!EarphoneMusic.audio) {
       // 첫 클릭 시 오디오 객체 생성 (브라우저 자동재생 정책: 클릭 후 생성해야 허용)
-      // 파일명의 #은 URL 프래그먼트로 오인되므로 반드시 인코딩
-      EarphoneMusic.audio = new Audio('sounds/' + encodeURIComponent('국악 배경음악 #131.mp3'));
+      EarphoneMusic.audio = new Audio('sounds/gugak-bgm.mp3');
       EarphoneMusic.audio.loop = true;
       EarphoneMusic.audio.volume = 0.7;
     }
