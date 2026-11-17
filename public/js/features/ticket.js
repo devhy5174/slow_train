@@ -3,7 +3,7 @@
    - 승차권 구매 시 지정석(1~24번) 자동 배정
    - 입장 직후 승차권 팝업 자동 표시
    - '🎫 승차권 확인' 버튼으로 재확인 가능
-   - '📍 내 자리 찾기' 버튼으로 지정석 3초 황금빛 강조
+   - '📍 내 자리 찾기' 버튼으로 지정석 위에 5초간 빨간 3D 화살표 표시
    - 무임승차자는 발급 없음, 버튼 모두 숨김
 
    향후 Supabase 연결 시:
@@ -33,50 +33,60 @@ function showMyTicket() {
   $('myTicketModal').hidden = false;
 }
 
-// ----- 내 자리 찾기 -----
-// 하이라이트 상태 (중복 클릭 방지 · 메모리 해제용)
-let _hlMesh = null, _hlRaf = null, _hlStart = 0;
+// ----- 내 자리 찾기 (3D 화살표) -----
+// 화살표 상태 (중복 클릭 방지 · 메모리 해제용)
+let _arrowCone = null, _arrowRaf = null, _arrowStart = 0;
+const _ARROW_DURATION = 5000; // 표시 지속 시간(ms)
+const _ARROW_BASE_Y   = 2.28; // 콘 중심 기본 Y (팁: ~2.14, 헤드레스트 1.64 위)
 
-// 내 지정석 위에 황금빛 오버레이를 3초간 펄스 표시
-// - 기존 파란 좌석 메쉬는 변경하지 않음 (별도 플레인만 추가·제거)
-// - 여러 번 눌러도 기존 효과를 취소 후 재시작하여 중첩 없음
+// 내 지정석 위에 빨간 콘(▼)을 5초간 둥둥 떠다니다가 페이드아웃
+// - 기존 좌석 색상·소재 불변
+// - 반복 클릭 시 타이머 초기화 (중첩 없음)
+// - clearSeatArrow()로 외부에서도 강제 제거 가능 (객차 이동 등)
 function highlightMySeat() {
   if (!GameState.ticket) return;
   const seat = SEATS.find(s => s.id === GameState.ticket.seatId);
   if (!seat) return;
 
-  // 기존 하이라이트가 실행 중이면 취소 후 새로 시작
-  if (_hlRaf) { cancelAnimationFrame(_hlRaf); _hlRaf = null; }
-  if (_hlMesh) { scene.remove(_hlMesh); _hlMesh.geometry.dispose(); _hlMesh.material.dispose(); _hlMesh = null; }
+  clearSeatArrow(); // 기존 화살표 제거 후 재시작
 
-  // 좌석 방석 위에 얇은 황금빛 플레인 생성 (y=0.57: 방석 상단 0.52보다 약간 위)
-  // 지정석은 모두 yaw=0이므로 수평 회전만 적용
-  const geo = new THREE.PlaneGeometry(0.74, 0.89);
-  const hmat = new THREE.MeshBasicMaterial({
-    color: 0xf2b632, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide
+  // 아래를 가리키는 콘: ConeGeometry 기본값은 위쪽 → rotation.x = PI 로 뒤집음
+  const geo  = new THREE.ConeGeometry(0.11, 0.28, 8);
+  const amat = new THREE.MeshStandardMaterial({
+    color: 0xe8553d, roughness: 0.5, metalness: 0, transparent: true, opacity: 1
   });
-  _hlMesh = new THREE.Mesh(geo, hmat);
-  _hlMesh.rotation.x = -Math.PI / 2;
-  _hlMesh.position.set(seat.x, 0.57, seat.z);
-  scene.add(_hlMesh);
-  _hlStart = performance.now();
+  _arrowCone = new THREE.Mesh(geo, amat);
+  _arrowCone.rotation.x = Math.PI;
+  _arrowCone.castShadow = false;
+  _arrowCone.receiveShadow = false;
+  _arrowCone.position.set(seat.x, _ARROW_BASE_Y, seat.z);
+  scene.add(_arrowCone);
+  _arrowStart = performance.now();
 
   (function tick() {
-    if (!_hlMesh) return;
-    const e = performance.now() - _hlStart;
-    if (e >= 3000) {
-      // 3초 종료: 메쉬 제거 및 메모리 해제
-      scene.remove(_hlMesh); _hlMesh.geometry.dispose(); _hlMesh.material.dispose();
-      _hlMesh = null; _hlRaf = null;
-      return;
-    }
-    // 페이드 인(처음 400ms) · 페이드 아웃(마지막 600ms) · 펄스(약 3회)
-    const fadeIn  = Math.min(1, e / 400);
-    const fadeOut = Math.max(0, 1 - Math.max(0, e - 2400) / 600);
-    const pulse   = (Math.sin(e * Math.PI / 500) + 1) / 2; // 1초 주기 펄스
-    hmat.opacity  = fadeIn * fadeOut * (0.35 + 0.45 * pulse);
-    _hlRaf = requestAnimationFrame(tick);
+    if (!_arrowCone) return;
+    const e = performance.now() - _arrowStart;
+    if (e >= _ARROW_DURATION) { clearSeatArrow(); return; }
+
+    // 위아래 둥둥: 1.1초 주기 sin 파 ±0.12
+    _arrowCone.position.y = _ARROW_BASE_Y + Math.sin(e * Math.PI / 550) * 0.12;
+
+    // 마지막 1초 페이드아웃
+    amat.opacity = e < (_ARROW_DURATION - 1000) ? 1 : (_ARROW_DURATION - e) / 1000;
+
+    _arrowRaf = requestAnimationFrame(tick);
   })();
+}
+
+// 화살표 제거 및 메모리 정리 (5초 종료 · 반복 클릭 · 객차 이동 등에서 호출)
+function clearSeatArrow() {
+  if (_arrowRaf) { cancelAnimationFrame(_arrowRaf); _arrowRaf = null; }
+  if (_arrowCone) {
+    scene.remove(_arrowCone);
+    _arrowCone.geometry.dispose();
+    _arrowCone.material.dispose();
+    _arrowCone = null;
+  }
 }
 
 // ----- 자리 반환 요청 -----
