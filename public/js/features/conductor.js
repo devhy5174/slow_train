@@ -38,6 +38,12 @@ const CONDUCTOR_GREETINGS = [
 ];
 let _lastGreetedAt = -Infinity; // 마지막 인사 시각 (ms)
 
+// 5초 자동 판정 타이머 상태
+// [Supabase SYNC-2] 멀티플레이에서는 이 타이머를 서버가 소유하고 클라이언트는 UI만 표시
+let _inspectTimer    = null; // setTimeout 핸들 — 5초 후 자동 판정
+let _inspectInterval = null; // setInterval 핸들 — 1초마다 카운트다운 갱신
+let _inspectCountEl  = null; // 카운트다운 표시 DOM 요소
+
 // ── 승무원 생성 ────────────────────────────────────────
 // 처음엔 숨겨 두고 conductorTick이 25초 뒤에 등장시킴
 // C.mode: 'walk'(이동) | 'ask'(검표 직전 대기) | 'popup'(팝업 대기)
@@ -91,34 +97,83 @@ function getPlayerSeatState() {
 }
 
 // ── 검표 팝업 열기 ─────────────────────────────────────
-// 현재: tkModal 팝업 (보여주기 / 표 없음 선택)
+// 5초 카운트다운 + '승차권 제출하기' 버튼 표시.
+// 버튼 클릭 or 5초 경과 → processTicketCheck() 자동 호출.
+// 버튼을 누르지 않아도 hasTicket 기준으로 판정 (버튼은 UX용).
 //
-// [향후 교체 예정]
-// openTicket() 전체를 openInspection() 으로 대체:
-//   - '승차권 제출하기' 버튼 표시 (대상자에게만)
-//   - 5초 카운트다운 시작 (서버 기준)
-//   - 버튼 클릭 or 타이머 만료 → processTicketCheck() 호출
-//   - 버튼 클릭 여부는 결과와 무관 (hasTicket 기준으로 판정)
-// [Supabase SYNC-2/4] 타이머 시작을 서버에 emit, UI는 대상자에게만 렌더
+// [Supabase SYNC-2/4] 멀티플레이에서는 타이머를 서버가 소유.
+//   서버가 "검표 시작" 이벤트를 emit → 클라이언트는 UI만 표시.
+//   타이머 만료도 서버 기준 → 클라이언트는 서버 "판정 완료" 이벤트 수신 후 처리.
 function openTicket() {
-  const list = $('tkList'); list.innerHTML = ''; $('tkShow').disabled = true;
-  if (!GameState.hasTicket) {
-    list.innerHTML = '<p>가지고 있는 표가 없어요.</p>';
-  } else {
-    const seatText = GameState.ticket ? ` · ${GameState.ticket.displayNum}번 지정석` : '';
-    const label = `🎫 승차권 · 서울 → 부산 · ${GameState.carId}호차${seatText} (가상)`;
-    const b = document.createElement('button'); b.className = 'tk'; b.textContent = label;
-    b.onclick = () => { b.classList.toggle('on'); $('tkShow').disabled = !b.classList.contains('on'); };
-    list.appendChild(b);
-    // 타인 지정석 임시 착석 중이면 작은 힌트 표시
-    if (getPlayerSeatState() === 'other_seat') {
-      const hint = document.createElement('p');
-      hint.style.cssText = 'font-size:12px;color:var(--sub);margin:6px 0 0;';
-      hint.textContent = '(현재 다른 승객의 지정석에 착석 중)';
-      list.appendChild(hint);
-    }
+  _clearInspectTimer(); // 혹시 중복 호출됐을 때 기존 타이머 정리
+
+  // 카운트다운 숫자 표시 요소
+  const list = $('tkList'); list.innerHTML = '';
+  _inspectCountEl = document.createElement('p');
+  _inspectCountEl.style.cssText = 'font-size:22px;font-weight:700;color:var(--red);margin:4px 0 6px;';
+  list.appendChild(_inspectCountEl);
+
+  // 타인 지정석 임시 착석 중이면 작은 힌트
+  if (GameState.hasTicket && getPlayerSeatState() === 'other_seat') {
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:12px;color:var(--sub);margin:0;';
+    hint.textContent = '(현재 다른 승객의 지정석에 착석 중)';
+    list.appendChild(hint);
   }
+
+  // 버튼: '승차권 제출하기' (항상 활성, 클릭 즉시 판정)
+  $('tkShow').textContent = '승차권 제출하기';
+  $('tkShow').disabled = false;
+  $('tkNone').hidden = true; // 자동 판정이므로 불필요
+
   $('tkModal').hidden = false;
+
+  // 1초마다 카운트다운 갱신
+  let remaining = 5;
+  const _tick = () => {
+    if (_inspectCountEl) _inspectCountEl.textContent = `${remaining}초 안에 제출해 주세요`;
+    remaining--;
+  };
+  _tick(); // 즉시 첫 번째 표시
+  _inspectInterval = setInterval(() => {
+    if (remaining > 0) { _tick(); }
+    else if (_inspectCountEl) { _inspectCountEl.textContent = '자동 확인 중...'; }
+  }, 1000);
+
+  // 5초 후 자동 판정
+  _inspectTimer = setTimeout(() => {
+    _inspectTimer = null;
+    if (!GameState.ended) processTicketCheck();
+  }, 5000);
+}
+
+// 타이머와 카운트다운 인터벌을 모두 정리하는 내부 헬퍼
+function _clearInspectTimer() {
+  if (_inspectTimer)    { clearTimeout(_inspectTimer);   _inspectTimer = null; }
+  if (_inspectInterval) { clearInterval(_inspectInterval); _inspectInterval = null; }
+}
+
+// ── 승차권 보유 여부 자동 판정 ─────────────────────────
+// 버튼 클릭 or 타이머 만료 시 호출.
+// hasTicket 기준으로 결과 결정 — 버튼 클릭 여부는 결과에 영향 없음.
+//
+// [Supabase SYNC-3] 멀티플레이에서는 서버 판정 결과(pass/fail)를 수신한 뒤 호출.
+//   클라이언트가 각자 판정하면 서버 상태와 불일치 발생.
+function processTicketCheck() {
+  _clearInspectTimer();
+  if (GameState.ended) return;
+
+  // 버튼·UI 원상 복구 (다음 검표를 위해)
+  $('tkNone').hidden = false;
+  $('tkShow').textContent = '보여주기';
+  $('tkShow').disabled = true;
+  _inspectCountEl = null;
+
+  if (GameState.hasTicket) {
+    showTicket(); // 정상 처리 — 좌석 상태별 분기 (이하 기존 로직)
+  } else {
+    noTicket();   // 무임승차 — 강제 퇴장 흐름 (기존 로직)
+  }
 }
 
 // ── 승차권 확인 완료 처리 ──────────────────────────────

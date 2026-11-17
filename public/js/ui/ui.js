@@ -28,7 +28,7 @@ function buildUI() {
 
 // 표 검사/지정석 안내/숨는 곳/퇴장 팝업의 버튼 이벤트 연결
 function initModals() {
-  $('tkShow').onclick = showTicket; $('tkNone').onclick = noTicket;
+  $('tkShow').onclick = processTicketCheck; $('tkNone').onclick = noTicket; // tkNone은 비상 대비용으로 유지
   $('sgYes').onclick = acceptSeatGuide; $('sgNo').onclick = declineSeatGuide;
   $('nkYes').onclick = () => { $('nkModal').hidden = true; if (pendingNook) enterNook(pendingNook); };
   $('nkNo').onclick = () => { $('nkModal').hidden = true; pendingNook = null; };

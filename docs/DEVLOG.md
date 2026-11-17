@@ -12,6 +12,29 @@
 
 ---
 
+## 2026-11-17 — 검표 5초 자동 판정 구현
+
+**한 일**
+- `openTicket()` 을 5초 카운트다운 UI로 교체
+  - "N초 안에 제출해 주세요" 카운트다운 표시 (1초마다 갱신)
+  - '승차권 제출하기' 버튼 (클릭 즉시 판정)
+  - '표 없음' 버튼 숨김 (자동 판정이므로 불필요)
+- `processTicketCheck()` 추가
+  - 버튼 클릭 or 5초 경과 → 자동 호출
+  - `GameState.hasTicket` 기준 판정 (버튼 클릭 여부 무관)
+  - `showTicket()` 또는 `noTicket()` 으로 분기
+- `_clearInspectTimer()` 헬퍼 추가 (타이머·인터벌 일괄 정리)
+- `ui.js` `tkShow` onclick → `processTicketCheck` 연결
+
+**변경 파일**
+
+| 파일 | 변경 내용 |
+|---|---|
+| `js/features/conductor.js` | `openTicket()` 타이머 UI로 교체, `processTicketCheck()` · `_clearInspectTimer()` 추가 |
+| `js/ui/ui.js` | `tkShow.onclick = processTicketCheck` |
+
+---
+
 ## 2026-11-17 — 역무원 검표 이벤트 확장 구현 (F-09b)
 
 **한 일**
