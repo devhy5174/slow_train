@@ -255,6 +255,21 @@ const Multi = (() => {
       }, 1200);
     });
 
+    // npc_yield: 비호스트 플레이어가 지정석 반환 요청 → 호스트만 NPC 처리
+    _channel.on('broadcast', { event: 'npc_yield' }, ({ payload }) => {
+      if (!_isHost() || !payload?.npcId) return;
+      const npc = NPCS.find(n => n.id === payload.npcId);
+      if (!npc || npc.state !== 'sit' || !npc.seat || npc.seat.id !== payload.seatId) return;
+      setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
+      setTimeout(() => {
+        if (npc.state === 'sit' && npc.seat && npc.seat.id === payload.seatId) {
+          standUp(npc);
+          goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
+          npc.timer = rnd(8, 15);
+        }
+      }, 1200);
+    });
+
     // speak: 원격 플레이어 말풍선 수신 → 해당 peer 캐릭터에 표시
     _channel.on('broadcast', { event: 'speak' }, ({ payload }) => {
       const a = peers[payload.id];
@@ -504,6 +519,12 @@ const Multi = (() => {
     });
   }
 
+  // 비호스트가 호스트에게 NPC 자리 반환 요청 전송
+  function sendNpcYield(npcId, seatId) {
+    if (!_enabled || !_channel) return;
+    _channel.send({ type: 'broadcast', event: 'npc_yield', payload: { npcId, seatId } });
+  }
+
   // 내 말풍선을 채널에 브로드캐스트 (다른 플레이어 화면에 표시)
   function broadcastSpeak(text, sec = 4) {
     if (!_enabled || !_channel) return;
@@ -517,5 +538,5 @@ const Multi = (() => {
   // 피어 액터 목록 반환 (game.js 말풍선 페이드 루프에서 사용)
   function getPeers() { return Object.values(peers); }
 
-  return { connect, tick, disconnect, requestYield, broadcastSpeak, getPeers, isHost: () => _isHost() };
+  return { connect, tick, disconnect, requestYield, sendNpcYield, broadcastSpeak, getPeers, isHost: () => _isHost() };
 })();

@@ -223,16 +223,21 @@ function requestSeatYield() {
   // 베타 NPC인지 확인
   const npc = NPCS.find(n => n.id === occupantId);
   if (npc) {
-    // 플레이어 말풍선 → 1초 뒤 NPC 사과 → 1.2초 뒤 일어나 걷기
     speak(P, '여기 제자린데요.', 2.5);
-    setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
-    setTimeout(() => {
-      if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
-        standUp(npc);
-        goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
-        npc.timer = rnd(8, 15);
-      }
-    }, 1200);
+    if (Multi.isHost()) {
+      // 호스트: NPC 직접 처리 → 다음 npc_states 브로드캐스트로 모든 유저에게 반영됨
+      setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
+      setTimeout(() => {
+        if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
+          standUp(npc);
+          goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
+          npc.timer = rnd(8, 15);
+        }
+      }, 1200);
+    } else {
+      // 비호스트: 호스트에게 처리 위임 → 호스트가 NPC를 일으키면 npc_states로 전파됨
+      Multi.sendNpcYield(npc.id, seatId);
+    }
     return true;
   }
 
