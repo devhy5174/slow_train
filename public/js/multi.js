@@ -84,6 +84,7 @@ const Multi = (() => {
     a.g.position.set(0, 0, 0);
     a._moving = false;
     peers[peerId] = a;
+    _syncNpcCount();
   }
 
   // 원격 플레이어 캐릭터 제거 및 점유 좌석 해제
@@ -94,16 +95,60 @@ const Multi = (() => {
       delete GameState.occ[a.seat.id];
     scene.remove(a.g);
     delete peers[peerId];
+    _syncNpcCount();
     _updateHud();
   }
 
   // HUD 승객 수 텍스트 갱신
   function _updateHud() {
     const remoteCount = Object.keys(peers).length;
-    const total = 1 + remoteCount + NPC_DEFS.length;
+    const npcCount = typeof NPCS !== 'undefined' ? NPCS.filter(n => n.g.visible).length : NPC_DEFS.length;
+    const total = 1 + remoteCount + npcCount;
     const ticket = GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음(무임승차)';
     const remotePart = remoteCount > 0 ? ` · 실제 승객 ${remoteCount}명` : '';
-    $('hc').textContent = `승객 ${total}명 (베타 승객 ${NPC_DEFS.length}명 포함${remotePart}) · ${ticket}`;
+    $('hc').textContent = `승객 ${total}명 (베타 승객 ${npcCount}명 포함${remotePart}) · ${ticket}`;
+  }
+
+  // NPC 한 명 퇴장: 객차 끝으로 이동 후 숨김
+  function _retireNpc(n) {
+    if (!n.g.visible || n._retiring) return;
+    n._retiring = true;
+    if (n.state === 'sit') standUp(n);
+    cancelRes(n);
+    const targetX = n.g.position.x >= 0 ? XMAX : -XMAX;
+    const travelMs = (Math.abs(targetX - n.g.position.x) / n.speed) * 1000 + 800;
+    goFloor(n, targetX, 0);
+    setTimeout(() => {
+      if (n.state === 'sit') standUp(n);
+      cancelRes(n);
+      n.path = [];
+      n.g.visible = false;
+      n._retiring = false;
+      _updateHud();
+    }, travelMs);
+  }
+
+  // NPC 한 명 복귀: 통로 임의 위치에 재배치
+  function _reviveNpc(n) {
+    n.g.position.set(rnd(-XMAX + 1, XMAX - 1), 0, rnd(-AISLE, AISLE));
+    n.g.visible = true;
+    n.timer = rnd(2, 5);
+    n.say  = rnd(4, 10);
+  }
+
+  // 현재 peer 수에 맞게 활성 NPC 수 조정 (호스트만 실행)
+  function _syncNpcCount() {
+    if (!_isHost() || typeof NPCS === 'undefined') return;
+    const targetActive = Math.max(0, NPCS.length - Object.keys(peers).length);
+    // 초과분: 뒤 인덱스부터 퇴장
+    for (let i = NPCS.length - 1; i >= targetActive; i--) {
+      if (NPCS[i].g.visible && !NPCS[i]._retiring) _retireNpc(NPCS[i]);
+    }
+    // 부족분: 뒤 인덱스부터 복귀 (가장 최근에 퇴장한 NPC 순)
+    for (let i = NPCS.length - 1; i >= targetActive; i--) { /* 이미 퇴장 대상 */ }
+    for (let i = 0; i < targetActive; i++) {
+      if (!NPCS[i].g.visible && !NPCS[i]._retiring) _reviveNpc(NPCS[i]);
+    }
   }
 
   // UUID 오름차순 정렬 → 가장 작은 ID가 호스트 (NPC·판매원 AI 실행 담당)
@@ -135,6 +180,8 @@ const Multi = (() => {
     if (!_npcLastSnaps || _npcLastSnaps.length !== NPCS.length) return true;
     for (let i = 0; i < NPCS.length; i++) {
       const n = NPCS[i], s = _npcLastSnaps[i];
+      if (n.g.visible !== s.visible) return true;
+      if (!n.g.visible) continue; // 비활성 NPC는 나머지 비교 불필요
       if (n.state !== s.state) return true;
       if ((n.seat?.id ?? null) !== s.seatId) return true;
       if (n.path.length > 0 || s.moving) return true; // 이동 중이었거나 현재 이동 중
@@ -150,6 +197,7 @@ const Multi = (() => {
     if (!_channel) return;
     const snaps = NPCS.map((n, idx) => ({
       idx,
+      visible: n.g.visible,
       x: n.g.position.x, z: n.g.position.z, ry: n.g.rotation.y,
       state: n.state, seatId: n.seat ? n.seat.id : null,
       moving: n.state !== 'sit' && n.path.length > 0,
@@ -321,6 +369,15 @@ const Multi = (() => {
       for (const snap of payload.npcs) {
         const n = NPCS[snap.idx];
         if (!n) continue;
+        // 비활성(퇴장) 처리: 자리·예약 해제 후 숨김
+        if (snap.visible === false) {
+          if (n.state === 'sit') standUp(n);
+          cancelRes(n);
+          n.path = [];
+          n.g.visible = false;
+          continue;
+        }
+        n.g.visible = true;
         n._npcMoving = snap.moving;
         if (snap.state === 'sit' && snap.seatId) {
           _applyNpcSit(n, snap.seatId);

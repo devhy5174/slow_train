@@ -1,5 +1,13 @@
 # DEVLOG — 개발 일지
 
+## 2026-11-18 — 유저 입장 시 베타 NPC 단계적 퇴장·복귀
+
+**변경 파일**: `public/js/multi.js`, `public/js/game.js`
+
+**내용**: 실제 유저 입장 시 NPC 1명이 객차 끝으로 걸어가서 숨김, 유저 퇴장 시 복귀. `npc_states`에 `visible` 필드 추가로 비호스트에도 동기화. 비활성·퇴장 중 NPC는 brain/루프에서 제외.
+
+---
+
 ## 2026-11-18 — NPC Realtime 동기화 최적화 (변화 감지·충돌 방지·호스트 전환)
 
 **변경 파일**: `public/js/multi.js`, `public/js/features/ticket.js`

@@ -36,8 +36,9 @@ function update(dt) {
   } else moving = stepPath(P, dt);
   if (P.state !== "sit") animate(P, moving, dt);
   for (const n of NPCS) {
+    if (!n.g.visible) continue; // 비활성 NPC는 건너뜀
     if (Multi.isHost()) {
-      brain(n, dt);
+      if (!n._retiring) brain(n, dt); // 퇴장 이동 중에는 brain 중단
       const m = stepPath(n, dt);
       if (n.state !== "sit") animate(n, m, dt);
     } else {
