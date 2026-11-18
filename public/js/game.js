@@ -69,6 +69,7 @@ function update(dt) {
   }); // 창밖 풍경 흘러가기 + 반복
   tickWheels(dt); // 바퀴 회전
   tickSmoke(dt);  // 굴뚝 연기 파티클
+  tickCurtains(dt); // 커튼 애니메이션
   Theme.tick(dt); // 테마 애니메이션
   Multi.tick(dt); // 멀티플레이 위치 동기화
   separate();
@@ -169,6 +170,8 @@ function buildWorld() {
     hits.push(m);
   });
   buildSeatLabels(); // 머리받침 뒷면에 번호 Mesh 부착
+  buildCurtains();  // 창문 커튼
+  Theme.load();     // 저장된 테마 복원
 }
 
 // 플레이어·베타 NPC·판매원·승무원·숨는 곳·UI 생성
@@ -296,6 +299,8 @@ function initInput() {
     const nk = ray.intersectObjects(nookHits)[0]; // 의자 등받이 사이 빈 공간(숨는 곳) 터치
     if (nk && (!h || nk.distance < h.distance))
       return void askNook(nk.object.userData);
+    const ch = ray.intersectObjects(curtainHits)[0]; // 창문 커튼 클릭
+    if (ch && (!h || ch.distance < h.distance)) return toggleCurtain(ch.object.userData.curtainIdx);
     if (h) {
       // 내 지정석에 베타 NPC가 앉아 있으면 자리 반환 요청
       if (

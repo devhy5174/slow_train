@@ -16,7 +16,7 @@ const Theme = {
     this._map[name] = mod;
   },
 
-  // 테마 전환: 이전 테마 정리 → 새 테마 빌드
+  // 테마 전환: 이전 테마 정리 → 새 테마 빌드 → 로컬 저장
   set(name) {
     if (this._current) {
       this._current.dispose();
@@ -27,9 +27,15 @@ const Theme = {
       this._current = this._map[name];
       this._current.build();
     }
-    // 버튼 아이콘 갱신
+    localStorage.setItem('slowtrain_theme', name);
     const btn = document.getElementById('bTheme');
     if (btn) btn.textContent = name === 'default' ? '🌟' : _themeIcon(name);
+  },
+
+  // 저장된 테마 불러오기 (게임 시작 시 호출)
+  load() {
+    const saved = localStorage.getItem('slowtrain_theme');
+    if (saved && saved !== 'default') this.set(saved);
   },
 
   // 매 프레임 애니메이션 (game.js update에서 호출)

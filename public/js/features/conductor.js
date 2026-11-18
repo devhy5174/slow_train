@@ -53,7 +53,7 @@ function makeConductor() {
     npc: true,
     label: "승무원",
     shirt: 0x1c3a6b,
-    hair: 0x1c3a6b, // 모자와 동일한 네이비
+    hair: 0x111111, // 블랙
     skin: 0xf1c79e,
     pants: 0x1c1c2a,
     avatarType: 'conductor',
@@ -65,6 +65,40 @@ function makeConductor() {
   C.speed = 0.9;
   C.mode = "walk";
   C.pause = 0;
+
+  // 휴대용 티켓 스캐너 — 오른팔 아래(손 근처)에 부착
+  const scanG = new THREE.Group();
+  scanG.position.set(0, -0.3, 0.038); // 오른손 위치, 살짝 앞으로
+  // 본체
+  const scanBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.072, 0.115, 0.034),
+    mat(0x111111),
+  );
+  scanG.add(scanBody);
+  // 화면 (어두운 파란빛)
+  const scanScreen = new THREE.Mesh(
+    new THREE.BoxGeometry(0.052, 0.072, 0.004),
+    new THREE.MeshBasicMaterial({ color: 0x0a2a44 }),
+  );
+  scanScreen.position.set(0, 0.012, 0.019);
+  scanG.add(scanScreen);
+  // 빨간 스캔 라인
+  const scanLine = new THREE.Mesh(
+    new THREE.BoxGeometry(0.044, 0.004, 0.004),
+    new THREE.MeshBasicMaterial({ color: 0xff2200 }),
+  );
+  scanLine.position.set(0, -0.008, 0.02);
+  scanG.add(scanLine);
+  // 하단 그립 돌출부
+  const scanGrip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.056, 0.03, 0.028),
+    mat(0x222222),
+  );
+  scanGrip.position.set(0, -0.072, 0);
+  scanG.add(scanGrip);
+
+  C.g.userData.aR.add(scanG);
+  C.scanner = scanG;
 }
 
 // ── 승무원 스케줄 (매 프레임 호출) ────────────────────
@@ -86,16 +120,16 @@ function conductorTick(dt) {
     return;
   }
   // 팝업 대기 중: 승무원 멈춤 (플레이어 응답 or 타이머 종료 대기)
-  // [향후] C.mode='popup' 구간에 5초 카운트다운 UI + '제출' 버튼 표시
-  // [Supabase SYNC-2] 타이머는 서버 기준, 클라이언트는 UI만 표시
   if (C.mode === "popup") {
     animate(C, false, dt);
+    C.g.userData.aR.rotation.x = -0.95; // 스캐너 들어올리기
     return;
   }
   // 짧은 멈춤(검표 직전/인사 중): 멈춤이 끝나면 팝업 열기
   if (C.pause > 0) {
     C.pause -= dt;
     animate(C, false, dt);
+    if (C.mode === "ask") C.g.userData.aR.rotation.x = -0.95; // 스캐너 들어올리기
     if (C.pause <= 0 && C.mode === "ask") {
       C.mode = "popup";
       openTicket();
@@ -260,6 +294,7 @@ function showTicket() {
   GameState.inspecting = false;
   C.mode = "walk";
   C.pause = 1.5;
+  C.g.userData.aR.rotation.x = 0; // 팔 내리기
 
   const state = getPlayerSeatState();
 
@@ -343,6 +378,7 @@ function noTicket() {
   speak(C, "승차권이 없으시군요. 5초 후 하차 조치됩니다.", 5);
   C.mode = "walk";
   C.pause = 8;
+  C.g.userData.aR.rotation.x = 0; // 팔 내리기
   GameState.kick = { t: 5 };
   $("kickN").textContent = "5";
   $("kick").hidden = false;

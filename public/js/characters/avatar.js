@@ -200,20 +200,24 @@ function buildConductorAvatar(g, o) {
   peakG.position.set(0, HEAD_Y + 0.168, 0.35);
   peakG.rotation.x = -0.07;
   g.add(peakG);
-  const peakBox = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.022, 0.26),
-    mat(0x0d2244),
-  );
-  peakBox.castShadow = true;
-  peakG.add(peakBox);
-  // 앞 모서리 라운드 (원기둥으로 곡선 처리)
-  const peakEdge = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.013, 0.013, 0.4, 12),
-    mat(0x0d2244),
-  );
-  peakEdge.rotation.z = Math.PI / 2;
-  peakEdge.position.set(0, 0, 0.13);
-  peakG.add(peakEdge);
+  // 앞 챙 형태: 뒤는 직선, 앞 양 모서리는 라운드인 D형 (ExtrudeGeometry)
+  // shape XY → Rx(-π/2) → shape y 가 world -z 로 매핑됨
+  // shape y=+0.13 → world z=-0.13(모자쪽), shape y=-0.13 → world z=+0.13(앞쪽)
+  const _ps = new THREE.Shape();
+  const _HW = 0.20, _PD = 0.13, _PR = 0.09;
+  _ps.moveTo(-_HW,  _PD);                                       // 뒤-왼쪽 (직각)
+  _ps.lineTo( _HW,  _PD);                                       // 뒤-오른쪽
+  _ps.lineTo( _HW, -_PD + _PR);
+  _ps.quadraticCurveTo( _HW, -_PD,  _HW - _PR, -_PD);         // 앞-오른쪽 라운드
+  _ps.lineTo(-_HW + _PR, -_PD);
+  _ps.quadraticCurveTo(-_HW, -_PD, -_HW, -_PD + _PR);         // 앞-왼쪽 라운드
+  _ps.closePath();
+  const _pgeo = new THREE.ExtrudeGeometry(_ps, { depth: 0.022, bevelEnabled: false });
+  _pgeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  _pgeo.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.011, 0)); // 두께 중앙 정렬
+  const peakMesh = new THREE.Mesh(_pgeo, mat(0x0d2244));
+  peakMesh.castShadow = true;
+  peakG.add(peakMesh);
   // 명찰 — 왼쪽 가슴 (몸통 위치, 머리 이동과 무관)
   const badge = new THREE.Mesh(
     new THREE.PlaneGeometry(0.096, 0.046),
