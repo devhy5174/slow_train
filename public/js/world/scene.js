@@ -63,23 +63,28 @@ function buildRoof() {
   trainRoof = new THREE.Group();
   scene.add(trainRoof);
 
-  const L     = CAR.L;
-  const W     = CAR.W;
-  const archR = 10;             // 완만한 아치용 대반지름
-  const halfW = W / 2 + 0.22;  // 처마 돌출 너비
+  const L = CAR.L;
+  const W = CAR.W;
+  const archR = 10; // 완만한 아치용 대반지름
+  const halfW = W / 2 + 0.22; // 처마 돌출 너비
 
-  const arcHalf  = Math.asin(halfW / archR);  // 아치 반각도
+  const arcHalf = Math.asin(halfW / archR); // 아치 반각도
   const arcAngle = arcHalf * 2;
-  const edgeY    = archR * Math.cos(arcHalf); // 엣지에서 원통 중심까지 y 거리
+  const edgeY = archR * Math.cos(arcHalf); // 엣지에서 원통 중심까지 y 거리
 
-  const eaveY = 2.55;            // 처마 높이 (벽 상단에 맞춤)
-  const cylCY = eaveY - edgeY;   // 원통 중심 y
+  const eaveY = 2.55; // 처마 높이 (벽 상단에 맞춤)
+  const cylCY = eaveY - edgeY; // 원통 중심 y
 
   // 아치형 메인 지붕 (부분 원통, 8분할 저폴리)
   const geo = new THREE.CylinderGeometry(
-    archR, archR, L + 0.4,
-    8, 1, true,
-    Math.PI / 2 - arcHalf, arcAngle,
+    archR,
+    archR,
+    L + 0.4,
+    8,
+    1,
+    true,
+    Math.PI / 2 - arcHalf,
+    arcAngle,
   );
   geo.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
   const roofMesh = new THREE.Mesh(geo, mat(0xf0ede4));
@@ -90,7 +95,7 @@ function buildRoof() {
   // 양끝 아치 단면 마감 (DoubleSide → 안팎 모두 보임)
   const capShape = new THREE.Shape();
   for (let i = 0; i <= 4; i++) {
-    const th = (Math.PI / 2 - arcHalf) + (arcAngle * i / 4);
+    const th = Math.PI / 2 - arcHalf + (arcAngle * i) / 4;
     const py = archR * Math.sin(th);
     const px = -archR * Math.cos(th); // rotation.y=π/2 적용 시 world.z = -px
     if (i === 0) capShape.moveTo(px, py);
@@ -98,7 +103,10 @@ function buildRoof() {
   }
   capShape.closePath();
   const capGeo = new THREE.ShapeGeometry(capShape);
-  const capMat = new THREE.MeshStandardMaterial({ color: 0xf0ede4, side: THREE.DoubleSide });
+  const capMat = new THREE.MeshStandardMaterial({
+    color: 0xf0ede4,
+    side: THREE.DoubleSide,
+  });
   for (const ex of [-1, 1]) {
     const cap = new THREE.Mesh(capGeo, capMat);
     cap.rotation.y = Math.PI / 2;
@@ -463,4 +471,595 @@ function scenery() {
       sc(r, 1, 96);
     }
   }
+}
+
+// ----- 굴뚝 연기 파티클 -----
+// _buildLoco 에서 _smokeOrigin 설정 후 _initSmoke() 호출, game.js update 에서 tickSmoke(dt) 호출
+
+const _smokeOrigin = new THREE.Vector3();
+const _smokeParticles = [];
+
+function _makeSmokeSprite() {
+  const cv = document.createElement("canvas");
+  cv.width = 32;
+  cv.height = 32;
+  const ctx = cv.getContext("2d");
+  const grd = ctx.createRadialGradient(16, 16, 1, 16, 16, 14);
+  grd.addColorStop(0, "rgba(205,205,205,0.9)");
+  grd.addColorStop(1, "rgba(205,205,205,0)");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(cv);
+}
+
+function _initSmoke() {
+  const tex = _makeSmokeSprite();
+  for (let i = 0; i < 10; i++) {
+    const sp = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    );
+    const maxAge = 1.8 + Math.random() * 0.8;
+    const age = Math.random() * maxAge;
+    const bs = 0.5 + Math.random() * 0.14; // 기본 크기
+    sp.scale.setScalar(bs * (1 + (age / maxAge) * 1.5));
+    sp.position.set(
+      _smokeOrigin.x + (Math.random() - 0.5) * 0.15,
+      _smokeOrigin.y + age * 0.5,
+      _smokeOrigin.z + (Math.random() - 0.5) * 0.15,
+    );
+    scene.add(sp);
+    _smokeParticles.push({
+      sp,
+      age,
+      maxAge,
+      bs,
+      vx: (Math.random() - 0.5) * 0.1,
+      vz: (Math.random() - 0.5) * 0.1,
+      vy: 0.5 + Math.random() * 0.25,
+    });
+  }
+}
+
+function tickSmoke(dt) {
+  for (const p of _smokeParticles) {
+    p.age += dt;
+    if (p.age >= p.maxAge) {
+      p.age = 0;
+      p.sp.position.copy(_smokeOrigin);
+      p.vx = (Math.random() - 0.5) * 0.1;
+      p.vz = (Math.random() - 0.5) * 0.1;
+      p.vy = 0.5 + Math.random() * 0.25;
+    }
+    const t = p.age / p.maxAge;
+    p.sp.position.x += p.vx * dt;
+    p.sp.position.y += p.vy * dt * (1 - t * 0.3);
+    p.sp.position.z += p.vz * dt;
+    const fade = t < 0.15 ? t / 0.15 : t > 0.68 ? (1 - t) / 0.32 : 1;
+    p.sp.material.opacity = fade * 0.58;
+    p.sp.scale.setScalar(p.bs * (1 + t * 1.5));
+  }
+}
+
+// ----- 앞뒤 배경 객차 -----
+// 플레이 공간(x=0 중심) 앞에 기관차, 뒤에 일반 객차 외관 생성
+// 좌석·NPC·충돌 없음 / castShadow=false 로 모바일 성능 최적화
+
+// 아치형 지붕 그룹 생성 (배경 객차 전용, 주 객차 buildRoof와 동일 방식)
+function _makeArchRoof(length, color) {
+  const W = CAR.W;
+  const archR = 10;
+  const halfW = W / 2 + 0.22;
+  const arcHalf = Math.asin(halfW / archR);
+  const arcAngle = arcHalf * 2;
+  const cylCY = 2.55 - archR * Math.cos(arcHalf);
+  const rg = new THREE.Group();
+
+  const geo = new THREE.CylinderGeometry(
+    archR,
+    archR,
+    length + 0.4,
+    6,
+    1,
+    true,
+    Math.PI / 2 - arcHalf,
+    arcAngle,
+  );
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+  const mesh = new THREE.Mesh(geo, mat(color));
+  mesh.position.y = cylCY;
+  rg.add(mesh);
+
+  // 양끝 아치 단면 마감
+  const capShape = new THREE.Shape();
+  for (let i = 0; i <= 4; i++) {
+    const th = Math.PI / 2 - arcHalf + (arcAngle * i) / 4;
+    if (i === 0) capShape.moveTo(-archR * Math.cos(th), archR * Math.sin(th));
+    else capShape.lineTo(-archR * Math.cos(th), archR * Math.sin(th));
+  }
+  capShape.closePath();
+  const capMat = new THREE.MeshStandardMaterial({
+    color,
+    side: THREE.DoubleSide,
+  });
+  for (const ex of [-1, 1]) {
+    const cap = new THREE.Mesh(new THREE.ShapeGeometry(capShape), capMat);
+    cap.rotation.y = Math.PI / 2;
+    cap.position.set(ex * (length / 2 + 0.2), cylCY, 0);
+    rg.add(cap);
+  }
+  return rg;
+}
+
+// 배경 객차용 대차·바퀴 (주 객차 _wheelAxles 에 추가해 함께 회전)
+function _buildDecoBogies(parent, L) {
+  for (const bx of [-L * 0.3, L * 0.3]) {
+    const bg = new THREE.Group();
+    bg.position.set(bx, _BOGIE_Y, 0);
+    parent.add(bg);
+    box(bg, 2.2, 0.18, 4.4, 0x34383f, 0, _WHEEL_Y_L + 0.28, 0, false);
+    for (const wx of [-0.85, 0.85]) {
+      for (const wz of [-2.0, 2.0]) {
+        const rg = new THREE.Group();
+        rg.position.set(wx, _WHEEL_Y_L, wz);
+        bg.add(rg);
+        _wheelAxles.push(rg); // 메인 객차와 함께 회전
+        const wh = new THREE.Mesh(
+          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.22, 12),
+          mat(0x2a2a2a),
+        );
+        wh.rotation.x = Math.PI / 2;
+        rg.add(wh);
+        const fl = new THREE.Mesh(
+          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.1, 12),
+          mat(0x1a1a1a),
+        );
+        fl.rotation.x = Math.PI / 2;
+        rg.add(fl);
+      }
+    }
+  }
+}
+
+// 뒤쪽 배경 일반 객차 (주 객차와 동일 외관 색, 내부 없음)
+function _buildRearCar(cx, L) {
+  const W = CAR.W,
+    H = CAR.H;
+  const g = new THREE.Group();
+  g.position.x = cx;
+  scene.add(g);
+
+  box(g, L, 0.2, W, 0xd9b48a, 0, -0.1, 0, false);
+  box(g, L + 0.2, 0.4, W + 0.2, 0x34383f, 0, -0.4, 0, false);
+
+  for (const sg of [-1, 1]) {
+    const zw = (sg * W) / 2,
+      pitch = 1.9;
+    // 외관 색 띠 (주 객차와 동일)
+    box(g, L, 0.65, 0.035, 0x5b8fc5, 0, 0.42, zw + sg * 0.095, false);
+    box(g, L, 0.07, 0.04, 0xf8f4e9, 0, 0.79, zw + sg * 0.12, false);
+    box(g, L, 0.18, 0.04, 0x315c8e, 0, 0.08, zw + sg * 0.12, false);
+    box(g, L, 0.12, 0.04, 0xf7f0df, 0, 1.96, zw + sg * 0.12, false);
+    // 벽 본체 + 창 사이 기둥
+    box(g, L, 0.9, 0.15, CREAM, 0, 0.45, zw, false);
+    box(g, L, 0.7, 0.15, CREAM, 0, 2.25, zw, false);
+    for (let i = 0; i < 7; i++)
+      box(g, 0.7, 1.0, 0.15, CREAM, (i - 3) * pitch, 1.4, zw, false);
+    box(g, 0.55, 1.0, 0.15, CREAM, -7.525, 1.4, zw, false);
+    box(g, 0.55, 1.0, 0.15, CREAM, 7.525, 1.4, zw, false);
+    // 창문 (약간 불투명 파랑으로 외관 표현)
+    for (let i = 0; i < 8; i++) {
+      const p = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 1.0, 0.02),
+        new THREE.MeshBasicMaterial({
+          color: 0x7aaec8,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      p.position.set((i - 3.5) * pitch, 1.4, zw);
+      g.add(p);
+    }
+  }
+  // 양 끝 벽
+  for (const e of [-1, 1]) {
+    box(g, 0.15, H, 1.95, CREAM, (e * L) / 2, H / 2, -1.625, false);
+    box(g, 0.15, H, 1.95, CREAM, (e * L) / 2, H / 2, 1.625, false);
+    box(g, 0.15, 0.6, 1.3, CREAM, (e * L) / 2, 2.3, 0, false);
+  }
+  g.add(_makeArchRoof(L, 0xf0ede4));
+  _buildDecoBogies(g, L);
+}
+
+// 앞쪽 기관차 (KORAIL 디젤 — 운전실+엔진룸 분리 구조, 25~30% 증고)
+function _buildLoco(cx, L) {
+  const W = CAR.W; // 5.2
+  const g = new THREE.Group();
+  g.position.x = cx;
+  scene.add(g);
+
+  // === 공통 하부 (바퀴/레일 접지 위치 유지) ===
+  box(g, L + 0.2, 0.4, W + 0.2, 0x34383f, 0, -0.4, 0, false); // 하부 프레임
+  box(g, L, 0.52, W, 0x1e4080, 0, 0.17, 0, false); // 하단 파랑 발판
+  for (const sg of [-1, 1]) // 발판 측면 돌출
+    box(g, L - 0.4, 0.07, 0.28, 0x192e62, 0, 0.46, sg * (W / 2 + 0.1), false);
+
+  const baseY = 0.44; // 차체 주요 부분 시작 y
+
+  // === 운전실 (앞, +x) — 빨간색, 아치 지붕 ===
+  const cabL = 3.4;
+  const cabX = L / 2 - cabL / 2; // 4.3 (local)
+  const cabH = 2.5; // 운전실 차체 높이 (지붕 제외)
+  const cabTop = baseY + cabH; // ≈ 2.94
+
+  box(g, cabL, cabH, W, 0xcc2222, cabX, baseY + cabH / 2, 0, false); // 운전실 본체
+  box(g, cabL + 0.04, 0.13, W + 0.08, 0xf5f5f0, cabX, baseY + 0.065, 0, false); // 하단 흰 띠
+  box(g, cabL + 0.06, 0.15, W + 0.1, 0xaa1818, cabX, cabTop - 0.04, 0, false); // 처마 띠
+
+  // 운전실 완만한 아치 지붕 (archR=8 → 부드러운 곡선)
+  const _archR = 8,
+    _archHalfW = W / 2 + 0.12;
+  const _arcHalf = Math.asin(_archHalfW / _archR);
+  const _arcAngle = _arcHalf * 2;
+  const _archCylCY = cabTop - _archR * Math.cos(_arcHalf);
+  const archCrown = _archCylCY + _archR; // ≈ 3.42 (상단 층 기준점)
+  {
+    const geo = new THREE.CylinderGeometry(
+      _archR,
+      _archR,
+      cabL + 0.12,
+      6,
+      1,
+      true,
+      Math.PI / 2 - _arcHalf,
+      _arcAngle,
+    );
+    geo.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+    const rm = new THREE.Mesh(geo, mat(0xaa1818));
+    rm.position.set(cabX, _archCylCY, 0);
+    g.add(rm);
+    const sh = new THREE.Shape();
+    for (let i = 0; i <= 4; i++) {
+      const th = Math.PI / 2 - _arcHalf + (_arcAngle * i) / 4;
+      if (i === 0) sh.moveTo(-_archR * Math.cos(th), _archR * Math.sin(th));
+      else sh.lineTo(-_archR * Math.cos(th), _archR * Math.sin(th));
+    }
+    sh.closePath();
+    const capMat = new THREE.MeshStandardMaterial({
+      color: 0xaa1818,
+      side: THREE.DoubleSide,
+    });
+    for (const ex of [-1, 1]) {
+      const cap = new THREE.Mesh(new THREE.ShapeGeometry(sh), capMat);
+      cap.rotation.y = Math.PI / 2;
+      cap.position.set(cabX + ex * (cabL / 2 + 0.06), _archCylCY, 0);
+      g.add(cap);
+    }
+  }
+
+  // === 운전실 상단 증축층 (아치형 — 하층 아치와 동일 실린더 중심 공유, 퍼즐 맞물림) ===
+  // 내부 반지름 = _archR(하층과 동일) → 하층 곡면과 경계 없이 맞물림
+  // 외부 반지름 = _archR + topH → 상단 곡면
+  const topH = 0.72;
+  const topHalfW = (W - 1.1) / 2; // = 2.05 (상단 아치 반폭)
+  const topOuterR = _archR + topH; // = 8.72
+  const topArcHalf_i = Math.asin(topHalfW / _archR); // 내부 호 반각 ≈ 0.259 rad
+  const topArcHalf_o = Math.asin(topHalfW / topOuterR); // 외부 호 반각 ≈ 0.237 rad
+  const topArcAngle_o = topArcHalf_o * 2;
+
+  // 외부 곡면 (상단 표면)
+  const topGeo = new THREE.CylinderGeometry(
+    topOuterR,
+    topOuterR,
+    cabL + 0.12,
+    6,
+    1,
+    true,
+    Math.PI / 2 - topArcHalf_o,
+    topArcAngle_o,
+  );
+  topGeo.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+  const topMesh = new THREE.Mesh(topGeo, mat(0xaa1818));
+  topMesh.position.set(cabX, _archCylCY, 0);
+  g.add(topMesh);
+
+  // 양끝 환형 단면 (내부 R=8 ~ 외부 R=8.72 사이 고리 모양)
+  const topCapShape = new THREE.Shape();
+  for (let i = 0; i <= 4; i++) {
+    // 외부 호 (순방향)
+    const th = Math.PI / 2 - topArcHalf_o + (topArcAngle_o * i) / 4;
+    if (i === 0)
+      topCapShape.moveTo(-topOuterR * Math.cos(th), topOuterR * Math.sin(th));
+    else
+      topCapShape.lineTo(-topOuterR * Math.cos(th), topOuterR * Math.sin(th));
+  }
+  for (let i = 4; i >= 0; i--) {
+    // 내부 호 (역방향)
+    const th = Math.PI / 2 - topArcHalf_i + (topArcHalf_i * 2 * i) / 4;
+    topCapShape.lineTo(-_archR * Math.cos(th), _archR * Math.sin(th));
+  }
+  topCapShape.closePath();
+  const topCapMat = new THREE.MeshStandardMaterial({
+    color: 0xaa1818,
+    side: THREE.DoubleSide,
+  });
+  for (const ex of [-1, 1]) {
+    const topCap = new THREE.Mesh(
+      new THREE.ShapeGeometry(topCapShape),
+      topCapMat,
+    );
+    topCap.rotation.y = Math.PI / 2;
+    topCap.position.set(cabX + ex * (cabL / 2 + 0.06), _archCylCY, 0);
+    g.add(topCap);
+  }
+
+  // 측면 Z 엣지 패널 + 창문 (z=±topHalfW 의 열린 단면 커버)
+  const sideY_i = _archCylCY + Math.sqrt(_archR * _archR - topHalfW * topHalfW);
+  const sideY_o =
+    _archCylCY + Math.sqrt(topOuterR * topOuterR - topHalfW * topHalfW);
+  const sideH = sideY_o - sideY_i;
+  const sideCY = (sideY_i + sideY_o) / 2;
+  for (const sg of [-1, 1]) {
+    box(
+      g,
+      cabL + 0.12,
+      sideH,
+      0.09,
+      0xaa1818,
+      cabX,
+      sideCY,
+      sg * topHalfW,
+      false,
+    );
+    const uc = new THREE.Mesh(
+      new THREE.BoxGeometry(0.95, sideH * 0.52, 0.05),
+      new THREE.MeshBasicMaterial({
+        color: 0x1a3550,
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+      }),
+    );
+    uc.position.set(cabX + 0.25, sideCY, sg * (topHalfW + 0.05));
+    g.add(uc);
+  }
+
+  // === 굴뚝 (운전실 앞쪽 상단) ===
+  const topCrown = _archCylCY + topOuterR; // 상단 아치 최정점 y ≈ 4.14
+  const chLX = cabX; // 굴뚝 로컬 x (운전실 정중앙)
+  const chBase = topCrown + 0.05;
+  // 하단 플랜지
+  const ch1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.22, 0.12, 8),
+    mat(0x333338),
+  );
+  ch1.position.set(chLX, chBase + 0.06, 0);
+  g.add(ch1);
+  // 굴뚝 본체 (약간 테이퍼)
+  const ch2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.5, 1, 8),
+    mat(0x2a2a2e),
+  );
+  ch2.position.set(chLX, chBase + 0.12 + 0.22, 0);
+  g.add(ch2);
+  // 굴뚝 테두리 (위쪽이 살짝 넓게 — 귀여운 증기기관차 스타일)
+  const ch3 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.19, 0.11, 0.1, 8),
+    mat(0x222228),
+  );
+  ch3.position.set(chLX, chBase + 0.12 + 0.44 + 0.05, 0);
+  g.add(ch3);
+  // 연기 발생 월드 좌표 → _initSmoke 에서 초기 파티클 배치에 사용
+  _smokeOrigin.set(cx + chLX, chBase + 0.12 + 0.44 + 0.1 + 0.05, 0);
+  _initSmoke();
+
+  // === 전면 볼록 아치형 면 (Y축 실린더 — 열차 앞부분처럼 전방으로 볼록) ===
+  const faceR = 6.0, faceHalfZ = W / 2 + 0.08;
+  const faceAH = Math.asin(faceHalfZ / faceR);
+  const faceCX = L / 2 - Math.sqrt(faceR * faceR - faceHalfZ * faceHalfZ);
+  const facePeak = faceCX + faceR; // 볼록 최정점 x (≈ L/2 + 0.59)
+  const frontFace = new THREE.Mesh(
+    new THREE.CylinderGeometry(faceR, faceR, cabH, 8, 1, true,
+      Math.PI / 2 - faceAH, faceAH * 2),
+    mat(0xcc2222)
+  );
+  frontFace.position.set(faceCX, baseY + cabH / 2, 0);
+  g.add(frontFace);
+  // 아치 단면 마감 헬퍼: D형 ShapeGeometry (arch curve + straight back edge)
+  function _makeArchCapShape(cxOff, r, hZ) {
+    const sh = new THREE.Shape();
+    sh.moveTo(L / 2, -hZ);
+    sh.lineTo(L / 2, hZ);
+    for (let i = 0; i <= 10; i++) {
+      const sy = hZ - i * (2 * hZ / 10);
+      sh.lineTo(cxOff + Math.sqrt(r * r - sy * sy), sy);
+    }
+    sh.closePath();
+    return sh;
+  }
+  const capMat2 = new THREE.MeshStandardMaterial({ color: 0xcc2222, side: THREE.DoubleSide });
+
+  // 하단 마감 (아치 곡선에 맞는 D형, 아래 방향)
+  const botCap = new THREE.Mesh(
+    new THREE.ShapeGeometry(_makeArchCapShape(faceCX, faceR, faceHalfZ)), capMat2);
+  botCap.rotation.x = Math.PI / 2; // shape Y → world +Z, 아랫면
+  botCap.position.set(0, baseY, 0);
+  g.add(botCap);
+
+  // 상단 마감 (D형, 위 방향)
+  const topCapSh = new THREE.Shape();
+  topCapSh.moveTo(L / 2, faceHalfZ);
+  topCapSh.lineTo(L / 2, -faceHalfZ);
+  for (let i = 0; i <= 10; i++) {
+    const sy = -faceHalfZ + i * (2 * faceHalfZ / 10);
+    topCapSh.lineTo(faceCX + Math.sqrt(faceR * faceR - sy * sy), sy);
+  }
+  topCapSh.closePath();
+  const topCap2 = new THREE.Mesh(new THREE.ShapeGeometry(topCapSh), capMat2);
+  topCap2.rotation.x = -Math.PI / 2; // shape Y → world -Z, 윗면
+  topCap2.position.set(0, baseY + cabH, 0);
+  g.add(topCap2);
+
+  // 전면 창문 (아치 면에 완전히 붙임 — 두께 최소화, 뒷면이 아치 표면과 일치)
+  for (const wz of [-0.95, 0.95]) {
+    const wx = faceCX + Math.sqrt(faceR * faceR - wz * wz);
+    const yr = Math.asin(wz / faceR);
+    // 창틀 (얇게, 뒷면=아치 표면)
+    const wf = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.73, 1.2), mat(0x0d1520));
+    wf.position.set(wx + 0.013, baseY + cabH * 0.65, wz);
+    wf.rotation.y = yr;
+    g.add(wf);
+    // 유리 (창틀 바로 위)
+    const wp = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.62, 1.06),
+      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.85, depthWrite: false }));
+    wp.position.set(wx + 0.026, baseY + cabH * 0.65, wz);
+    wp.rotation.y = yr;
+    g.add(wp);
+  }
+
+  // 측면 창문 (각 2개)
+  for (const sg of [-1, 1]) {
+    const zw = sg * W / 2;
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.62, 0.05),
+      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.8, depthWrite: false }));
+    c1.position.set(cabX + 0.5, baseY + cabH * 0.65, zw);
+    g.add(c1);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.5, 0.05),
+      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.75, depthWrite: false }));
+    c2.position.set(cabX - cabL * 0.28, baseY + cabH * 0.65, zw);
+    g.add(c2);
+  }
+
+  // 전조등 (아치 곡면 위)
+  for (const wz of [-1.1, 1.1]) {
+    const hx = faceCX + Math.sqrt(faceR * faceR - wz * wz);
+    const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffcc }));
+    hl.rotation.z = Math.PI / 2;
+    hl.position.set(hx + 0.04, baseY + 0.5, wz);
+    g.add(hl);
+  }
+  // 전면 하단 범퍼 (아치 곡선에 맞게 — 옆으로 튀어나오지 않음)
+  const bumpMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(faceR + 0.04, faceR + 0.04, 0.32, 8, 1, true,
+      Math.PI / 2 - faceAH, faceAH * 2),
+    mat(0x333338)
+  );
+  bumpMesh.position.set(faceCX, baseY + 0.16, 0);
+  g.add(bumpMesh);
+
+  // === 엔진룸 (뒤) — 파랑 하단 + 흰색 상단 덮개 ===
+  const engL = L - cabL - 0.14; // ≈ 8.46
+  const engX = -L / 2 + engL / 2; // ≈ -1.77 (local)
+  const engH = 2.3; // 엔진룸 높이
+  const engTop = baseY + engH; // ≈ 2.74
+
+  box(g, engL, 1.1, W, 0x2b5aa0, engX, baseY + 0.55, 0, false); // 하단 파랑 차체
+  box(g, engL + 0.06, 0.1, W + 0.04, 0x1a3568, engX, baseY + 1.1, 0, false); // 경계선
+  box(
+    g,
+    engL,
+    engH - 1.1,
+    W - 0.4,
+    0xf0ede4,
+    engX,
+    baseY + 1.1 + (engH - 1.1) / 2,
+    0,
+    false,
+  ); // 흰색 상단
+  box(g, engL + 0.04, 0.14, W - 0.36, 0x2b5aa0, engX, engTop - 0.04, 0, false); // 상단 파랑 띠
+  for (const sg of [-1, 1]) // 측면 하단 파랑 패널 (두께감)
+    box(g, engL, 1.08, 0.18, 0x2458a0, engX, baseY + 0.54, (sg * W) / 2, false);
+
+  // 상단 환기구 블록 3개
+  for (let i = 0; i < 3; i++)
+    box(
+      g,
+      engL * 0.24,
+      0.3,
+      W * 0.5,
+      0x44484e,
+      engX - engL * 0.3 + i * (engL * 0.3),
+      engTop + 0.15,
+      0,
+      false,
+    );
+  // 환기 루버 가로줄
+  for (let r = 0; r < 3; r++)
+    box(
+      g,
+      engL * 0.72,
+      0.04,
+      W - 0.38,
+      0x555560,
+      engX,
+      baseY + 1.3 + r * 0.38,
+      0,
+      false,
+    );
+
+  // 측면 환기 루버 패널
+  for (const sg of [-1, 1]) {
+    const zw = (sg * W) / 2;
+    for (const ex of [-engL * 0.28, 0, engL * 0.28]) {
+      const vp = new THREE.Mesh(
+        new THREE.BoxGeometry(engL * 0.21, 0.88, 0.05),
+        new THREE.MeshBasicMaterial({
+          color: 0x222228,
+          transparent: true,
+          opacity: 0.5,
+          depthWrite: false,
+        }),
+      );
+      vp.position.set(engX + ex, baseY + 1.5, zw);
+      g.add(vp);
+    }
+  }
+
+  // 운전실·엔진룸 경계 띠 + 뒷면 연결기
+  box(
+    g,
+    0.14,
+    cabH + 0.1,
+    W + 0.12,
+    0x1a1a22,
+    cabX - cabL / 2 - 0.07,
+    baseY + cabH / 2,
+    0,
+    false,
+  );
+  box(g, 0.26, 0.3, W * 0.6, 0x444449, -L / 2 - 0.07, baseY + 0.14, 0, false);
+
+  _buildDecoBogies(g, L);
+}
+
+// 연결통로 (두 객차 사이 — 고무 아코디언 형태)
+function _buildConnector(x, gap, W) {
+  const g = new THREE.Group();
+  g.position.x = x;
+  scene.add(g);
+  // 연결부 외피
+  box(g, gap, 2.4, W * 0.72, 0x444449, 0, 1.1, 0, false);
+  // 측면 금속 프레임
+  for (const sg of [-1, 1])
+    box(g, gap + 0.08, 2.5, 0.1, 0x555560, 0, 1.1, sg * W * 0.36, false);
+  // 하단 연결기 범퍼
+  box(g, gap + 0.3, 0.26, W * 0.5, 0x33383f, 0, -0.27, 0, false);
+  box(g, gap + 0.4, 0.18, 0.28, 0x888890, 0, -0.1, 0, false);
+}
+
+// buildWorld 에서 호출 — 뒤 일반객차 + 앞 기관차 + 연결통로 2개
+function buildAdjacentCars() {
+  const GAP = 1.0; // 연결부 간격
+  const L_REAR = 15.6,
+    L_LOCO = 9.2;
+  _buildRearCar(-(CAR.L / 2 + GAP + L_REAR / 2), L_REAR);
+  _buildLoco(CAR.L / 2 + GAP + L_LOCO / 2, L_LOCO);
+  _buildConnector(-(CAR.L / 2 + GAP / 2), GAP, CAR.W);
+  _buildConnector(CAR.L / 2 + GAP / 2, GAP, CAR.W);
 }

@@ -68,6 +68,7 @@ function update(dt) {
     if (o.m.position.x < -48) o.m.position.x += o.p;
   }); // 창밖 풍경 흘러가기 + 반복
   tickWheels(dt); // 바퀴 회전
+  tickSmoke(dt);  // 굴뚝 연기 파티클
   Multi.tick(dt); // 멀티플레이 위치 동기화
   separate();
   // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거
@@ -147,6 +148,7 @@ function buildWorld() {
   scenery();
   buildBogies();
   buildTrack();
+  buildAdjacentCars(); // 앞(기관차)·뒤(일반객차) 배경 차량 생성
   BENCHES.forEach(bench);
   [-1, 1].forEach((s) => table(s * 1.6));
   // 좌석마다 보이지 않는 터치 영역(마우스를 올리면 노랗게 표시)
