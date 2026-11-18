@@ -51,7 +51,7 @@ function brain(n, dt) {
 
 // 통로에서 서 있는/걷는 사람끼리 겹치지 않게 밀어냄(NPC·플레이어·판매원·승무원 충돌 처리)
 function separate() {
-  const all = [P, ...NPCS, V, C].filter(a => a.g.visible && a.state !== 'sit' && Math.abs(a.g.position.z) <= AISLE + 0.02);
+  const all = [P, ...NPCS].filter(a => a.g.visible && a.state !== 'sit' && Math.abs(a.g.position.z) <= AISLE + 0.02);
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
     const A = all[i].g.position, B = all[j].g.position; let dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
     if (d >= 0.5) continue; // 충분히 떨어져 있으면 무시

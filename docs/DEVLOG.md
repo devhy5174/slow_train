@@ -1,5 +1,13 @@
 # DEVLOG — 개발 일지
 
+## 2026-11-18 — 원격 유저 이름표 베타 제거 + 판매원·역무원 충돌 통과
+
+**변경 파일**: `public/js/multi.js`, `public/js/characters/npc.js`
+
+**내용**: 원격 접속 유저 이름표에 "베타" 접두사 제거(label 직접 전달). 판매원·역무원을 separate() 대상에서 제외해 다른 캐릭터를 밀지 않고 통과하도록 수정.
+
+---
+
 ## 2026-11-18 — 유저 입장 시 베타 NPC 단계적 퇴장·복귀
 
 **변경 파일**: `public/js/multi.js`, `public/js/game.js`

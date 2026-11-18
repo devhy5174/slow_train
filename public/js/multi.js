@@ -80,7 +80,7 @@ const Multi = (() => {
     if (peers[peerId] || peerId === _myId) return;
     const pal = PALETTES[_paletteIdx % PALETTES.length];
     _paletteIdx++;
-    const a = mkActor(`peer_${peerId}`, name || '승객', { ...pal, npc: true });
+    const a = mkActor(`peer_${peerId}`, name || '승객', { ...pal, npc: true, label: name || '승객' });
     a.g.position.set(0, 0, 0);
     a._moving = false;
     peers[peerId] = a;
