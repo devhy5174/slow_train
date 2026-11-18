@@ -63,16 +63,49 @@ function buildRoof() {
   trainRoof = new THREE.Group();
   scene.add(trainRoof);
 
-  const L = CAR.L;
-  const W = CAR.W;
+  const L     = CAR.L;
+  const W     = CAR.W;
+  const archR = 10;             // 완만한 아치용 대반지름
+  const halfW = W / 2 + 0.22;  // 처마 돌출 너비
 
-  // 아이보리색 지붕
-  box(trainRoof, L + 0.4, 0.18, W + 0.4, 0xf1eee5, 0, 2.35, 0);
+  const arcHalf  = Math.asin(halfW / archR);  // 아치 반각도
+  const arcAngle = arcHalf * 2;
+  const edgeY    = archR * Math.cos(arcHalf); // 엣지에서 원통 중심까지 y 거리
 
-  // 지붕 중앙의 살짝 높은 부분
-  box(trainRoof, L + 0.2, 0.12, W * 0.65, 0xe0e5e8, 0, 2.47, 0);
+  const eaveY = 2.55;            // 처마 높이 (벽 상단에 맞춤)
+  const cylCY = eaveY - edgeY;   // 원통 중심 y
 
-  // 처음에는 내부가 보이도록 숨김
+  // 아치형 메인 지붕 (부분 원통, 8분할 저폴리)
+  const geo = new THREE.CylinderGeometry(
+    archR, archR, L + 0.4,
+    8, 1, true,
+    Math.PI / 2 - arcHalf, arcAngle,
+  );
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+  const roofMesh = new THREE.Mesh(geo, mat(0xf0ede4));
+  roofMesh.position.y = cylCY;
+  roofMesh.castShadow = true;
+  trainRoof.add(roofMesh);
+
+  // 양끝 아치 단면 마감 (DoubleSide → 안팎 모두 보임)
+  const capShape = new THREE.Shape();
+  for (let i = 0; i <= 4; i++) {
+    const th = (Math.PI / 2 - arcHalf) + (arcAngle * i / 4);
+    const py = archR * Math.sin(th);
+    const px = -archR * Math.cos(th); // rotation.y=π/2 적용 시 world.z = -px
+    if (i === 0) capShape.moveTo(px, py);
+    else capShape.lineTo(px, py);
+  }
+  capShape.closePath();
+  const capGeo = new THREE.ShapeGeometry(capShape);
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xf0ede4, side: THREE.DoubleSide });
+  for (const ex of [-1, 1]) {
+    const cap = new THREE.Mesh(capGeo, capMat);
+    cap.rotation.y = Math.PI / 2;
+    cap.position.set(ex * (L / 2 + 0.2), cylCY, 0);
+    trainRoof.add(cap);
+  }
+
   trainRoof.visible = false;
 }
 
