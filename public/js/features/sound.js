@@ -98,15 +98,17 @@ function initEarphoneUI() {
       EarphoneMusic.audio.pause();
       EarphoneMusic.playing = false;
       toast('이어폰을 뺐어요.');
-      // 이어폰이 직접 음소거한 경우에만 기차음 복원
       if (_mutedByEarphone) { _mutedByEarphone = false; RailSound.setMuted(false); syncMute(); }
     } else {
       EarphoneMusic.audio.play().catch(() => toast('음악 파일을 찾을 수 없어요.'));
       EarphoneMusic.playing = true;
       toast('이어폰을 꽂았어요. 🎧');
-      // 기차음이 켜져 있을 때만 음소거 (이미 꺼져 있으면 건드리지 않음)
       if (!RailSound.muted) { _mutedByEarphone = true; RailSound.setMuted(true); syncMute(); }
     }
+    // 헤드폰 3D 모델 표시/숨김 (P가 초기화된 뒤에만 접근)
+    if (typeof P !== 'undefined' && P.headphones) P.headphones.visible = EarphoneMusic.playing;
+    // [Supabase 연동 시] channel.send(actorSnapshot(P)) 로 헤드폰 상태 포함 브로드캐스트
+    // applyActorSnapshot(remoteActor, snap) 에서 snap.headphones 자동 반영됨 (actor.js 참고)
     syncBtn();
   };
 

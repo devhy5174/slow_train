@@ -56,7 +56,7 @@ function makeConductor() {
     hair: 0x222222,
     skin: 0xf1c79e,
     pants: 0x1c1c2a,
-    cap: true,
+    avatarType: 'conductor',
   });
   C.g.visible = false;
   C.active = false;

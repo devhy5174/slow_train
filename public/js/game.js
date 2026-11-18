@@ -182,6 +182,7 @@ function spawnActors(profile) {
   });
   P.g.position.set(-6.6, 0, 0);
   P.g.rotation.y = Math.PI / 2;
+  P.headphones = buildHeadphones(P.g); // 이어폰 버튼으로 토글할 헤드폰 (초기 hidden)
   // 같은 닉네임으로 재접속하면 저장된 지정석 복구 시도, 다른 닉네임이면 새 배정
   const savedTicketSeatId =
     profile && profile.nickname === nick ? profile.ticketSeatId : null;

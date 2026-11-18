@@ -22,6 +22,8 @@ function box(parent, w, h, d, color, x, y, z, shadow = true) {
 const benchGroups = {};
 // 머리받침 메쉬 저장 맵 — 키: `${benchId}:${0|1}` (0=z<0, 1=z>0)
 const headrestMeshes = {};
+// 등받이 서브그룹 참조 맵 — 번호 스티커 부착용, 키: `${benchId}:${0|1}`
+const seatBrgGroups = {};
 
 // 2인용 파란 좌석(벤치) 1개 생성 — BENCHES 데이터 기준으로 배치
 function bench(b) {
@@ -29,14 +31,52 @@ function bench(b) {
   g.position.set(b.x, 0, b.side * 1.6);
   g.rotation.y = b.yaw;
   benchGroups[b.id] = g; // 번호판 추가를 위해 저장
-  box(g, 0.62, 0.36, 1.78, NAVY, 0, 0.18, 0); // 좌석 받침
+
+  // 받침대 (두 좌석 공통 하부 프레임)
+  box(g, 0.62, 0.36, 1.78, NAVY, 0, 0.18, 0);
+
+  const SEAT_HI = 0x3a6abd; // 쿠션 하이라이트 색
+
   for (const z of [-0.45, 0.45]) {
-    box(g, 0.66, 0.16, 0.84, BLUE, 0.02, 0.44, z); // 방석
-    box(g, 0.16, 0.9, 0.84, BLUE, -0.3, 0.95, z).rotation.z = 0.1; // 등받이(살짝 기울임)
-    const hr = box(g, 0.18, 0.28, 0.55, 0xf4efe3, -0.36, 1.5, z); // 머리받침 흰 덮개
-    headrestMeshes[`${b.id}:${z > 0 ? 1 : 0}`] = hr; // 내 자리 강조용으로 참조 보관
+    // ── 방석 ──
+    box(g, 0.63, 0.08, 0.82, NAVY,    0.02, 0.41, z); // 방석 테두리 프레임
+    box(g, 0.59, 0.12, 0.78, BLUE,    0.02, 0.44, z); // 방석 메인 패드
+    box(g, 0.53, 0.03, 0.68, SEAT_HI, 0.02, 0.51, z); // 쿠션 볼록 하이라이트
+
+    // ── 등받이 (서브그룹으로 한꺼번에 기울임) ──
+    const brg = new THREE.Group();
+    brg.position.set(-0.30, 0.90, z);
+    brg.rotation.z = 0.1;
+    g.add(brg);
+    box(brg, 0.12, 0.76, 0.80, NAVY, 0,    0, 0); // 뒷 구조 패널
+    box(brg, 0.08, 0.72, 0.76, BLUE, 0.03, 0, 0); // 앞 쿠션 패딩
+    // 등받이 상단 둥근 에지 (실린더 Z축 방향)
+    const tc = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.07, 0.76, 8),
+      mat(BLUE),
+    );
+    tc.rotation.x = Math.PI / 2;
+    tc.position.set(0.03, 0.38, 0);
+    tc.castShadow = true;
+    brg.add(tc);
+
+    // 번호 스티커 부착용으로 등받이 그룹 저장
+    seatBrgGroups[`${b.id}:${z > 0 ? 1 : 0}`] = brg;
+
+    // 내 자리 강조 로직용 더미 메쉬 (headrestMeshes 참조만 보관, 쿠션 내부에 숨김)
+    const hr = new THREE.Mesh(
+      new THREE.BoxGeometry(0.001, 0.001, 0.001),
+      mat(0xf4efe3),
+    );
+    hr.position.set(0, 0.44, z);
+    hr.castShadow = false;
+    g.add(hr);
+    headrestMeshes[`${b.id}:${z > 0 ? 1 : 0}`] = hr;
   }
-  box(g, 0.5, 0.1, 0.08, NAVY, 0, 0.62, 0); // 두 좌석 사이 팔걸이
+
+  // ── 중앙 팔걸이 ──
+  box(g, 0.52, 0.10, 0.08, NAVY, 0, 0.60, 0);
+
   scene.add(g);
 }
 
@@ -197,22 +237,46 @@ function shell() {
 // seatId → Mesh 맵. refreshSeatLabels()에서 황금색 갱신에 사용
 const seatLabelMeshes = {};
 
-// 좌석 번호 레이블용 캔버스 머티리얼 생성 (MeshBasicMaterial)
-// style: 'reserved'(짙은 남색), 'free'(짙은 초록), 'mine'(황금)
-// 투명 배경 + 텍스트만 → 머리받침 아이보리 면에 직접 프린트된 느낌
+// 좌석 번호 스티커 머티리얼 생성 (캔버스 텍스처 — 둥근 모서리 배경 + 숫자)
+// style: 'reserved'(크림 배경+남색 숫자), 'free'(초록 배경), 'mine'(코랄 레드 배경+흰 숫자)
 function makeSeatLabelMat(text, style) {
+  const W = 128, H = 80;
   const cv = document.createElement("canvas");
-  cv.width = 128;
-  cv.height = 64;
+  cv.width = W; cv.height = H;
   const ctx = cv.getContext("2d");
-  ctx.clearRect(0, 0, 128, 64);
-  if (style === "mine") ctx.fillStyle = "#c8a010";
-  else if (style === "free") ctx.fillStyle = "#1a5244";
-  else ctx.fillStyle = "#1d2f4f";
-  ctx.font = `bold ${style === "free" ? 30 : 40}px sans-serif`;
+  ctx.clearRect(0, 0, W, H);
+
+  // 스타일별 배경색·글자색
+  const bg = style === "mine"  ? "#c94c3a"
+           : style === "free"  ? "#2a6b4e"
+           : "#dcd7bf"; // 크림
+  const fg = style === "mine"  ? "#ffffff"
+           : style === "free"  ? "#c8f0dc"
+           : "#1d2f4f"; // 짙은 남색
+
+  // 둥근 직사각형 배경
+  const p = 5, r = 14;
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.moveTo(p + r, p);
+  ctx.lineTo(W - p - r, p);
+  ctx.quadraticCurveTo(W - p, p, W - p, p + r);
+  ctx.lineTo(W - p, H - p - r);
+  ctx.quadraticCurveTo(W - p, H - p, W - p - r, H - p);
+  ctx.lineTo(p + r, H - p);
+  ctx.quadraticCurveTo(p, H - p, p, H - p - r);
+  ctx.lineTo(p, p + r);
+  ctx.quadraticCurveTo(p, p, p + r, p);
+  ctx.closePath();
+  ctx.fill();
+
+  // 숫자 텍스트
+  ctx.fillStyle = fg;
+  ctx.font = `bold ${style === "free" ? 26 : 36}px sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, 64, 32);
+  ctx.fillText(text, W / 2, H / 2);
+
   return new THREE.MeshBasicMaterial({
     map: new THREE.CanvasTexture(cv),
     transparent: true,
@@ -220,29 +284,33 @@ function makeSeatLabelMat(text, style) {
   });
 }
 
-// 모든 좌석 머리받침 뒷면(-x 면)에 번호 Mesh 를 벤치 자식으로 추가 (buildWorld 에서 호출)
-// 벤치 로컬 좌표 기준: 머리받침 중심 (-0.36, 1.5, zLocal), 뒷면 x = -0.45
-// rotation.y = +π/2 → 벤치 로컬 +x 방향을 바라봄(머리받침 앞면)
-// 텍스트 방향: yaw=0 → 세계 +x, yaw=π → 세계 -x (각각 앞에서 보는 플레이어 기준 정면)
+// 등받이 앞면 상단에 번호 스티커 Mesh 를 등받이 서브그룹(brg) 자식으로 추가
+// brg 로컬 좌표 기준: 앞 쿠션 패딩 앞면 x≈0.07, 상단부 y=0.26, z=0(중앙)
+// rotation.y = +π/2 → brg 로컬 +x 방향(등받이 앞면)을 바라봄
 function buildSeatLabels() {
   SEATS.forEach((s) => {
     const benchId = s.id.replace(/-\d+$/, "");
     const g = benchGroups[benchId];
     if (!g) return;
-    const zLocal = s.z - g.position.z; // 벤치 그룹 로컬 z 오프셋
+    const zLocal = s.z - g.position.z;
+    const sideIdx = zLocal > 0 ? 1 : 0;
+    const brg = seatBrgGroups[`${benchId}:${sideIdx}`];
+    if (!brg) return;
+
     const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.28, 0.14),
+      new THREE.PlaneGeometry(0.24, 0.15),
       makeSeatLabelMat(
         s.seatType === "free" ? "자유" : String(s.displayNum),
         s.seatType === "free" ? "free" : "reserved",
       ),
     );
-    // 머리받침 앞면(x=-0.27)에서 2mm 바깥에 부착하여 z-fighting 방지
-    plane.position.set(-0.268, 1.5, zLocal);
-    plane.rotation.y = Math.PI / 2; // 벤치 로컬 +x 방향을 바라봄(머리받침 앞면)
+    // 등받이 앞 쿠션 앞면(brg 로컬 x≈0.07)에서 1mm 띄워 z-fighting 방지
+    // y=0.26: 등받이 상단 근처 (top y=0.38), 캐릭터 착석 시에도 보이는 위치
+    plane.position.set(0.076, 0.26, 0);
+    plane.rotation.y = Math.PI / 2;
     plane.userData.isSeatLabel = true;
-    plane.raycast = () => {}; // 좌석 클릭 레이캐스트에 간섭 방지
-    g.add(plane);
+    plane.raycast = () => {};
+    brg.add(plane);
     seatLabelMeshes[s.id] = plane;
   });
 }
@@ -286,9 +354,20 @@ const _wheelAxles = [];
 // 객차 하부에 대차 2개(앞/뒤) 생성. 각 대차에 바퀴 4개씩 부착
 function buildBogies() {
   const bogieColor = 0x34383f;
-  const wheelColor = 0x2a2a2a;
-  const flangeColor = 0x1a1a1a;
   const FRAME_Y = _WHEEL_Y_L + 0.28; // 프레임 중심: 바퀴 중심에서 위쪽
+
+  // 바퀴 색상
+  const C_DISC   = 0x1e1e1e; // 휠 디스크 본체
+  const C_SPOKE  = 0x363636; // 스포크
+  const C_HUB    = 0x686868; // 허브 원통
+  const C_HUBCAP = 0xb0b0b0; // 허브캡 (밝은 금속)
+  const C_FLANGE = 0x0f0f0f; // 플랜지 (레일 접촉 테두리)
+
+  // 바퀴 치수
+  const HUB_R  = 0.13;
+  const RIM_IN = _WHEEL_R - 0.07;
+  const SP_MID = (HUB_R + RIM_IN) / 2;
+  const SP_LEN = RIM_IN - HUB_R;
 
   for (const bx of [-5.0, 5.0]) {
     const bg = new THREE.Group();
@@ -301,31 +380,88 @@ function buildBogies() {
     for (const bz of [-1.9, 1.9])
       box(bg, 2.2, 0.12, 0.2, bogieColor, 0, FRAME_Y + 0.1, bz);
 
-    // 바퀴 4개: (앞뒤 ±0.85) × (좌우 ±2.0)
+    // 바퀴 4개: (앞뒤 ±0.85) × (좌우 ±2.0) — 스포크 열차 바퀴 디자인
     for (const wx of [-0.85, 0.85]) {
       for (const wz of [-2.0, 2.0]) {
-        // rollGroup: 위치 담당. rotation.x 갱신으로 굴림 구현
         const rg = new THREE.Group();
         rg.position.set(wx, _WHEEL_Y_L, wz);
         bg.add(rg);
         _wheelAxles.push(rg);
 
-        // 바퀴 본체: CylinderGeometry(Y축) → rotation.z=PI/2로 X축 원통화
-        const wh = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.22, 16),
-          mat(wheelColor),
+        // 메인 디스크 (어두운 배경 원통)
+        const disc = new THREE.Mesh(
+          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.20, 24),
+          mat(C_DISC),
         );
-        wh.rotation.x = Math.PI / 2;
-        wh.castShadow = true;
-        rg.add(wh);
+        disc.rotation.x = Math.PI / 2;
+        disc.castShadow = true;
+        rg.add(disc);
 
-        // 플랜지(레일 이탈 방지 테두리 — 바퀴보다 반경 0.06 더 큼)
+        // 외륜 테두리 토러스 (Three.js TorusGeometry 기본 방향 = XY 평면, 휠 페이스와 일치)
+        rg.add(new THREE.Mesh(
+          new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 6, 24),
+          mat(C_DISC),
+        ));
+
+        // 스포크 8개 — 허브에서 외륜까지 방사형
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const sp = new THREE.Mesh(
+            new THREE.BoxGeometry(0.065, SP_LEN, 0.26),
+            mat(C_SPOKE),
+          );
+          sp.position.set(Math.sin(a) * SP_MID, Math.cos(a) * SP_MID, 0);
+          sp.rotation.z = -a;
+          rg.add(sp);
+        }
+
+        // 허브 원통 (스포크 중심부)
+        const hub = new THREE.Mesh(
+          new THREE.CylinderGeometry(HUB_R, HUB_R, 0.30, 12),
+          mat(C_HUB),
+        );
+        hub.rotation.x = Math.PI / 2;
+        rg.add(hub);
+
+        // 허브캡 (양쪽 면 돌출하는 밝은 금속 원반)
+        for (const cz of [-0.14, 0.14]) {
+          const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, 0.06, 10),
+            mat(C_HUBCAP),
+          );
+          cap.rotation.x = Math.PI / 2;
+          cap.position.z = cz;
+          rg.add(cap);
+        }
+
+        // 플랜지 (레일 이탈 방지 내측 테두리)
         const fl = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.1, 16),
-          mat(flangeColor),
+          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.10, 24),
+          mat(C_FLANGE),
         );
         fl.rotation.x = Math.PI / 2;
         rg.add(fl);
+      }
+    }
+
+    // 커넥팅 로드 — 앞뒤 바퀴를 잇는 측면 연결봉 (실제 증기기관차 스타일)
+    for (const wz of [-2.0, 2.0]) {
+      const rodZ = wz + (wz > 0 ? 0.14 : -0.14);
+      const rod = new THREE.Mesh(
+        new THREE.BoxGeometry(1.70, 0.07, 0.08),
+        mat(0x444444),
+      );
+      rod.position.set(0, _WHEEL_Y_L, rodZ);
+      bg.add(rod);
+      // 크랭크핀 (연결봉 양 끝 고정점)
+      for (const rx of [-0.85, 0.85]) {
+        const pin = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.055, 0.055, 0.14, 8),
+          mat(0x888888),
+        );
+        pin.rotation.x = Math.PI / 2;
+        pin.position.set(rx, _WHEEL_Y_L, rodZ);
+        bg.add(pin);
       }
     }
   }
@@ -608,15 +744,47 @@ function _buildDecoBogies(parent, L) {
         rg.position.set(wx, _WHEEL_Y_L, wz);
         bg.add(rg);
         _wheelAxles.push(rg); // 메인 객차와 함께 회전
-        const wh = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.22, 12),
-          mat(0x2a2a2a),
+
+        // 메인 디스크
+        const dg = new THREE.Mesh(
+          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.20, 20),
+          mat(0x1e1e1e),
         );
-        wh.rotation.x = Math.PI / 2;
-        rg.add(wh);
+        dg.rotation.x = Math.PI / 2;
+        rg.add(dg);
+
+        // 외륜 토러스
+        rg.add(new THREE.Mesh(
+          new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 5, 20),
+          mat(0x1e1e1e),
+        ));
+
+        // 스포크 6개 (배경 객차 — 간략화)
+        const hR = 0.13, rI = _WHEEL_R - 0.07;
+        const sMid = (hR + rI) / 2, sLen = rI - hR;
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          const sp = new THREE.Mesh(
+            new THREE.BoxGeometry(0.065, sLen, 0.24),
+            mat(0x363636),
+          );
+          sp.position.set(Math.sin(a) * sMid, Math.cos(a) * sMid, 0);
+          sp.rotation.z = -a;
+          rg.add(sp);
+        }
+
+        // 허브
+        const hb = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.13, 0.13, 0.28, 10),
+          mat(0x686868),
+        );
+        hb.rotation.x = Math.PI / 2;
+        rg.add(hb);
+
+        // 플랜지
         const fl = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.1, 12),
-          mat(0x1a1a1a),
+          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.10, 20),
+          mat(0x0f0f0f),
         );
         fl.rotation.x = Math.PI / 2;
         rg.add(fl);
