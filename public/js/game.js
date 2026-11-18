@@ -69,6 +69,7 @@ function update(dt) {
   }); // 창밖 풍경 흘러가기 + 반복
   tickWheels(dt); // 바퀴 회전
   tickSmoke(dt);  // 굴뚝 연기 파티클
+  Theme.tick(dt); // 테마 애니메이션
   Multi.tick(dt); // 멀티플레이 위치 동기화
   separate();
   // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거

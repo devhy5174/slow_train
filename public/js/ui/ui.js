@@ -24,7 +24,7 @@ function buildUI() {
   // 하단 바 버튼 연결
   $('bSay').onclick = () => panel('phr'); $('bShop').onclick = openShop; $('bDrop').onclick = dropHeld; $('bExit').onclick = () => exitNook(P);
   $('bInfo').onclick = () => { $('infoModal').hidden = false; };
-  initModals(); initSoundUI(); initTicketUI();
+  initModals(); initSoundUI(); initTicketUI(); initThemeUI();
 }
 
 // 표 검사/지정석 안내/숨는 곳/퇴장 팝업의 버튼 이벤트 연결
