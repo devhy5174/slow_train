@@ -21,29 +21,30 @@ function makeChar(shirt, label, o) {
     p.add(m);
     return m;
   };
-  // 몸통 라운드: 세로/가로 슬라브 + 4 모서리 원기둥 (z-파이팅 방지: 가로 슬라브 1mm 짧게)
-  const BW = 0.36,
-    BH = 0.4,
-    BD = 0.24,
-    BR = 0.05;
-  add(new THREE.BoxGeometry(BW - 2 * BR, BH, BD), shirt, 0, 0.64, 0);
-  add(new THREE.BoxGeometry(BW, BH - 0.002, BD - 2 * BR), shirt, 0, 0.64, 0);
-  for (const [cx, cz] of [
-    [-1, -1],
-    [-1, 1],
-    [1, -1],
-    [1, 1],
-  ])
-    add(
-      new THREE.CylinderGeometry(BR, BR, BH, 10),
-      shirt,
-      cx * (BW / 2 - BR),
-      0.64,
-      cz * (BD / 2 - BR),
-    );
-  // 어깨 구체 (팔-몸통 연결을 자연스럽게)
-  for (const sx of [-1, 1])
-    add(new THREE.SphereGeometry(0.065, 10, 8), shirt, sx * 0.185, 0.8, 0);
+  // 몸통 — LatheGeometry 곡선 실루엣 (상단 좁고 하단으로 갈수록 완만하게 넓어짐)
+  const _bp = [
+    new THREE.Vector2(0.13,  0.20),  // 상단 (가장 좁음)
+    new THREE.Vector2(0.142, 0.13),
+    new THREE.Vector2(0.158, 0.05),
+    new THREE.Vector2(0.178,-0.04),
+    new THREE.Vector2(0.200,-0.13),
+    new THREE.Vector2(0.215,-0.20),  // 하단 (가장 넓음)
+  ];
+  // DoubleSide: 카메라 각도 무관하게 안쪽 면도 렌더링 → 속 안 보임
+  const _bm = add(new THREE.LatheGeometry(_bp, 16), shirt, 0, 0.64, 0);
+  _bm.material.side = THREE.DoubleSide;
+  // 상단·하단 뚜껑 (구멍 막기)
+  const _tc = add(new THREE.CircleGeometry(0.13, 16), shirt, 0, 0.84, 0);
+  _tc.rotation.x = -Math.PI / 2;
+  const _bc = add(new THREE.CircleGeometry(0.215, 16), shirt, 0, 0.44, 0);
+  _bc.rotation.x = Math.PI / 2;
+  // 하단 허리 밴드
+  add(new THREE.CylinderGeometry(0.22, 0.215, 0.06, 16), o.pants, 0, 0.415, 0);
+  // 어깨 범프 (세로 납작, 몸통 곡선과 어울리게)
+  for (const sx of [-1, 1]) {
+    const _sb = add(new THREE.SphereGeometry(0.085, 12, 10), shirt, sx * 0.185, 0.835, 0);
+    _sb.scale.set(1.0, 0.70, 0.88);
+  }
   // 목 (얼굴 바로 아래 — 몸통 상단 y=0.84 ~ 턱 y=1.00 사이)
   add(new THREE.CylinderGeometry(0.09, 0.09, 0.06, 10), o.skin, 0, 0.87, 0); // 목 하단=몸통상단(0.84), 목 상단=0.90
   // 머리·머리카락·얼굴 — avatarType에 따라 외형 분기 (avatar.js)
@@ -82,8 +83,8 @@ function makeChar(shirt, label, o) {
     return p;
   };
   g.userData = {
-    aL: armG(-0.24, 0.82),
-    aR: armG(0.24, 0.82),
+    aL: armG(-0.21, 0.82),
+    aR: armG(0.21, 0.82),
     lL: legG(-0.09, 0.44),
     lR: legG(0.09, 0.44),
   };

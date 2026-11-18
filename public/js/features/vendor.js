@@ -10,7 +10,7 @@ const MENU = [['삶은 계란', 1500, '🥚'], ['사이다', 1500, '🥤'], ['�
 
 // 간식 판매원과 카트(바퀴 포함) 생성. 처음엔 숨겨 두고 vendorTick이 등장시킴
 function makeVendor() {
-  V = mkActor('vendor', '판매원', { npc: true, label: '간식 판매원', shirt: 0xff8a3d, hair: 0x333333, skin: 0xf1c79e, pants: 0x3b3b4a, avatarType: 'vendor' });
+  V = mkActor('vendor', '판매원', { npc: true, label: '간식 판매원', shirt: 0xff8a3d, hair: 0x5a3a1a, skin: 0xf1c79e, pants: 0x3b3b4a, avatarType: 'vendor' });
   const c = new THREE.Group(); c.position.set(0, 0, 0.8); V.wheels = [];
   box(c, 0.8, 0.45, 0.55, 0xc9d6e2, 0, 0.5, 0); box(c, 0.84, 0.05, 0.6, 0xe8553d, 0, 0.76, 0); box(c, 0.7, 0.04, 0.04, 0x333333, 0, 0.9, -0.28); // 카트 몸체/윗판/손잡이
   [[-0.2, 0xf4efe3], [0, 0xf2b632], [0.2, 0x8fbf6a]].forEach(([x, col]) => box(c, 0.16, 0.14, 0.2, col, x, 0.86, 0)); // 윗판 위 간식 상자
@@ -19,6 +19,15 @@ function makeVendor() {
     const w = new THREE.Group(); w.position.set(sx, 0.14, 0);
     const cy = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.06, 12), mat(0x333333)); cy.rotation.z = Math.PI / 2; w.add(cy); c.add(w); V.wheels.push(w);
   }
+  // 카트 앞면 텍스트
+  const _cv = document.createElement('canvas'); _cv.width = 256; _cv.height = 80;
+  const _ctx = _cv.getContext('2d');
+  _ctx.fillStyle = '#c9d6e2'; _ctx.fillRect(0, 0, 256, 80);
+  _ctx.fillStyle = '#1d3a5a'; _ctx.font = 'bold 34px sans-serif';
+  _ctx.textAlign = 'center'; _ctx.textBaseline = 'middle'; _ctx.fillText('매점카트', 128, 40);
+  const _cl = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.15),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(_cv) }));
+  _cl.position.set(0, 0.5, 0.276); c.add(_cl);
   V.g.add(c); V.g.visible = false; V.active = false; V.timer = 6; V.dir = 1; V.speed = 0.8;
 }
 

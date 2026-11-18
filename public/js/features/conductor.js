@@ -53,7 +53,7 @@ function makeConductor() {
     npc: true,
     label: "승무원",
     shirt: 0x1c3a6b,
-    hair: 0x222222,
+    hair: 0x1c3a6b, // 모자와 동일한 네이비
     skin: 0xf1c79e,
     pants: 0x1c1c2a,
     avatarType: 'conductor',
