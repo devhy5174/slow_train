@@ -1,5 +1,18 @@
 # DEVLOG — 개발 일지
 
+## 2026-11-18 — NPC Realtime 동기화 최적화 (변화 감지·충돌 방지·호스트 전환)
+
+**변경 파일**: `public/js/multi.js`, `public/js/features/ticket.js`
+
+**문제 → 해결**
+- NPC 착석·정지 중에도 200ms마다 무조건 전송 → `_npcChanged()` 변화 감지 추가, 변화 없으면 전송 생략
+- 자리 비켜주기 요청 후 `brain()`이 같은 자리 재선택 가능 → 타임아웃 전에 `cancelRes()` 호출로 차단
+- 호스트 전환 시 모든 NPC가 동시에 행동 → 신규 호스트 전환 감지 후 타이머 랜덤 분산
+
+**다음 할 일**: 유저 수 증가 시 NPC 단계적 퇴장(조건 5)
+
+---
+
 ## 2026-11-18 — NPC 자리 비켜주기 멀티플레이 동기화 수정
 
 **변경 파일**: `public/js/multi.js`, `public/js/features/ticket.js`, `dist/js/` (빌드 반영)

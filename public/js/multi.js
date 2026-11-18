@@ -33,6 +33,8 @@ const Multi = (() => {
   // 베타 NPC 동기화용 상태
   let _npcSendTimer = 0;
   let _npcSynced    = false; // 비호스트: 최초 수신 여부 (초기 배치 초기화 1회용)
+  let _npcLastSnaps = null;  // 마지막 전송 스냅샷 (변화 없으면 전송 생략)
+  let _wasHost      = false; // 호스트 전환 감지용
 
   // 역무원 동기화용 상태
   let _cMoving     = false;
@@ -128,22 +130,34 @@ const Multi = (() => {
     if (!GameState.occ[s.id]) sitDown(n, s);
   }
 
+  // NPC 상태 변화 여부 확인 (착석·정지 중 변화 없으면 false)
+  function _npcChanged() {
+    if (!_npcLastSnaps || _npcLastSnaps.length !== NPCS.length) return true;
+    for (let i = 0; i < NPCS.length; i++) {
+      const n = NPCS[i], s = _npcLastSnaps[i];
+      if (n.state !== s.state) return true;
+      if ((n.seat?.id ?? null) !== s.seatId) return true;
+      if (n.path.length > 0 || s.moving) return true; // 이동 중이었거나 현재 이동 중
+      if (Math.abs(n.g.position.x - s.x) > 0.01) return true;
+      if (Math.abs(n.g.position.z - s.z) > 0.01) return true;
+      if ((n.bub ? n.bubText : null) !== s.bubText) return true;
+    }
+    return false;
+  }
+
   // NPC 전체 현재 상태를 한 번 전송
   function _sendNpcStates() {
     if (!_channel) return;
-    _channel.send({
-      type: 'broadcast', event: 'npc_states',
-      payload: {
-        npcs: NPCS.map((n, idx) => ({
-          idx,
-          x: n.g.position.x, z: n.g.position.z, ry: n.g.rotation.y,
-          state: n.state, seatId: n.seat ? n.seat.id : null,
-          moving: n.state !== 'sit' && n.path.length > 0,
-          bubText: n.bub ? (n.bubText || null) : null,
-          bubSec: n.bub ? n.bubT : 0,
-        })),
-      },
-    });
+    const snaps = NPCS.map((n, idx) => ({
+      idx,
+      x: n.g.position.x, z: n.g.position.z, ry: n.g.rotation.y,
+      state: n.state, seatId: n.seat ? n.seat.id : null,
+      moving: n.state !== 'sit' && n.path.length > 0,
+      bubText: n.bub ? (n.bubText || null) : null,
+      bubSec: n.bub ? n.bubT : 0,
+    }));
+    _npcLastSnaps = snaps;
+    _channel.send({ type: 'broadcast', event: 'npc_states', payload: { npcs: snaps } });
   }
 
   // 역무원 현재 상태를 한 번 전송
@@ -262,6 +276,7 @@ const Multi = (() => {
       if (!npc || npc.state !== 'sit' || !npc.seat || npc.seat.id !== payload.seatId) return;
       setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
       setTimeout(() => {
+        if (npc.pend?.id === payload.seatId) cancelRes(npc); // 그 자리로 이동 중이면 취소
         if (npc.state === 'sit' && npc.seat && npc.seat.id === payload.seatId) {
           standUp(npc);
           goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
@@ -429,10 +444,20 @@ const Multi = (() => {
       if (_vMoving && V.wheels) V.wheels.forEach(w => w.rotation.x += dt * 5);
     }
 
-    // 베타 NPC 상태 동기화 (호스트만 200ms마다 전송)
-    if (_isHost()) {
+    // 베타 NPC 상태 동기화 (호스트만 전송, 변화 있을 때만)
+    const nowHost = _isHost();
+    if (nowHost && !_wasHost) {
+      // 호스트로 새로 전환: NPC 타이머를 분산해 동시 행동 방지
+      NPCS.forEach(n => { n.timer = rnd(1, 6); n.say = rnd(4, 12); });
+      _npcLastSnaps = null; // 스냅샷 초기화 → 즉시 전송
+    }
+    _wasHost = nowHost;
+    if (nowHost) {
       _npcSendTimer += dt;
-      if (_npcSendTimer >= 0.2) { _npcSendTimer = 0; _sendNpcStates(); }
+      if (_npcSendTimer >= 0.2) {
+        _npcSendTimer = 0;
+        if (_npcChanged()) _sendNpcStates();
+      }
     }
 
     // 역무원 상태 동기화 (호스트만 전송 / 비호스트는 받은 상태로 애니메이션)

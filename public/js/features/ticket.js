@@ -228,6 +228,7 @@ function requestSeatYield() {
       // 호스트: NPC 직접 처리 → 다음 npc_states 브로드캐스트로 모든 유저에게 반영됨
       setTimeout(() => { speak(npc, '앗 죄송합니다!', 3.5); }, 1000);
       setTimeout(() => {
+        if (npc.pend?.id === seatId) cancelRes(npc); // 그 자리로 이동 중이면 취소
         if (npc.state === 'sit' && npc.seat && npc.seat.id === seatId) {
           standUp(npc);
           goFloor(npc, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
