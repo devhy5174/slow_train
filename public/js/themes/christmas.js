@@ -8,8 +8,8 @@ const ChristmasTheme = (() => {
   // 전구 색상 (빨/노/파/초/주황)
   const COLORS = [0xff1111, 0xffee00, 0x0055ff, 0x11cc33, 0xff6600];
 
-  const WIRE_Y = 2.4;
-  const BULB_Y = 2.3;
+  const WIRE_Y = 2.21;  // 짐칸 앞 레일 y (SY + 0.13)
+  const BULB_Y = 2.12;  // 전구 y (레일 아래로 살짝)
   const PITCH  = 0.92;
 
   // 4인석 테이블 위치: game.js에서 [-1,1].forEach(s=>table(s*1.6)) 으로 생성
@@ -157,15 +157,43 @@ const ChristmasTheme = (() => {
       _sideGroups[sg] = sg_group;
       walls[sg].add(sg_group);
 
-      const zw = sg * (CAR.W / 2 - 0.12);
+      // 짐칸 앞 레일 위치: scene.js SY+0.13, frz = sg*(CAR.W/2 - 0.257)
+      const frZ = sg * (CAR.W / 2 - 0.257);
 
-      // 흰 전선
-      const wire = new THREE.Mesh(
-        new THREE.BoxGeometry(CAR.L - 1.0, 0.016, 0.016),
-        new THREE.MeshBasicMaterial({ color: 0xf0f0f0 }),
+      // 레일을 자연스럽게 감은 전선 — y·z 양방향 사인파
+      const wirePts = [];
+      for (let i = 0; i <= 80; i++) {
+        const t  = i / 80;
+        const x  = -7.1 + 14.2 * t;
+        const y  = WIRE_Y + Math.sin(t * Math.PI * 14) * 0.020;          // 위아래 굴곡
+        const z  = frZ + sg * Math.sin(t * Math.PI * 14 + Math.PI / 2) * 0.022; // 앞뒤 감김
+        wirePts.push(new THREE.Vector3(x, y, z));
+      }
+      const wireCurve = new THREE.CatmullRomCurve3(wirePts);
+      const wireMesh  = new THREE.Mesh(
+        new THREE.TubeGeometry(wireCurve, 90, 0.005, 5, false),
+        new THREE.MeshBasicMaterial({ color: 0x1a1208 }),
       );
-      wire.position.set(0, WIRE_Y, zw);
-      sg_group.add(wire);
+      sg_group.add(wireMesh);
+
+      // 덩굴 위 은은한 노란 반짝임 점 22개
+      const GLOW_COL = new THREE.Color(0xffee55);
+      for (let i = 0; i < 22; i++) {
+        const pt   = wireCurve.getPoint((i + 0.5) / 22);
+        const dot  = new THREE.Mesh(
+          new THREE.SphereGeometry(0.016, 5, 4),
+          new THREE.MeshBasicMaterial({ color: GLOW_COL }),
+        );
+        dot.position.copy(pt);
+        dot.userData = {
+          bright: GLOW_COL.clone(),
+          dim:    GLOW_COL.clone().multiplyScalar(0.04),
+          phase:  (i / 22) * Math.PI * 6 + (sg < 0 ? 0 : Math.PI),
+          speed:  1.2 + (i % 7) * 0.18,
+        };
+        sg_group.add(dot);
+        _bulbs.push(dot);
+      }
 
       let ci = sg < 0 ? 0 : 2;
       for (let x = -7.1; x <= 7.15; x += PITCH) {
@@ -177,7 +205,7 @@ const ChristmasTheme = (() => {
           new THREE.CylinderGeometry(0.019, 0.015, 0.06, 6),
           new THREE.MeshBasicMaterial({ color: 0xe8e8e8 }),
         );
-        socket.position.set(x, WIRE_Y - 0.045, zw);
+        socket.position.set(x, WIRE_Y - 0.038, frZ);
         sg_group.add(socket);
 
         // 전구 — 세로로 긴 뾰족 타원형 (y축 1.5배 스케일)
@@ -186,7 +214,7 @@ const ChristmasTheme = (() => {
           new THREE.MeshBasicMaterial({ color: col }),
         );
         bulb.scale.set(1, 1.5, 1);
-        bulb.position.set(x, BULB_Y, zw);
+        bulb.position.set(x, BULB_Y, frZ);
         const bright = new THREE.Color(col);
         const dim    = new THREE.Color(col).multiplyScalar(0.06);
         bulb.userData = {
