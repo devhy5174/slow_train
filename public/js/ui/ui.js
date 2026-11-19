@@ -35,4 +35,11 @@ function initModals() {
   $('nkNo').onclick = () => { $('nkModal').hidden = true; pendingNook = null; };
   $('endBtn').onclick = () => location.reload();
   $('infoClose').onclick = () => { $('infoModal').hidden = true; };
+  $('imageModalClose').onclick = () => { $('imageModal').hidden = true; };
+}
+
+function showImageModal(src) {
+  $('imageModalImg').src = src;
+  $('imageModal').hidden = false;
+  lucide.createIcons({ nodes: [$('imageModal')] });
 }

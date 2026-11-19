@@ -223,6 +223,17 @@
         <button id="bTheme" class="alt icon" aria-label="테마 변경"><i data-lucide="sparkles"></i></button>
       </div>
 
+      <!-- 광고 이미지 확대 팝업 -->
+      <div class="modal" id="imageModal" hidden>
+        <div class="card map-card">
+          <h2><i data-lucide="image"></i> 사진 보기</h2>
+          <div class="map-img-wrap">
+            <img id="imageModalImg" src="" alt="" />
+          </div>
+          <div class="row"><button id="imageModalClose">닫기</button></div>
+        </div>
+      </div>
+
       <!-- 음악 저작권 안내 팝업 -->
       <div class="modal" id="infoModal" hidden>
         <div class="card">

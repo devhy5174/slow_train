@@ -301,6 +301,8 @@ function initInput() {
       return void askNook(nk.object.userData);
     const ch = ray.intersectObjects(curtainHits)[0]; // 창문 커튼 클릭
     if (ch && (!h || ch.distance < h.distance)) return toggleCurtain(ch.object.userData.curtainIdx);
+    const ad = ray.intersectObjects(adHits)[0]; // 광고 이미지 패널 클릭
+    if (ad) return showImageModal(ad.object.userData.imgSrc);
     if (h) {
       // 내 지정석에 베타 NPC가 앉아 있으면 자리 반환 요청
       if (

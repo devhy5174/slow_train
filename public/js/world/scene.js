@@ -1304,10 +1304,11 @@ const END_WALL_ADS = [
     { label: "기차 간식\n모음전", sub: "따뜻한 커피 한 잔", emoji: "☕",
       src: "images/family.png", bg: "#f5e8d8", fg: "#3a1a06" },
   ],
-  // ── 앞쪽 벽: 흰보드 + 대한민국 지도 ──
+  // ── 앞쪽 벽: 흰보드 + 지도 이미지 ──
   [
     { type: "whiteboard", bg: "#f6f6f6", fg: "#555555" },
-    { type: "korea",      bg: "#d4e8f8", fg: "#1a3a6b" },
+    { src: "images/map.png", isMap: true, bg: "#d4e8f8", fg: "#1a3a6b",
+      label: "지도", sub: "", emoji: "" },
   ],
 ];
 
@@ -1447,6 +1448,9 @@ function _makeCarNumTex() {
   return new THREE.CanvasTexture(cv);
 }
 
+// 클릭 가능한 광고 이미지 패널 메쉬 (game.js 레이캐스팅 · 커서 · 팝업용)
+const adHits = [];
+
 // 앞뒤 끝벽 인테리어 장식 본체
 function buildEndWallDecor() {
   const L = CAR.L;
@@ -1498,6 +1502,11 @@ function buildEndWallDecor() {
         p.position.set(inX, 1.2, pz);
         p.rotation.y = ry;
         g.add(p);
+        // src가 있는 패널은 클릭 가능 → adHits에 등록, imgSrc 저장
+        if (END_WALL_ADS[eIdx][si].src) {
+          p.userData.imgSrc = END_WALL_ADS[eIdx][si].src;
+          adHits.push(p);
+        }
       });
     }
 
