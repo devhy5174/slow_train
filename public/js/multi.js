@@ -81,6 +81,7 @@ const Multi = (() => {
     const pal = PALETTES[_paletteIdx % PALETTES.length];
     _paletteIdx++;
     const a = mkActor(`peer_${peerId}`, name || '승객', { ...pal, npc: true, label: name || '승객' });
+    a.headphones = buildHeadphones(a.g); // 헤드폰 토글 동기화용
     a.g.position.set(0, 0, 0);
     a._moving = false;
     peers[peerId] = a;
