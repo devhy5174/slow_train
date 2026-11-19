@@ -762,6 +762,7 @@ svg.lucide {
 /* 지도 팝업 */
 .map-card {
   width: min(520px, 92vw);
+  padding-top: 16px;
 }
 .map-img-wrap {
   width: 100%;
