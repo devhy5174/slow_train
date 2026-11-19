@@ -1299,16 +1299,35 @@ function buildAdjacentCars() {
 const END_WALL_ADS = [
   // ── 뒤쪽 벽 (가족사진 유지) ──
   [
-    { label: "느린 기차와\n더 느린 여행", sub: "The Slow Journey", emoji: "🌾",
-      src: "images/family.png", bg: "#f0e6d0", fg: "#2a1a0e" },
-    { label: "기차 간식\n모음전", sub: "따뜻한 커피 한 잔", emoji: "☕",
-      src: "images/family.png", bg: "#f5e8d8", fg: "#3a1a06" },
+    {
+      label: "느린 기차와\n더 느린 여행",
+      sub: "The Slow Journey",
+      emoji: "🌾",
+      src: "images/family.png",
+      bg: "#f0e6d0",
+      fg: "#2a1a0e",
+    },
+    {
+      label: "기차 간식\n모음전",
+      sub: "따뜻한 커피 한 잔",
+      emoji: "☕",
+      src: "images/family2.png",
+      bg: "#f5e8d8",
+      fg: "#3a1a06",
+    },
   ],
   // ── 앞쪽 벽: 흰보드 + 지도 이미지 ──
   [
     { type: "whiteboard", bg: "#f6f6f6", fg: "#555555" },
-    { src: "images/map.png", isMap: true, bg: "#d4e8f8", fg: "#1a3a6b",
-      label: "지도", sub: "", emoji: "" },
+    {
+      src: "images/map.png",
+      isMap: true,
+      bg: "#d4e8f8",
+      fg: "#1a3a6b",
+      label: "지도",
+      sub: "",
+      emoji: "",
+    },
   ],
 ];
 
@@ -1335,13 +1354,15 @@ function _makeAdTex(ad, cb) {
       ctx.strokeStyle = "#dddddd";
       ctx.lineWidth = 1;
       for (let ly = 32; ly < H - 10; ly += 26) {
-        ctx.beginPath(); ctx.moveTo(16, ly); ctx.lineTo(W - 16, ly); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(16, ly);
+        ctx.lineTo(W - 16, ly);
+        ctx.stroke();
       }
       ctx.fillStyle = "#c0c0c0";
       ctx.font = "11px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("White Board", W / 2, H - 8);
-
     } else if (ad.type === "korea") {
       // 대한민국 지도: 바다 + 한반도 아웃라인 + 제주도
       ctx.fillStyle = "#b8d8f0";
@@ -1352,25 +1373,43 @@ function _makeAdTex(ad, cb) {
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       const pts = [
-        [96,20],[110,16],[130,16],[148,20],[162,30],[172,48],[176,70],
-        [174,92],[168,114],[160,132],[150,150],[138,164],[126,170],
-        [112,168],[96,158],[80,144],[68,126],[62,104],[64,78],[72,52],[82,34]
+        [96, 20],
+        [110, 16],
+        [130, 16],
+        [148, 20],
+        [162, 30],
+        [172, 48],
+        [176, 70],
+        [174, 92],
+        [168, 114],
+        [160, 132],
+        [150, 150],
+        [138, 164],
+        [126, 170],
+        [112, 168],
+        [96, 158],
+        [80, 144],
+        [68, 126],
+        [62, 104],
+        [64, 78],
+        [72, 52],
+        [82, 34],
       ];
       ctx.moveTo(pts[0][0], pts[0][1]);
-      pts.slice(1).forEach(([x,y]) => ctx.lineTo(x, y));
+      pts.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
       // 제주도
       ctx.beginPath();
       ctx.ellipse(116, 182, 15, 7, 0, 0, Math.PI * 2);
-      ctx.fill(); ctx.stroke();
+      ctx.fill();
+      ctx.stroke();
       // 라벨
       ctx.fillStyle = "#1a3a6b";
       ctx.font = "bold 17px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("대한민국", W / 2, H - 6);
-
     } else if (img) {
       ctx.drawImage(img, 12, 12, W - 24, H - 24);
       // 외부 테두리
