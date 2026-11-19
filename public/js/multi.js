@@ -101,12 +101,9 @@ const Multi = (() => {
 
   // HUD 승객 수 텍스트 갱신
   function _updateHud() {
-    const remoteCount = Object.keys(peers).length;
-    const npcCount = typeof NPCS !== 'undefined' ? NPCS.filter(n => n.g.visible).length : NPC_DEFS.length;
-    const total = 1 + remoteCount + npcCount;
-    const ticket = GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음(무임승차)';
-    const remotePart = remoteCount > 0 ? ` · 실제 승객 ${remoteCount}명` : '';
-    $('hc').textContent = `승객 ${total}명 (베타 승객 ${npcCount}명 포함${remotePart}) · ${ticket}`;
+    const realCount = 1 + Object.keys(peers).length; // 나 + 실제 접속자
+    const ticket = GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음';
+    $('hc').textContent = `실제 승객 ${realCount}/32명 · ${ticket}`;
   }
 
   // NPC 한 명 퇴장: 객차 끝으로 이동 후 숨김
