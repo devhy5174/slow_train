@@ -39,16 +39,16 @@ function bench(b) {
 
   for (const z of [-0.45, 0.45]) {
     // ── 방석 ──
-    box(g, 0.63, 0.08, 0.82, NAVY,    0.02, 0.41, z); // 방석 테두리 프레임
-    box(g, 0.59, 0.12, 0.78, BLUE,    0.02, 0.44, z); // 방석 메인 패드
+    box(g, 0.63, 0.08, 0.82, NAVY, 0.02, 0.41, z); // 방석 테두리 프레임
+    box(g, 0.59, 0.12, 0.78, BLUE, 0.02, 0.44, z); // 방석 메인 패드
     box(g, 0.53, 0.03, 0.68, SEAT_HI, 0.02, 0.51, z); // 쿠션 볼록 하이라이트
 
     // ── 등받이 (서브그룹으로 한꺼번에 기울임) ──
     const brg = new THREE.Group();
-    brg.position.set(-0.30, 0.90, z);
+    brg.position.set(-0.3, 0.9, z);
     brg.rotation.z = 0.1;
     g.add(brg);
-    box(brg, 0.12, 0.76, 0.80, NAVY, 0,    0, 0); // 뒷 구조 패널
+    box(brg, 0.12, 0.76, 0.8, NAVY, 0, 0, 0); // 뒷 구조 패널
     box(brg, 0.08, 0.72, 0.76, BLUE, 0.03, 0, 0); // 앞 쿠션 패딩
     // 등받이 상단 둥근 에지 (실린더 Z축 방향)
     const tc = new THREE.Mesh(
@@ -75,7 +75,7 @@ function bench(b) {
   }
 
   // ── 중앙 팔걸이 ──
-  box(g, 0.52, 0.10, 0.08, NAVY, 0, 0.60, 0);
+  box(g, 0.52, 0.1, 0.08, NAVY, 0, 0.6, 0);
 
   scene.add(g);
 }
@@ -241,22 +241,23 @@ const seatLabelMeshes = {};
 // 좌석 번호 스티커 머티리얼 생성 (캔버스 텍스처 — 둥근 모서리 배경 + 숫자)
 // style: 'reserved'(크림 배경+남색 숫자), 'free'(초록 배경), 'mine'(코랄 레드 배경+흰 숫자)
 function makeSeatLabelMat(text, style) {
-  const W = 128, H = 80;
+  const W = 128,
+    H = 80;
   const cv = document.createElement("canvas");
-  cv.width = W; cv.height = H;
+  cv.width = W;
+  cv.height = H;
   const ctx = cv.getContext("2d");
   ctx.clearRect(0, 0, W, H);
 
   // 스타일별 배경색·글자색
-  const bg = style === "mine"  ? "#c94c3a"
-           : style === "free"  ? "#2a6b4e"
-           : "#dcd7bf"; // 크림
-  const fg = style === "mine"  ? "#ffffff"
-           : style === "free"  ? "#c8f0dc"
-           : "#1d2f4f"; // 짙은 남색
+  const bg =
+    style === "mine" ? "#c94c3a" : style === "free" ? "#2a6b4e" : "#dcd7bf"; // 크림
+  const fg =
+    style === "mine" ? "#ffffff" : style === "free" ? "#c8f0dc" : "#1d2f4f"; // 짙은 남색
 
   // 둥근 직사각형 배경
-  const p = 5, r = 14;
+  const p = 5,
+    r = 14;
   ctx.fillStyle = bg;
   ctx.beginPath();
   ctx.moveTo(p + r, p);
@@ -358,14 +359,14 @@ function buildBogies() {
   const FRAME_Y = _WHEEL_Y_L + 0.28; // 프레임 중심: 바퀴 중심에서 위쪽
 
   // 바퀴 색상
-  const C_DISC   = 0x1e1e1e; // 휠 디스크 본체
-  const C_SPOKE  = 0x363636; // 스포크
-  const C_HUB    = 0x686868; // 허브 원통
+  const C_DISC = 0x1e1e1e; // 휠 디스크 본체
+  const C_SPOKE = 0x363636; // 스포크
+  const C_HUB = 0x686868; // 허브 원통
   const C_HUBCAP = 0xb0b0b0; // 허브캡 (밝은 금속)
   const C_FLANGE = 0x0f0f0f; // 플랜지 (레일 접촉 테두리)
 
   // 바퀴 치수
-  const HUB_R  = 0.13;
+  const HUB_R = 0.13;
   const RIM_IN = _WHEEL_R - 0.07;
   const SP_MID = (HUB_R + RIM_IN) / 2;
   const SP_LEN = RIM_IN - HUB_R;
@@ -391,7 +392,7 @@ function buildBogies() {
 
         // 메인 디스크 (어두운 배경 원통)
         const disc = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.20, 24),
+          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.2, 24),
           mat(C_DISC),
         );
         disc.rotation.x = Math.PI / 2;
@@ -399,10 +400,12 @@ function buildBogies() {
         rg.add(disc);
 
         // 외륜 테두리 토러스 (Three.js TorusGeometry 기본 방향 = XY 평면, 휠 페이스와 일치)
-        rg.add(new THREE.Mesh(
-          new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 6, 24),
-          mat(C_DISC),
-        ));
+        rg.add(
+          new THREE.Mesh(
+            new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 6, 24),
+            mat(C_DISC),
+          ),
+        );
 
         // 스포크 8개 — 허브에서 외륜까지 방사형
         for (let i = 0; i < 8; i++) {
@@ -418,7 +421,7 @@ function buildBogies() {
 
         // 허브 원통 (스포크 중심부)
         const hub = new THREE.Mesh(
-          new THREE.CylinderGeometry(HUB_R, HUB_R, 0.30, 12),
+          new THREE.CylinderGeometry(HUB_R, HUB_R, 0.3, 12),
           mat(C_HUB),
         );
         hub.rotation.x = Math.PI / 2;
@@ -437,7 +440,7 @@ function buildBogies() {
 
         // 플랜지 (레일 이탈 방지 내측 테두리)
         const fl = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.10, 24),
+          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.1, 24),
           mat(C_FLANGE),
         );
         fl.rotation.x = Math.PI / 2;
@@ -449,7 +452,7 @@ function buildBogies() {
     for (const wz of [-2.0, 2.0]) {
       const rodZ = wz + (wz > 0 ? 0.14 : -0.14);
       const rod = new THREE.Mesh(
-        new THREE.BoxGeometry(1.70, 0.07, 0.08),
+        new THREE.BoxGeometry(1.7, 0.07, 0.08),
         mat(0x444444),
       );
       rod.position.set(0, _WHEEL_Y_L, rodZ);
@@ -748,21 +751,25 @@ function _buildDecoBogies(parent, L) {
 
         // 메인 디스크
         const dg = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.20, 20),
+          new THREE.CylinderGeometry(_WHEEL_R, _WHEEL_R, 0.2, 20),
           mat(0x1e1e1e),
         );
         dg.rotation.x = Math.PI / 2;
         rg.add(dg);
 
         // 외륜 토러스
-        rg.add(new THREE.Mesh(
-          new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 5, 20),
-          mat(0x1e1e1e),
-        ));
+        rg.add(
+          new THREE.Mesh(
+            new THREE.TorusGeometry(_WHEEL_R - 0.035, 0.07, 5, 20),
+            mat(0x1e1e1e),
+          ),
+        );
 
         // 스포크 6개 (배경 객차 — 간략화)
-        const hR = 0.13, rI = _WHEEL_R - 0.07;
-        const sMid = (hR + rI) / 2, sLen = rI - hR;
+        const hR = 0.13,
+          rI = _WHEEL_R - 0.07;
+        const sMid = (hR + rI) / 2,
+          sLen = rI - hR;
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2;
           const sp = new THREE.Mesh(
@@ -784,7 +791,7 @@ function _buildDecoBogies(parent, L) {
 
         // 플랜지
         const fl = new THREE.Mesh(
-          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.10, 20),
+          new THREE.CylinderGeometry(_WHEEL_R + 0.06, _WHEEL_R + 0.06, 0.1, 20),
           mat(0x0f0f0f),
         );
         fl.rotation.x = Math.PI / 2;
@@ -1028,14 +1035,23 @@ function _buildLoco(cx, L) {
   _initSmoke();
 
   // === 전면 볼록 아치형 면 (Y축 실린더 — 열차 앞부분처럼 전방으로 볼록) ===
-  const faceR = 6.0, faceHalfZ = W / 2 + 0.08;
+  const faceR = 6.0,
+    faceHalfZ = W / 2 + 0.08;
   const faceAH = Math.asin(faceHalfZ / faceR);
   const faceCX = L / 2 - Math.sqrt(faceR * faceR - faceHalfZ * faceHalfZ);
   const facePeak = faceCX + faceR; // 볼록 최정점 x (≈ L/2 + 0.59)
   const frontFace = new THREE.Mesh(
-    new THREE.CylinderGeometry(faceR, faceR, cabH, 8, 1, true,
-      Math.PI / 2 - faceAH, faceAH * 2),
-    mat(0xcc2222)
+    new THREE.CylinderGeometry(
+      faceR,
+      faceR,
+      cabH,
+      8,
+      1,
+      true,
+      Math.PI / 2 - faceAH,
+      faceAH * 2,
+    ),
+    mat(0xcc2222),
   );
   frontFace.position.set(faceCX, baseY + cabH / 2, 0);
   g.add(frontFace);
@@ -1045,17 +1061,22 @@ function _buildLoco(cx, L) {
     sh.moveTo(L / 2, -hZ);
     sh.lineTo(L / 2, hZ);
     for (let i = 0; i <= 10; i++) {
-      const sy = hZ - i * (2 * hZ / 10);
+      const sy = hZ - i * ((2 * hZ) / 10);
       sh.lineTo(cxOff + Math.sqrt(r * r - sy * sy), sy);
     }
     sh.closePath();
     return sh;
   }
-  const capMat2 = new THREE.MeshStandardMaterial({ color: 0xcc2222, side: THREE.DoubleSide });
+  const capMat2 = new THREE.MeshStandardMaterial({
+    color: 0xcc2222,
+    side: THREE.DoubleSide,
+  });
 
   // 하단 마감 (아치 곡선에 맞는 D형, 아래 방향)
   const botCap = new THREE.Mesh(
-    new THREE.ShapeGeometry(_makeArchCapShape(faceCX, faceR, faceHalfZ)), capMat2);
+    new THREE.ShapeGeometry(_makeArchCapShape(faceCX, faceR, faceHalfZ)),
+    capMat2,
+  );
   botCap.rotation.x = Math.PI / 2; // shape Y → world +Z, 아랫면
   botCap.position.set(0, baseY, 0);
   g.add(botCap);
@@ -1065,7 +1086,7 @@ function _buildLoco(cx, L) {
   topCapSh.moveTo(L / 2, faceHalfZ);
   topCapSh.lineTo(L / 2, -faceHalfZ);
   for (let i = 0; i <= 10; i++) {
-    const sy = -faceHalfZ + i * (2 * faceHalfZ / 10);
+    const sy = -faceHalfZ + i * ((2 * faceHalfZ) / 10);
     topCapSh.lineTo(faceCX + Math.sqrt(faceR * faceR - sy * sy), sy);
   }
   topCapSh.closePath();
@@ -1079,13 +1100,23 @@ function _buildLoco(cx, L) {
     const wx = faceCX + Math.sqrt(faceR * faceR - wz * wz);
     const yr = Math.asin(wz / faceR);
     // 창틀 (얇게, 뒷면=아치 표면)
-    const wf = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.73, 1.2), mat(0x0d1520));
+    const wf = new THREE.Mesh(
+      new THREE.BoxGeometry(0.025, 0.73, 1.2),
+      mat(0x0d1520),
+    );
     wf.position.set(wx + 0.013, baseY + cabH * 0.65, wz);
     wf.rotation.y = yr;
     g.add(wf);
     // 유리 (창틀 바로 위)
-    const wp = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.62, 1.06),
-      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.85, depthWrite: false }));
+    const wp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.02, 0.62, 1.06),
+      new THREE.MeshBasicMaterial({
+        color: 0x1a3550,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+      }),
+    );
     wp.position.set(wx + 0.026, baseY + cabH * 0.65, wz);
     wp.rotation.y = yr;
     g.add(wp);
@@ -1093,13 +1124,27 @@ function _buildLoco(cx, L) {
 
   // 측면 창문 (각 2개)
   for (const sg of [-1, 1]) {
-    const zw = sg * W / 2;
-    const c1 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.62, 0.05),
-      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.8, depthWrite: false }));
+    const zw = (sg * W) / 2;
+    const c1 = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.62, 0.05),
+      new THREE.MeshBasicMaterial({
+        color: 0x1a3550,
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+      }),
+    );
     c1.position.set(cabX + 0.5, baseY + cabH * 0.65, zw);
     g.add(c1);
-    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.5, 0.05),
-      new THREE.MeshBasicMaterial({ color: 0x1a3550, transparent: true, opacity: 0.75, depthWrite: false }));
+    const c2 = new THREE.Mesh(
+      new THREE.BoxGeometry(0.72, 0.5, 0.05),
+      new THREE.MeshBasicMaterial({
+        color: 0x1a3550,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+      }),
+    );
     c2.position.set(cabX - cabL * 0.28, baseY + cabH * 0.65, zw);
     g.add(c2);
   }
@@ -1107,17 +1152,27 @@ function _buildLoco(cx, L) {
   // 전조등 (아치 곡면 위)
   for (const wz of [-1.1, 1.1]) {
     const hx = faceCX + Math.sqrt(faceR * faceR - wz * wz);
-    const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffffcc }));
+    const hl = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffcc }),
+    );
     hl.rotation.z = Math.PI / 2;
     hl.position.set(hx + 0.04, baseY + 0.5, wz);
     g.add(hl);
   }
   // 전면 하단 범퍼 (아치 곡선에 맞게 — 옆으로 튀어나오지 않음)
   const bumpMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(faceR + 0.04, faceR + 0.04, 0.32, 8, 1, true,
-      Math.PI / 2 - faceAH, faceAH * 2),
-    mat(0x333338)
+    new THREE.CylinderGeometry(
+      faceR + 0.04,
+      faceR + 0.04,
+      0.32,
+      8,
+      1,
+      true,
+      Math.PI / 2 - faceAH,
+      faceAH * 2,
+    ),
+    mat(0x333338),
   );
   bumpMesh.position.set(faceCX, baseY + 0.16, 0);
   g.add(bumpMesh);
@@ -1239,48 +1294,110 @@ function buildAdjacentCars() {
    ===================================================== */
 
 // 광고판 설정 — src에 이미지 경로를 넣으면 자동 교체
-// 예: src: 'images/ad_snack.jpg'  또는  src: 'https://...'
+// END_WALL_ADS[eIdx][si]: eIdx 0=뒤(e=-1) / 1=앞(e=+1), si 0=z음수쪽 / 1=z양수쪽
+// src에 이미지 경로를 넣으면 이미지로, type:'whiteboard'/'korea' 로 특수 판 그림
 const END_WALL_ADS = [
-  { label: '느린 기차와\n더 느린 여행', sub: 'The Slow Journey', emoji: '🌾', src: null, bg: '#f0e6d0', fg: '#2a1a0e' },
-  { label: '기차 간식\n모음전',          sub: '따뜻한 커피 한 잔', emoji: '☕',  src: null, bg: '#f5e8d8', fg: '#3a1a06' },
+  // ── 뒤쪽 벽 (가족사진 유지) ──
+  [
+    { label: "느린 기차와\n더 느린 여행", sub: "The Slow Journey", emoji: "🌾",
+      src: "images/family.png", bg: "#f0e6d0", fg: "#2a1a0e" },
+    { label: "기차 간식\n모음전", sub: "따뜻한 커피 한 잔", emoji: "☕",
+      src: "images/family.png", bg: "#f5e8d8", fg: "#3a1a06" },
+  ],
+  // ── 앞쪽 벽: 흰보드 + 대한민국 지도 ──
+  [
+    { type: "whiteboard", bg: "#f6f6f6", fg: "#555555" },
+    { type: "korea",      bg: "#d4e8f8", fg: "#1a3a6b" },
+  ],
 ];
 
 // 광고 캔버스 텍스처 생성 (src 있으면 이미지 로드)
 function _makeAdTex(ad, cb) {
-  const W = 256, H = 192;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
+  const W = 256,
+    H = 192;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d");
 
   function draw(img) {
     ctx.fillStyle = ad.bg;
     ctx.fillRect(0, 0, W, H);
-    // 외부 테두리
-    ctx.strokeStyle = '#c8a870';
-    ctx.lineWidth = 5;
-    ctx.strokeRect(4, 4, W - 8, H - 8);
-    // 내부 얇은 테두리
-    ctx.strokeStyle = '#e0c090';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(10, 10, W - 20, H - 20);
 
-    if (img) {
+    if (ad.type === "whiteboard") {
+      // 화이트보드: 흰 배경 + 연한 가로선 + 알루미늄 테두리
+      ctx.fillStyle = "#f9f9f9";
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "#b0b0b0";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, W - 6, H - 6);
+      ctx.strokeStyle = "#dddddd";
+      ctx.lineWidth = 1;
+      for (let ly = 32; ly < H - 10; ly += 26) {
+        ctx.beginPath(); ctx.moveTo(16, ly); ctx.lineTo(W - 16, ly); ctx.stroke();
+      }
+      ctx.fillStyle = "#c0c0c0";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("White Board", W / 2, H - 8);
+
+    } else if (ad.type === "korea") {
+      // 대한민국 지도: 바다 + 한반도 아웃라인 + 제주도
+      ctx.fillStyle = "#b8d8f0";
+      ctx.fillRect(0, 0, W, H);
+      // 한반도 간략 폴리곤 (256×192 기준)
+      ctx.fillStyle = "#8db870";
+      ctx.strokeStyle = "#4a7040";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const pts = [
+        [96,20],[110,16],[130,16],[148,20],[162,30],[172,48],[176,70],
+        [174,92],[168,114],[160,132],[150,150],[138,164],[126,170],
+        [112,168],[96,158],[80,144],[68,126],[62,104],[64,78],[72,52],[82,34]
+      ];
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      pts.slice(1).forEach(([x,y]) => ctx.lineTo(x, y));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // 제주도
+      ctx.beginPath();
+      ctx.ellipse(116, 182, 15, 7, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      // 라벨
+      ctx.fillStyle = "#1a3a6b";
+      ctx.font = "bold 17px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("대한민국", W / 2, H - 6);
+
+    } else if (img) {
       ctx.drawImage(img, 12, 12, W - 24, H - 24);
+      // 외부 테두리
+      ctx.strokeStyle = "#c8a870";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(4, 4, W - 8, H - 8);
     } else {
-      const lines = ad.label.split('\n');
+      // 외부 테두리
+      ctx.strokeStyle = "#c8a870";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(4, 4, W - 8, H - 8);
+      ctx.strokeStyle = "#e0c090";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(10, 10, W - 20, H - 20);
+      const lines = ad.label.split("\n");
       ctx.fillStyle = ad.fg;
-      ctx.font = 'bold 30px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.font = "bold 30px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       const lineH = 36;
       const startY = H / 2 - ((lines.length - 1) * lineH) / 2 - 16;
       lines.forEach((line, i) => ctx.fillText(line, W / 2, startY + i * lineH));
       if (ad.sub) {
-        ctx.fillStyle = ad.fg + '88';
-        ctx.font = '14px sans-serif';
+        ctx.fillStyle = ad.fg + "88";
+        ctx.font = "14px sans-serif";
         ctx.fillText(ad.sub, W / 2, H - 36);
       }
-      ctx.font = '26px sans-serif';
+      ctx.font = "26px sans-serif";
       ctx.fillStyle = ad.fg;
       ctx.fillText(ad.emoji, W / 2, H - 16);
     }
@@ -1289,7 +1406,7 @@ function _makeAdTex(ad, cb) {
 
   if (ad.src) {
     const img = new Image();
-    img.onload  = () => draw(img);
+    img.onload = () => draw(img);
     img.onerror = () => draw(null);
     img.src = ad.src;
   } else {
@@ -1299,31 +1416,34 @@ function _makeAdTex(ad, cb) {
 
 // 호차 번호 안내판 텍스처
 function _makeCarNumTex() {
-  const W = 320, H = 72;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#1d2f4f';
+  const W = 320,
+    H = 72;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#1d2f4f";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(242,182,50,0.4)';
+  ctx.strokeStyle = "rgba(242,182,50,0.4)";
   ctx.lineWidth = 1;
   ctx.strokeRect(1, 1, W - 2, H - 2);
   // 호차 번호
-  ctx.fillStyle = '#f2b632';
-  ctx.font = 'bold 24px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('🚃  1호차', W * 0.3, H / 2);
+  ctx.fillStyle = "#f2b632";
+  ctx.font = "bold 24px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🚃  1호차", W * 0.3, H / 2);
   // 구분선
-  ctx.strokeStyle = 'rgba(242,182,50,0.35)';
+  ctx.strokeStyle = "rgba(242,182,50,0.35)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(W * 0.54, 10); ctx.lineTo(W * 0.54, H - 10);
+  ctx.moveTo(W * 0.54, 10);
+  ctx.lineTo(W * 0.54, H - 10);
   ctx.stroke();
   // 객실 타입
-  ctx.fillStyle = '#c8d8e8';
-  ctx.font = '15px sans-serif';
-  ctx.fillText('일반실 (자유석)', W * 0.77, H / 2);
+  ctx.fillStyle = "#c8d8e8";
+  ctx.font = "15px sans-serif";
+  ctx.fillText("일반실 (자유석)", W * 0.77, H / 2);
   return new THREE.CanvasTexture(cv);
 }
 
@@ -1333,17 +1453,17 @@ function buildEndWallDecor() {
   const carNumTex = _makeCarNumTex();
 
   for (const e of [-1, 1]) {
-    const g   = new THREE.Group();
+    const g = new THREE.Group();
     scene.add(g);
     ends[e].push(g); // 끝벽과 함께 가시성 토글
 
     const inX = e * (L / 2 - 0.08); // 벽 안쪽 면 x
-    const ry  = -e * Math.PI / 2;    // 패널이 내부를 향하는 y 회전
+    const ry = (-e * Math.PI) / 2; // 패널이 내부를 향하는 y 회전
 
     // ── 짐칸 선반 (왼쪽·오른쪽 패널 각 1개) ──
     for (const pz of [-1.625, 1.625]) {
       // 선반 판
-      box(g, 0.34, 0.05, 1.70, 0xd4c8b0, inX - e * 0.17, 2.30, pz);
+      box(g, 0.34, 0.05, 1.7, 0xd4c8b0, inX - e * 0.17, 2.3, pz);
       // 선반 앞쪽 가로 봉
       const rod = new THREE.Mesh(
         new THREE.CylinderGeometry(0.022, 0.022, 1.68, 8),
@@ -1358,17 +1478,22 @@ function buildEndWallDecor() {
     }
 
     // ── 짐 소품 ──
-    box(g, 0.26, 0.20, 0.42, 0xa05030, inX - e * 0.17, 2.43, -2.0); // 갈색 가방
-    box(g, 0.22, 0.17, 0.52, 0x506080, inX - e * 0.17, 2.41,  1.3); // 파란 가방
+    box(g, 0.26, 0.2, 0.42, 0xa05030, inX - e * 0.17, 2.43, -2.0); // 갈색 가방
+    box(g, 0.22, 0.17, 0.52, 0x506080, inX - e * 0.17, 2.41, 1.3); // 파란 가방
     box(g, 0.24, 0.26, 0.36, 0xc09060, inX - e * 0.17, 2.47, -1.1); // 베이지 가방
 
-    // ── 광고판 ──
+    // ── 광고판 ── (eIdx: 0=뒤쪽, 1=앞쪽)
+    const eIdx = e < 0 ? 0 : 1;
     for (let si = 0; si < 2; si++) {
       const pz = si === 0 ? -1.625 : 1.625;
-      _makeAdTex(END_WALL_ADS[si], (tex) => {
+      _makeAdTex(END_WALL_ADS[eIdx][si], (tex) => {
         const p = new THREE.Mesh(
           new THREE.PlaneGeometry(1.5, 1.05),
-          new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+          new THREE.MeshBasicMaterial({
+            map: tex,
+            transparent: true,
+            depthWrite: false,
+          }),
         );
         p.position.set(inX, 1.2, pz);
         p.rotation.y = ry;
@@ -1379,7 +1504,11 @@ function buildEndWallDecor() {
     // ── 호차 번호 안내판 (출입문 위) ──
     const numP = new THREE.Mesh(
       new THREE.PlaneGeometry(1.1, 0.34),
-      new THREE.MeshBasicMaterial({ map: carNumTex, transparent: true, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        map: carNumTex,
+        transparent: true,
+        depthWrite: false,
+      }),
     );
     numP.position.set(inX, 2.22, 0);
     numP.rotation.y = ry;
@@ -1389,30 +1518,35 @@ function buildEndWallDecor() {
     // 문 본체 (크림/목재색 패널)
     box(g, 0.04, 2.0, 1.26, 0xddd0b8, inX - e * 0.02, 1.0, 0);
     // 문틀 테두리 (어두운 선)
-    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX,  1.0, -0.635); // 왼쪽 세로틀
-    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX,  1.0,  0.635); // 오른쪽 세로틀
-    box(g, 0.07, 0.07, 1.42, 0x2a3f60, inX, 2.02,  0);     // 상단 가로틀
+    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX, 1.0, -0.635); // 왼쪽 세로틀
+    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX, 1.0, 0.635); // 오른쪽 세로틀
+    box(g, 0.07, 0.07, 1.42, 0x2a3f60, inX, 2.02, 0); // 상단 가로틀
     // 문 창문 (반투명 파랑)
     const dwin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.40, 0.55),
-      new THREE.MeshBasicMaterial({ color: 0x7aaec8, transparent: true, opacity: 0.65, depthWrite: false }),
+      new THREE.BoxGeometry(0.05, 0.4, 0.55),
+      new THREE.MeshBasicMaterial({
+        color: 0x7aaec8,
+        transparent: true,
+        opacity: 0.65,
+        depthWrite: false,
+      }),
     );
     dwin.position.set(inX - e * 0.055, 1.62, 0);
     g.add(dwin);
     // 창문 프레임 4변
     box(g, 0.05, 0.42, 0.04, 0x2a3f60, inX - e * 0.055, 1.62, -0.275);
-    box(g, 0.05, 0.42, 0.04, 0x2a3f60, inX - e * 0.055, 1.62,  0.275);
-    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.84,  0);
-    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.40,  0);
+    box(g, 0.05, 0.42, 0.04, 0x2a3f60, inX - e * 0.055, 1.62, 0.275);
+    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.84, 0);
+    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.4, 0);
     // 손잡이 (양쪽)
-    box(g, 0.07, 0.06, 0.13, 0x888890, inX - e * 0.07, 1.08,  0.28);
+    box(g, 0.07, 0.06, 0.13, 0x888890, inX - e * 0.07, 1.08, 0.28);
     box(g, 0.07, 0.06, 0.13, 0x888890, inX - e * 0.07, 1.08, -0.28);
 
     // ── 천장 조명 (패널 위) ──
     for (const lz of [-1.625, 1.625]) {
-      box(g, 0.30, 0.05, 0.14, 0xe8e0d0, inX - e * 0.08, 2.56, lz);
+      box(g, 0.3, 0.05, 0.14, 0xe8e0d0, inX - e * 0.08, 2.56, lz);
       const lamp = new THREE.Mesh(
-        new THREE.BoxGeometry(0.22, 0.02, 0.10),
+        new THREE.BoxGeometry(0.22, 0.02, 0.1),
         new THREE.MeshBasicMaterial({ color: 0xfffde8 }),
       );
       lamp.position.set(inX - e * 0.08, 2.535, lz);
