@@ -24,6 +24,9 @@ function buildUI() {
   // 하단 바 버튼 연결
   $('bSay').onclick = () => panel('phr'); $('bShop').onclick = openShop; $('bDrop').onclick = dropHeld; $('bExit').onclick = () => exitNook(P);
   $('bInfo').onclick = () => { $('infoModal').hidden = false; };
+  $('bGetOff').onclick = () => {
+    if (confirm('열차에서 내리시겠어요?')) location.reload();
+  };
   initModals(); initSoundUI(); initTicketUI(); initThemeUI();
 }
 
