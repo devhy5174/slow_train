@@ -18,8 +18,98 @@ const ChristmasTheme = (() => {
 
   let _group = null;           // 트리만 담는 그룹 (scene에 직접)
   const _sideGroups = {};      // 벽면 전구 — walls[sg] 자식으로
+  const _wreaths = {};         // 출입문 리스 — ends[e] 연동
   const _bulbs = [];
   const _tmp = new THREE.Color();
+
+  // ── 출입문 창문 리스 1개 생성 ──
+  function _makeWreath() {
+    const g = new THREE.Group();
+    const R = 0.26; // 기존보다 살짝 크게
+
+    const mk = (geo, col, x, y, z) => {
+      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col }));
+      if (x !== undefined) m.position.set(x, y, z);
+      g.add(m);
+      return m;
+    };
+
+    // 솔잎 덩어리 — 링 주변 박스 40개 (더 크고 두껍게)
+    const PINE = [0x0f5c1a, 0x1a7a28, 0x0a4a14];
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      const r = R + (i % 2 === 0 ? 0.038 : -0.018);
+      const needle = mk(
+        new THREE.BoxGeometry(0.028 + (i % 3) * 0.008, 0.088, 0.022),
+        PINE[i % 3],
+        (i % 3 - 1) * 0.034, Math.sin(a) * r, Math.cos(a) * r,
+      );
+      needle.rotation.x = a + Math.PI / 2;
+    }
+
+    // 메인 초록 토러스 (두꺼운 베이스)
+    const ring = mk(new THREE.TorusGeometry(R, 0.075, 10, 36), 0x0f5c1a);
+    ring.rotation.y = Math.PI / 2;
+
+    // 큰 빨간 볼 8개
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      mk(new THREE.SphereGeometry(0.062, 10, 8), 0xbb0a0a,
+        (i % 3 - 1) * 0.020, Math.sin(a) * R, Math.cos(a) * R);
+    }
+
+    // 실버 볼 8개 (사이사이)
+    for (let i = 0; i < 8; i++) {
+      const a = ((i + 0.5) / 8) * Math.PI * 2;
+      mk(new THREE.SphereGeometry(0.048, 10, 8), 0xc8c8d4,
+        (i % 2 === 0 ? 0.022 : -0.022), Math.sin(a) * R, Math.cos(a) * R);
+    }
+
+    // 소형 골드/와인 볼 12개
+    const ACCENTS = [0xc8960a, 0x8b0000, 0xd4af37];
+    for (let i = 0; i < 12; i++) {
+      const a = ((i + 0.3) / 12) * Math.PI * 2;
+      const r = R + (i % 2 === 0 ? 0.045 : -0.032);
+      mk(new THREE.SphereGeometry(0.033, 8, 6), ACCENTS[i % 3],
+        (i % 5 - 2) * 0.018, Math.sin(a) * r, Math.cos(a) * r);
+    }
+
+    // 반짝이는 전구 18개 — _bulbs 에 등록해 tick()에서 사라졌다 나왔다
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      const r = R + (i % 3 - 1) * 0.030;
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 6, 5),
+        new THREE.MeshBasicMaterial({ color: 0xfffaaa }),
+      );
+      bulb.position.set((i % 4 - 1.5) * 0.016, Math.sin(a) * r, Math.cos(a) * r);
+      bulb.userData = {
+        bright: new THREE.Color(0xfffaaa),
+        dim:    new THREE.Color(0xfffaaa).multiplyScalar(0.03),
+        phase:  (i / 18) * Math.PI * 2, // 균등 분산 → 물결처럼 순차 반짝임
+        speed:  2.2 + (i % 5) * 0.35,
+      };
+      g.add(bulb);
+      _bulbs.push(bulb);
+    }
+
+    // 빨간 리본
+    const BM = new THREE.MeshBasicMaterial({ color: 0xaa0000 });
+    const lGeo = new THREE.TorusGeometry(0.044, 0.014, 6, 18);
+
+    const lL = new THREE.Mesh(lGeo, BM);
+    lL.position.set(0, R + 0.048, -0.048); lL.rotation.set(0.5, Math.PI / 2, 0); g.add(lL);
+    const lR = new THREE.Mesh(lGeo, BM);
+    lR.position.set(0, R + 0.048,  0.048); lR.rotation.set(-0.5, Math.PI / 2, 0); g.add(lR);
+
+    mk(new THREE.SphereGeometry(0.032, 8, 6), 0xaa0000, 0, R + 0.044, 0);
+
+    const tG = new THREE.BoxGeometry(0.014, 0.052, 0.014);
+    const tL = new THREE.Mesh(tG, BM); tL.position.set(0, R + 0.004, -0.020); tL.rotation.z =  0.28; g.add(tL);
+    const tR = new THREE.Mesh(tG, BM); tR.position.set(0, R + 0.004,  0.020); tR.rotation.z = -0.28; g.add(tR);
+
+    return g;
+  }
 
   // ── 미니 크리스마스 트리 1개 생성 (그룹 반환) ──
   function _makeTree(wx, wy, wz) {
@@ -114,6 +204,16 @@ const ChristmasTheme = (() => {
       _group.add(_makeTree(0, TABLE_SURFACE_Y, tz));
     }
     scene.add(_group);
+
+    // 출입문 창문 리스 — ends[e] 에 넣어 끝벽과 함께 가시성 토글
+    for (const e of [-1, 1]) {
+      const wx = e * (CAR.L / 2 - 0.19); // 창문 안쪽 면 바로 앞
+      const wreath = _makeWreath();
+      wreath.position.set(wx, 1.62, 0);
+      scene.add(wreath);
+      ends[e].push(wreath);
+      _wreaths[e] = wreath;
+    }
   }
 
   // ── 테마 해제 ──
@@ -133,6 +233,24 @@ const ChristmasTheme = (() => {
     scene.remove(_group);
     _group = null;
     _bulbs.length = 0;
+
+    // 리스 정리
+    for (const e of [-1, 1]) {
+      const w = _wreaths[e];
+      if (w) {
+        w.traverse((o) => {
+          if (o.isMesh) {
+            o.geometry.dispose();
+            if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+            else o.material.dispose();
+          }
+        });
+        scene.remove(w);
+        const idx = ends[e].indexOf(w);
+        if (idx !== -1) ends[e].splice(idx, 1);
+        _wreaths[e] = null;
+      }
+    }
   }
 
   // ── 매 프레임: 홀짝 교차 반짝임 ──
