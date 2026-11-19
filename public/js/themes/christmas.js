@@ -180,11 +180,12 @@ const ChristmasTheme = (() => {
         socket.position.set(x, WIRE_Y - 0.045, zw);
         sg_group.add(socket);
 
-        // 전구
+        // 전구 — 세로로 긴 뾰족 타원형 (y축 1.5배 스케일)
         const bulb = new THREE.Mesh(
-          new THREE.SphereGeometry(0.052, 8, 6),
+          new THREE.SphereGeometry(0.062, 8, 7),
           new THREE.MeshBasicMaterial({ color: col }),
         );
+        bulb.scale.set(1, 1.5, 1);
         bulb.position.set(x, BULB_Y, zw);
         const bright = new THREE.Color(col);
         const dim    = new THREE.Color(col).multiplyScalar(0.06);
