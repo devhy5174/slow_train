@@ -288,9 +288,8 @@ function shell() {
 }
 
 // 쭈그려 앉기 가능한 신문지 스팟 위치 (actor.js·game.js에서 참조)
+// 가족사진 있는 뒤쪽 벽에만 신문지 (지도 있는 앞쪽은 제외)
 const SQUAT_SPOTS = [
-  { id: 'sq_p1_p1', x:  CAR.L/2 - 0.72, z:  2.22, yaw:  Math.PI / 2 },  // 오른쪽→통로 바라봄
-  { id: 'sq_p1_m1', x:  CAR.L/2 - 0.72, z: -2.22, yaw: -Math.PI / 2 },  // 왼쪽→통로 바라봄
   { id: 'sq_m1_p1', x: -(CAR.L/2 - 0.72), z:  2.22, yaw:  Math.PI / 2 },
   { id: 'sq_m1_m1', x: -(CAR.L/2 - 0.72), z: -2.22, yaw: -Math.PI / 2 },
 ];

@@ -45,6 +45,61 @@ function makeChar(shirt, label, o) {
     const _sb = add(new THREE.SphereGeometry(0.085, 12, 10), shirt, sx * 0.185, 0.835, 0);
     _sb.scale.set(1.0, 0.70, 0.88);
   }
+  // 후드티 디테일 — 승무원·판매원 제외, 일반 승객만
+  if (o.avatarType !== "conductor" && o.avatarType !== "vendor") {
+    const shirtDark = new THREE.Color(shirt).multiplyScalar(0.76).getHex();
+
+    // 후드 (뒷머리·어깨 위 볼록한 부분)
+    const hd = add(new THREE.SphereGeometry(0.19, 12, 9, 0, Math.PI * 2, 0, Math.PI * 0.55), shirt, 0, 0.84, -0.09);
+    hd.scale.set(1.08, 0.88, 0.80);
+    hd.rotation.x = 0.28;
+
+    // 후드 칼라 (반원 토러스 — 목 앞쪽에서 보이는 후드 개구부)
+    const hc = add(new THREE.TorusGeometry(0.096, 0.021, 6, 14, Math.PI), shirtDark, 0, 0.875, 0.045);
+    hc.rotation.x = -0.52;
+
+    // 드로우스트링 2개
+    for (const sx of [-0.038, 0.038]) {
+      const ds = add(new THREE.CylinderGeometry(0.007, 0.006, 0.11, 5), shirtDark, sx, 0.762, 0.128);
+      ds.rotation.x = 0.14;
+    }
+
+    // 캥거루 포켓 (하단 앞면)
+    add(new THREE.BoxGeometry(0.24, 0.082, 0.013), shirtDark, 0, 0.526, 0.187);
+
+    // 가슴 프린트 — 몸통 커브에 밀착하는 실린더 패치
+    const _ic = document.createElement("canvas");
+    _ic.width = 80; _ic.height = 80;
+    const _tex = new THREE.CanvasTexture(_ic);
+    const _patchArc = Math.PI * 0.44; // 약 79°
+    const _patchR   = 0.159;          // 몸통 반지름(y=0.695 ≈ 0.157) + 미세 오프셋
+    const _patchGeo = new THREE.CylinderGeometry(
+      _patchR, _patchR, 0.096, 10, 1, true,
+      Math.PI * 0.5 - _patchArc * 0.5, _patchArc, // 앞면 중심(+z)에 정렬
+    );
+    const _im = new THREE.Mesh(
+      _patchGeo,
+      new THREE.MeshBasicMaterial({ map: _tex, transparent: true, depthWrite: false }),
+    );
+    _im.position.set(0, 0.695, 0);
+    g.add(_im);
+    // SVG → canvas 비동기 (data URI는 즉시 로드)
+    const _svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+      + ' stroke="#1d2f4f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M8 3.1V7a4 4 0 0 0 8 0V3.1"/>'
+      + '<path d="m9 15-1-1"/><path d="m15 15 1-1"/>'
+      + '<path d="M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"/>'
+      + '<path d="m8 19-2 3"/><path d="m16 19 2 3"/>'
+      + '<circle cx="12" cy="11" r="1"/><path d="M9 11h1"/><path d="M14 11h1"/>'
+      + '</svg>';
+    const _simg = new Image();
+    _simg.onload = () => {
+      _ic.getContext("2d").drawImage(_simg, 4, 4, 72, 72);
+      _tex.needsUpdate = true;
+    };
+    _simg.src = "data:image/svg+xml," + encodeURIComponent(_svg);
+  }
+
   // 목 (얼굴 바로 아래 — 몸통 상단 y=0.84 ~ 턱 y=1.00 사이)
   add(new THREE.CylinderGeometry(0.09, 0.09, 0.06, 10), o.skin, 0, 0.87, 0); // 목 하단=몸통상단(0.84), 목 상단=0.90
   // 머리·머리카락·얼굴 — avatarType에 따라 외형 분기 (avatar.js)
