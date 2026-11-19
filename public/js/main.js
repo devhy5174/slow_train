@@ -5,6 +5,14 @@
 
 let saved = null, settings = null; // 저장소에서 불러온 프로필 / 사운드 설정
 
+// 입력 없이 탑승할 때 부여되는 기차 테마 랜덤 닉네임
+const RANDOM_NAMES = [
+  '창가손님', '졸린여행자', '도시락손님', '느린승객', '차창구경꾼',
+  '첫차손님', '막차손님', '풍경수집가', '꾸벅꾸벅', '이어폰러버',
+  '멍때리기장인', '느릿느릿', '종점까지', '기차애호가', '단거한봉지',
+  '창밖멍', '낮잠여행자', '커피한잔', '도착역모름', '차창시인',
+];
+
 // 저장된 닉네임이 있으면 입력칸에 미리 채움
 Repo.loadProfile().then(p => { saved = p; if (p && p.nickname) $('nick').value = p.nickname; });
 // 저장된 사운드 설정(음소거/볼륨) 불러오기
@@ -15,7 +23,7 @@ $('form').addEventListener('submit', e => {
   e.preventDefault();
   GameState.hasTicket = !(e.submitter && e.submitter.dataset.mode === 'free'); // 입장 방식: 승차권 구매 / 무임승차
   GameState.carId = 1; // 현재 단일 객차; 향후 Supabase 방 배정 결과로 교체
-  const name = $('nick').value.trim() || '승객';
+  const name = $('nick').value.trim() || RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
   $('start').style.display = 'none';
   $('game').style.display = 'block';
   $('hn').textContent = name;

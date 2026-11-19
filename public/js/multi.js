@@ -257,6 +257,7 @@ const Multi = (() => {
 
     // 각 플레이어는 고유 UUID로 식별 (로그인 불필요)
     _myId = crypto.randomUUID();
+    let _nameChecked = false; // 최초 Presence sync 시 1회만 중복 체크
 
     const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY, {
       realtime: { params: { eventsPerSecond: 10 } },
@@ -281,6 +282,23 @@ const Multi = (() => {
         if (!state[id]) _removePeer(id);
       }
       _updateHud();
+
+      // 최초 1회: 내가 track된 뒤 다른 사람과 닉네임 중복이면 #2, #3 자동 부여
+      if (!_nameChecked && state[_myId]) {
+        _nameChecked = true;
+        const otherNames = Object.entries(state)
+          .filter(([k]) => k !== _myId)
+          .flatMap(([, ps]) => ps.map(p => p.name));
+        if (otherNames.includes(name)) {
+          let n = 2;
+          while (otherNames.includes(`${name} #${n}`)) n++;
+          name = `${name} #${n}`;
+          $('hn').textContent = name;
+          if (typeof P !== 'undefined') P.name = name;
+          _channel.track({ name, x: P?.g.position.x ?? 0, z: P?.g.position.z ?? 0, ry: 0, state: 'idle' });
+          toast(`같은 닉네임이 있어 "${name}"으로 변경됐어요.`);
+        }
+      }
     });
 
     // Presence join: 새 접속자 입장 — 내 현재 착석 상태도 즉시 전송
