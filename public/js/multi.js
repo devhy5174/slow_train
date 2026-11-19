@@ -446,16 +446,32 @@ const Multi = (() => {
       if (!payload || payload.id === _myId) return;
       const a = peers[payload.id];
       if (!a) return;
+      // 헤드폰 착용 상태 동기화
+      if (payload.headphones !== undefined && a.headphones)
+        a.headphones.visible = payload.headphones;
       if (payload.state === 'sit' && payload.seatId) {
         // 착석 상태 적용
         _applySit(a, payload.seatId);
       } else if (payload.state === 'hide' && payload.nookId) {
         // 숨기 상태 적용
         _applyHide(a, payload.nookId);
+      } else if (payload.state === 'squat' && payload.sqPosId) {
+        // 신문지 쭈그려 앉기 — 원격 반영
+        if (a.state !== 'squat') {
+          const pos = typeof SQUAT_SPOTS !== 'undefined'
+            ? SQUAT_SPOTS.find(q => q.id === payload.sqPosId) : null;
+          if (pos) {
+            a.state = 'squat'; a.sqPos = pos;
+            a.g.position.set(pos.x, 0, pos.z);
+            face(a, Math.cos(pos.yaw), -Math.sin(pos.yaw));
+            animate(a, false, 0);
+          }
+        }
       } else {
         // 이동 중 / 서 있는 상태: 이전 상태에서 먼저 빠져나옴
         if (a.state === 'sit') standUp(a);
         if (a.state === 'hide') exitNook(a);
+        if (a.state === 'squat') { a.g.scale.set(1,1,1); a.state = 'idle'; a.sqPos = null; }
         a.g.position.x = payload.x ?? a.g.position.x;
         a.g.position.z = payload.z ?? a.g.position.z;
         if (payload.ry != null) a.g.rotation.y = payload.ry;
