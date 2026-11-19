@@ -284,6 +284,65 @@ function shell() {
     );
   buildRoof();
   buildEndWallDecor(); // 끝벽 인테리어 장식
+  buildCornerNewspapers(); // 끝벽 코너 신문지 쭈그려 앉기 스팟
+}
+
+// 쭈그려 앉기 가능한 신문지 스팟 위치 (actor.js·game.js에서 참조)
+const SQUAT_SPOTS = [
+  { id: 'sq_p1_p1', x:  CAR.L/2 - 0.72, z:  2.22, yaw:  Math.PI / 2 },  // 오른쪽→통로 바라봄
+  { id: 'sq_p1_m1', x:  CAR.L/2 - 0.72, z: -2.22, yaw: -Math.PI / 2 },  // 왼쪽→통로 바라봄
+  { id: 'sq_m1_p1', x: -(CAR.L/2 - 0.72), z:  2.22, yaw:  Math.PI / 2 },
+  { id: 'sq_m1_m1', x: -(CAR.L/2 - 0.72), z: -2.22, yaw: -Math.PI / 2 },
+];
+// 클릭 판정용 메쉬
+const sqHits = [];
+
+// 신문지 캔버스 텍스처 생성
+function _makeNewspaperTex() {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 200;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#e8dfc0';
+  ctx.fillRect(0, 0, 256, 200);
+  ctx.fillStyle = '#2a2a2a';
+  ctx.font = 'bold 15px serif';
+  ctx.fillText('느린 기차 신문', 18, 20);
+  ctx.font = '8px serif';
+  ctx.fillStyle = '#555';
+  ctx.fillText('2024년 12월 • 제1호', 18, 32);
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(8, 36); ctx.lineTo(248, 36); ctx.stroke();
+  const cols = [
+    ['기차가 천천히', '달립니다. 창밖', '풍경이 고요해', '요. 느리게 가', '는 여행이란 이', '런 것일까요.', '', '따뜻한 커피를', '마시며 창밖을', '바라보는 여유.'],
+    ['오늘의 날씨:', '맑음 기온 18도', '', '열차 정보:', '무궁화호 운행', '중. 일반실 여', '유 있음.', '', '다음 역까지', '30분 남았어요.'],
+    ['간식 코너:', '따뜻한 국수와', '커피 판매 중.', '', '승객 여러분', '안전한 여행', '되세요. 감사', '합니다.', '', '느린기차 드림.'],
+  ];
+  ctx.fillStyle = '#333'; ctx.font = '7px serif';
+  cols.forEach((lines, ci) => {
+    lines.forEach((l, li) => ctx.fillText(l, 10 + ci * 82, 48 + li * 11));
+  });
+  ctx.beginPath(); ctx.moveTo(8, 165); ctx.lineTo(248, 165); ctx.stroke();
+  ctx.font = '7px serif'; ctx.fillStyle = '#888'; ctx.textAlign = 'center';
+  ctx.fillText('느린기차 신문사 발행 · 무단 전재 금지', 128, 177);
+  return new THREE.CanvasTexture(cv);
+}
+
+// 앞뒤 끝 × 양쪽 벽면 코너 — 신문지 깔린 쭈그려 앉기 스팟
+function buildCornerNewspapers() {
+  const tex = _makeNewspaperTex();
+  for (const sp of SQUAT_SPOTS) {
+    // 신문지 평면
+    const paper = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.72, 0.56),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.92 }),
+    );
+    paper.rotation.x = -Math.PI / 2;
+    paper.rotation.z = Math.random() * 0.18 - 0.09; // 살짝 비뚤게
+    paper.position.set(sp.x, 0.012, sp.z);
+    paper.userData.sqPos = sp;
+    scene.add(paper);
+    sqHits.push(paper);
+  }
 }
 
 // ----- 좌석 번호 레이블 -----

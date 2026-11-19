@@ -150,7 +150,7 @@ function mkActor(id, name, o) {
 function animate(a, moving, dt) {
   const u = a.g.userData,
     sit = a.state === "sit",
-    hide = a.state === "hide";
+    hide = a.state === "hide" || a.state === "squat"; // squat도 웅크린 포즈 공유
   // 숨기: 몸을 낮춰 웅크린 자세(이름표는 납작해지지 않게 보정)
   const sy = hide ? 0.62 : 1;
   a.g.scale.y = sy;
@@ -191,8 +191,50 @@ function sitDown(a, s) {
   else saveNow();
 }
 
+// 신문지로 걸어가서 쭈그려 앉기 (goSeat 방식)
+function goSquat(a, pos) {
+  if (a.npc) return;
+  if (GameState.occ[pos.id] && GameState.occ[pos.id] !== a.id) {
+    toast("이미 누군가 앉아 있어요."); return;
+  }
+  cancelRes(a);
+  leaveSpot(a);
+  GameState.occ[pos.id] = a.id;
+  a.pendSq = pos;
+  a.path = [
+    { x: pos.x, z: Math.sign(pos.z) * AISLE }, // 통로까지
+    { x: pos.x, z: pos.z },                      // 신문지 위로
+  ];
+}
+
+// 신문지 위 도착 후 쭈그려 앉기 (stepPath에서 호출)
+function squatDown(a, pos) {
+  if (a.npc) return;
+  a.pendSq = null;
+  a.state = "squat";
+  a.sqPos = pos;
+  if (!GameState.occ[pos.id]) GameState.occ[pos.id] = a.id;
+  a.g.position.set(pos.x, 0, pos.z);
+  face(a, Math.cos(pos.yaw), -Math.sin(pos.yaw));
+  animate(a, false, 0);
+  if (!a.npc) saveNow();
+}
+
+// 쭈그려 앉기 해제
+function squatUp(a) {
+  if (a.state !== "squat") return;
+  const pos = a.sqPos;
+  if (pos && GameState.occ[pos.id] === a.id) delete GameState.occ[pos.id];
+  a.sqPos = null;
+  a.state = "idle";
+  a.g.position.set(a.g.position.x, 0, Math.sign(a.g.position.z) * AISLE);
+  animate(a, false, 0);
+  if (!a.npc) saveNow();
+}
+
 // 앉은 상태에서 일어나 통로 가장자리로 나옴(점유 해제)
 function standUp(a) {
+  if (a.state === "squat") return squatUp(a);
   if (a.state !== "sit") return;
   const s = a.seat;
   if (GameState.occ[s.id] === a.id) delete GameState.occ[s.id];
@@ -212,6 +254,10 @@ function cancelRes(a) {
   }
   a.pend = null;
   a.pendNook = null;
+  if (a.pendSq) {
+    if (GameState.occ[a.pendSq.id] === a.id) delete GameState.occ[a.pendSq.id];
+    a.pendSq = null;
+  }
 }
 
 // 좌석으로 이동 명령: 예약 후 통로를 지나 착석. 이미 점유된 좌석이면 거부(false)
@@ -261,6 +307,7 @@ function stepPath(a, dt) {
     a.path.shift();
     if (!a.path.length && a.pend) sitDown(a, a.pend);
     else if (!a.path.length && a.pendNook) hideIn(a, a.pendNook);
+    else if (!a.path.length && a.pendSq) squatDown(a, a.pendSq);
     return false;
   }
   pos.x += (dx / dist) * st;
@@ -281,9 +328,10 @@ function actorSnapshot(a) {
     x: a.g.position.x,
     z: a.g.position.z,
     ry: a.g.rotation.y, // 바라보는 방향 (Y축 회전)
-    state: a.state, // 'idle' | 'sit' | 'hide'
+    state: a.state, // 'idle' | 'sit' | 'hide' | 'squat'
     seatId: a.seat ? a.seat.id : null,
     nookId: a.nook ? a.nook.id : null,
+    sqPosId: a.sqPos ? a.sqPos.id : null,
     headphones: a.headphones ? a.headphones.visible : false, // 헤드폰 착용 여부
   };
 }
@@ -314,9 +362,21 @@ function applyActorSnapshot(a, snap) {
       const n = NOOKS.find((q) => q.id === snap.nookId);
       if (n) hideIn(a, n);
     }
+  } else if (snap.state === "squat" && snap.sqPosId) {
+    if (a.state !== "squat") {
+      const pos = typeof SQUAT_SPOTS !== 'undefined'
+        ? SQUAT_SPOTS.find(q => q.id === snap.sqPosId) : null;
+      if (pos) {
+        a.state = "squat"; a.sqPos = pos;
+        a.g.position.set(pos.x, 0, pos.z);
+        face(a, Math.cos(pos.yaw), -Math.sin(pos.yaw));
+        animate(a, false, 0);
+      }
+    }
   } else {
     // 이동 중 / 서 있는 상태
     if (a.state === "sit") standUp(a);
     else if (a.state === "hide") exitNook(a);
+    else if (a.state === "squat") squatUp(a);
   }
 }

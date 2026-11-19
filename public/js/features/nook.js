@@ -133,4 +133,5 @@ function exitNook(a) {
 function leaveSpot(a) {
   if (a.state === "sit") standUp(a);
   else if (a.state === "hide") exitNook(a);
+  else if (a.state === "squat") squatUp(a);
 }

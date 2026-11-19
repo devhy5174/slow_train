@@ -89,7 +89,7 @@ function update(dt) {
       a.bub.material.opacity = u.fi * Math.min(1, a.bubT / 0.4);
     }
   }
-  $("stand").hidden = P.state !== "sit"; // 앉아 있을 때만 '일어나기' 버튼 표시
+  $("stand").hidden = P.state !== "sit" && P.state !== "squat"; // 앉거나 쭈그린 상태에 표시
 }
 
 // 현재 프로필(닉네임·객차·좌석·승차권·위치)을 Repo에 저장
@@ -261,8 +261,24 @@ function initInput() {
   // 마우스 호버: 빈 좌석을 노랗게 + 좌석 번호·상태 툴팁 표시(터치 기기에서는 생략)
   dom.addEventListener("pointermove", (e) => {
     hits.forEach((m) => (m.material.opacity = 0));
+    // 신문지 색조 초기화 (흰색 = 텍스처 원본)
+    sqHits.forEach((m) => { m.material.color.setHex(0xffffff); m.material.opacity = 0.92; });
     tip.style.display = "none";
     if (e.pointerType !== "mouse" || e.buttons) return;
+    // 신문지 호버 — 연두색 색조로 앉을 수 있음을 표시
+    const _r = dom.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(
+      ((e.clientX - _r.left) / _r.width) * 2 - 1,
+      -((e.clientY - _r.top) / _r.height) * 2 + 1,
+    ), cam);
+    const sqH = ray.intersectObjects(sqHits)[0];
+    if (sqH) {
+      const sp = sqH.object.userData.sqPos;
+      if (!GameState.occ[sp.id]) {
+        sqH.object.material.color.setHex(0x88ee88); // 연두 색조
+        sqH.object.material.opacity = 1.0;
+      }
+    }
     const h = pickSeat(e);
     if (!h) return;
     const s = h.object.userData;
@@ -303,6 +319,8 @@ function initInput() {
     if (ch && (!h || ch.distance < h.distance)) return toggleCurtain(ch.object.userData.curtainIdx);
     const ad = ray.intersectObjects(adHits)[0]; // 광고 이미지 패널 클릭
     if (ad) return showImageModal(ad.object.userData.imgSrc);
+    const sq = ray.intersectObjects(sqHits)[0]; // 신문지 쭈그려 앉기
+    if (sq) return goSquat(P, sq.object.userData.sqPos);
     if (h) {
       // 내 지정석에 베타 NPC가 앉아 있으면 자리 반환 요청
       if (
