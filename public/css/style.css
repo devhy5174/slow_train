@@ -287,25 +287,6 @@ body {
   font-size: 13px;
   margin-left: 2px;
 }
-/* 테두리를 따라 도는 기차 (가로 620 × 세로 약 268px) */
-.st-around-train {
-  position: absolute;
-  top: 0;
-  left: 0;
-  font-size: 22px;
-  line-height: 1;
-  pointer-events: none;
-  z-index: 5;
-  offset-path: path("M 0,0 L 620,0 L 620,268 L 0,268 Z");
-  offset-distance: 0%;
-  offset-rotate: auto;
-  animation: st-around 30s linear infinite;
-}
-@keyframes st-around {
-  to {
-    offset-distance: 100%;
-  }
-}
 /* 모바일 */
 @media (max-width: 500px) {
   .ticket {
@@ -333,9 +314,6 @@ body {
   }
   .ticket-btns {
     grid-template-columns: 1fr 1fr;
-  }
-  .st-around-train {
-    display: none;
   }
 }
 
