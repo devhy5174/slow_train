@@ -14,15 +14,16 @@
     <!-- ===== 시작 화면 ===== -->
     <main class="start" id="start">
       <form class="ticket" id="form">
-
         <!-- 테두리를 따라 천천히 도는 기차 -->
         <span class="st-around-train" aria-hidden="true">🚃</span>
 
         <!-- 헤더: 로고 | 제목 | 번호 -->
         <div class="tk-header">
           <div class="tk-logo">
-            <span>🚂</span>
-            <div class="tk-logo-text">느린 기차<small>The Slow Train</small></div>
+            <span><i data-lucide="train-front"></i></span>
+            <div class="tk-logo-text">
+              느린 기차<small>The Slow Train</small>
+            </div>
           </div>
           <div class="tk-title-wrap">
             <h1 class="tk-title">승&nbsp;차&nbsp;권</h1>
@@ -49,27 +50,35 @@
           <div class="tk-cell"><small>객차</small><strong>1호차</strong></div>
           <div class="tk-cell tk-cell-input">
             <small>이름</small>
-            <input id="nick" maxlength="10" placeholder="닉네임 입력" autocomplete="off" />
+            <input
+              id="nick"
+              maxlength="10"
+              placeholder="닉네임 입력"
+              autocomplete="off"
+            />
           </div>
           <div class="tk-cell"><small>운임</small><strong>0원</strong></div>
-          <div class="tk-cell"><small>비고</small><strong>가상 승차권</strong></div>
+          <div class="tk-cell">
+            <small>비고</small><strong>가상 승차권</strong>
+          </div>
         </div>
 
         <hr class="tk-sep" />
 
         <!-- 안내 -->
-        <p class="tk-note">※ 이 승차권은 게임 내 가상권으로, 실제 결제는 진행되지 않습니다.</p>
+        <p class="tk-note">
+          ※ 이 승차권은 게임 내 가상권으로, 실제 결제는 진행되지 않습니다.
+        </p>
 
         <!-- 탑승 버튼 -->
         <div class="ticket-btns">
           <button type="submit" data-mode="ticket">
-            <span>🎫</span><span>승차권으로 탑승하기</span><b>▶</b>
+            <span><i data-lucide="ticket"></i></span><span>승차권으로 <br />탑승하기</span><b>▶</b>
           </button>
           <button type="submit" data-mode="free" class="free">
-            <span>🚶</span><span>그냥 올라타기</span><b>▶</b>
+            <span><i data-lucide="user"></i></span><span>그냥 올라타기</span><b>▶</b>
           </button>
         </div>
-
       </form>
     </main>
 
@@ -83,40 +92,8 @@
         >
         <button id="bSay" class="alt">말풍선</button>
         <button id="bShop" class="alt" disabled>말걸기</button>
-        <button id="bTicket" class="alt" hidden>🎫 승차권 확인</button>
-        <button id="bFindSeat" class="alt" hidden>📍 내 자리 찾기</button>
-        <div class="sound-group">
-          <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기">
-            🔊
-          </button>
-          <input
-            id="vol"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            aria-label="볼륨"
-          />
-          <span class="sound-sep"></span>
-          <button id="bEarphone" class="alt icon" aria-label="이어폰 꽂기/빼기">
-            🎧
-          </button>
-          <input
-            id="volEar"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value="0.7"
-            aria-label="이어폰 볼륨"
-          />
-          <button id="bInfo" class="alt icon" aria-label="저작권 정보">
-            ℹ
-          </button>
-          <button id="bTheme" class="alt icon" aria-label="테마 변경">
-            🌟
-          </button>
-        </div>
+        <button id="bTicket" class="alt" hidden><i data-lucide="ticket"></i> 승차권 확인</button>
+        <button id="bFindSeat" class="alt" hidden><i data-lucide="map-pin"></i> 내 자리 찾기</button>
         <button id="bDrop" class="alt" hidden>간식 버리기</button>
         <button id="bExit" class="alt" hidden>나가기</button>
         <button id="stand" hidden>일어나기</button>
@@ -133,8 +110,10 @@
           <!-- 헤더: 로고 | 제목 | 번호 -->
           <div class="tk-header">
             <div class="tk-logo">
-              <span>🚂</span>
-              <div class="tk-logo-text">느린 기차<small>The Slow Train</small></div>
+              <span><i data-lucide="train-front"></i></span>
+              <div class="tk-logo-text">
+                느린 기차<small>The Slow Train</small>
+              </div>
             </div>
             <div class="tk-title-wrap">
               <h2 class="tk-title">승&nbsp;차&nbsp;권</h2>
@@ -147,9 +126,15 @@
 
           <!-- 정보 행 -->
           <div class="mytk-info">
-            <div class="mytk-row"><span>이름</span><strong id="myTicketName"></strong></div>
-            <div class="mytk-row"><span>객차</span><strong id="myTicketCar"></strong></div>
-            <div class="mytk-row"><span>지정석</span><strong id="myTicketSeat"></strong></div>
+            <div class="mytk-row">
+              <span>이름</span><strong id="myTicketName"></strong>
+            </div>
+            <div class="mytk-row">
+              <span>객차</span><strong id="myTicketCar"></strong>
+            </div>
+            <div class="mytk-row">
+              <span>지정석</span><strong id="myTicketSeat"></strong>
+            </div>
           </div>
 
           <!-- 푸터 + 버튼 -->
@@ -163,7 +148,7 @@
       <!-- 승차권 검사 팝업 -->
       <div class="modal" id="tkModal" hidden>
         <div class="card">
-          <h2>🎫 승차권 검사</h2>
+          <h2><i data-lucide="ticket"></i> 승차권 검사</h2>
           <p>승무원: 표를 보여주세요.</p>
           <div id="tkList"></div>
           <div class="row">
@@ -176,7 +161,7 @@
       <!-- 지정석 안내 팝업 (타인 지정석 임시 착석 → 검표 시 표시) -->
       <div class="modal" id="seatGuideModal" hidden>
         <div class="card">
-          <h2>💺 지정석 안내</h2>
+          <h2><i data-lucide="armchair"></i> 지정석 안내</h2>
           <p>
             승무원: 승객님의 지정석은
             <strong><span id="seatGuideNum"></span></strong>입니다.
@@ -192,7 +177,7 @@
       <!-- 숨는 곳(의자 틈) 발견 팝업 -->
       <div class="modal" id="nkModal" hidden>
         <div class="card">
-          <h2>🔍 공간을 발견했다!</h2>
+          <h2><i data-lucide="search"></i> 공간을 발견했다!</h2>
           <p>들어가 볼까?</p>
           <div class="row">
             <button id="nkYes">들어가기</button
@@ -204,7 +189,7 @@
       <!-- 무임승차 강제 퇴장 카운트다운 -->
       <div class="modal" id="kick" hidden>
         <div class="card">
-          <h2>🚫 무임승차 확인</h2>
+          <h2><i data-lucide="ban"></i> 무임승차 확인</h2>
           <p>
             승차권이 없어 <b id="kickN">5</b>초 후 강제 퇴장되며 접속이
             종료됩니다.
@@ -226,13 +211,22 @@
         <strong>느린 기차</strong><span id="hn"></span><span id="hc"></span>
       </header>
 
-      <!-- 우하단 정보 버튼 -->
-      <button id="bInfo" aria-label="저작권 정보">ℹ</button>
+      <!-- 소리 컨트롤 묶음 박스: 상단바 아래 오른쪽 고정 -->
+      <div class="sound-group">
+        <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기"><i data-lucide="volume-2"></i></button>
+        <input id="vol" type="range" min="0" max="1" step="0.05" aria-label="볼륨" />
+        <span class="sound-sep"></span>
+        <button id="bEarphone" class="alt icon" aria-label="이어폰 꽂기/빼기"><i data-lucide="headphones"></i></button>
+        <input id="volEar" type="range" min="0" max="1" step="0.05" value="0.7" aria-label="이어폰 볼륨" />
+        <span class="sound-sep"></span>
+        <button id="bInfo" class="alt icon" aria-label="저작권 정보"><i data-lucide="info"></i></button>
+        <button id="bTheme" class="alt icon" aria-label="테마 변경"><i data-lucide="sparkles"></i></button>
+      </div>
 
       <!-- 음악 저작권 안내 팝업 -->
       <div class="modal" id="infoModal" hidden>
         <div class="card">
-          <h2>🎵 음악 저작권 안내</h2>
+          <h2><i data-lucide="music"></i> 음악 저작권 안내</h2>
           <div class="ticket-info">
             <div class="ticket-row">
               <span>곡명</span><strong>국악 배경음악 #131</strong>
@@ -264,6 +258,7 @@
     <div id="tip"></div>
 
     <!-- ===== 외부 라이브러리 (CDN) ===== -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -317,5 +312,6 @@
     <!-- 15. 멀티플레이 (Supabase Realtime) -->
     <script src="js/main.js"></script>
     <!-- 14. 시작 화면 → 게임 진입 -->
+    <script>lucide.createIcons();</script>
   </body>
 </html>

@@ -231,6 +231,7 @@ function shell() {
       box(scene, 0.15, 0.6, 1.3, CREAM, (e * L) / 2, 2.3, 0),
     );
   buildRoof();
+  buildEndWallDecor(); // 끝벽 인테리어 장식
 }
 
 // ----- 좌석 번호 레이블 -----
@@ -1230,4 +1231,192 @@ function buildAdjacentCars() {
   _buildLoco(CAR.L / 2 + GAP + L_LOCO / 2, L_LOCO);
   _buildConnector(-(CAR.L / 2 + GAP / 2), GAP, CAR.W);
   _buildConnector(CAR.L / 2 + GAP / 2, GAP, CAR.W);
+}
+
+/* =====================================================
+   끝벽(앞뒤) 인테리어 장식
+   구성: 짐칸 선반 / 광고판 / 호차 번호 안내판 / 출입문 패널
+   ===================================================== */
+
+// 광고판 설정 — src에 이미지 경로를 넣으면 자동 교체
+// 예: src: 'images/ad_snack.jpg'  또는  src: 'https://...'
+const END_WALL_ADS = [
+  { label: '느린 기차와\n더 느린 여행', sub: 'The Slow Journey', emoji: '🌾', src: null, bg: '#f0e6d0', fg: '#2a1a0e' },
+  { label: '기차 간식\n모음전',          sub: '따뜻한 커피 한 잔', emoji: '☕',  src: null, bg: '#f5e8d8', fg: '#3a1a06' },
+];
+
+// 광고 캔버스 텍스처 생성 (src 있으면 이미지 로드)
+function _makeAdTex(ad, cb) {
+  const W = 256, H = 192;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  function draw(img) {
+    ctx.fillStyle = ad.bg;
+    ctx.fillRect(0, 0, W, H);
+    // 외부 테두리
+    ctx.strokeStyle = '#c8a870';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
+    // 내부 얇은 테두리
+    ctx.strokeStyle = '#e0c090';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(10, 10, W - 20, H - 20);
+
+    if (img) {
+      ctx.drawImage(img, 12, 12, W - 24, H - 24);
+    } else {
+      const lines = ad.label.split('\n');
+      ctx.fillStyle = ad.fg;
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const lineH = 36;
+      const startY = H / 2 - ((lines.length - 1) * lineH) / 2 - 16;
+      lines.forEach((line, i) => ctx.fillText(line, W / 2, startY + i * lineH));
+      if (ad.sub) {
+        ctx.fillStyle = ad.fg + '88';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(ad.sub, W / 2, H - 36);
+      }
+      ctx.font = '26px sans-serif';
+      ctx.fillStyle = ad.fg;
+      ctx.fillText(ad.emoji, W / 2, H - 16);
+    }
+    cb(new THREE.CanvasTexture(cv));
+  }
+
+  if (ad.src) {
+    const img = new Image();
+    img.onload  = () => draw(img);
+    img.onerror = () => draw(null);
+    img.src = ad.src;
+  } else {
+    draw(null);
+  }
+}
+
+// 호차 번호 안내판 텍스처
+function _makeCarNumTex() {
+  const W = 320, H = 72;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1d2f4f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(242,182,50,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+  // 호차 번호
+  ctx.fillStyle = '#f2b632';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🚃  1호차', W * 0.3, H / 2);
+  // 구분선
+  ctx.strokeStyle = 'rgba(242,182,50,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.54, 10); ctx.lineTo(W * 0.54, H - 10);
+  ctx.stroke();
+  // 객실 타입
+  ctx.fillStyle = '#c8d8e8';
+  ctx.font = '15px sans-serif';
+  ctx.fillText('일반실 (자유석)', W * 0.77, H / 2);
+  return new THREE.CanvasTexture(cv);
+}
+
+// 앞뒤 끝벽 인테리어 장식 본체
+function buildEndWallDecor() {
+  const L = CAR.L;
+  const carNumTex = _makeCarNumTex();
+
+  for (const e of [-1, 1]) {
+    const g   = new THREE.Group();
+    scene.add(g);
+    ends[e].push(g); // 끝벽과 함께 가시성 토글
+
+    const inX = e * (L / 2 - 0.08); // 벽 안쪽 면 x
+    const ry  = -e * Math.PI / 2;    // 패널이 내부를 향하는 y 회전
+
+    // ── 짐칸 선반 (왼쪽·오른쪽 패널 각 1개) ──
+    for (const pz of [-1.625, 1.625]) {
+      // 선반 판
+      box(g, 0.34, 0.05, 1.70, 0xd4c8b0, inX - e * 0.17, 2.30, pz);
+      // 선반 앞쪽 가로 봉
+      const rod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.022, 0.022, 1.68, 8),
+        mat(0x9a8a7a),
+      );
+      rod.rotation.x = Math.PI / 2;
+      rod.position.set(inX - e * 0.33, 2.33, pz);
+      g.add(rod);
+      // 지지 브라켓 2개
+      for (const bz of [pz - 0.6, pz + 0.6])
+        box(g, 0.34, 0.025, 0.025, 0x9a8a7a, inX - e * 0.17, 2.19, bz);
+    }
+
+    // ── 짐 소품 ──
+    box(g, 0.26, 0.20, 0.42, 0xa05030, inX - e * 0.17, 2.43, -2.0); // 갈색 가방
+    box(g, 0.22, 0.17, 0.52, 0x506080, inX - e * 0.17, 2.41,  1.3); // 파란 가방
+    box(g, 0.24, 0.26, 0.36, 0xc09060, inX - e * 0.17, 2.47, -1.1); // 베이지 가방
+
+    // ── 광고판 ──
+    for (let si = 0; si < 2; si++) {
+      const pz = si === 0 ? -1.625 : 1.625;
+      _makeAdTex(END_WALL_ADS[si], (tex) => {
+        const p = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.5, 1.05),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+        );
+        p.position.set(inX, 1.2, pz);
+        p.rotation.y = ry;
+        g.add(p);
+      });
+    }
+
+    // ── 호차 번호 안내판 (출입문 위) ──
+    const numP = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.1, 0.34),
+      new THREE.MeshBasicMaterial({ map: carNumTex, transparent: true, depthWrite: false }),
+    );
+    numP.position.set(inX, 2.22, 0);
+    numP.rotation.y = ry;
+    g.add(numP);
+
+    // ── 출입문 패널 ──
+    // 문 본체 (크림/목재색 패널)
+    box(g, 0.04, 2.0, 1.26, 0xddd0b8, inX - e * 0.02, 1.0, 0);
+    // 문틀 테두리 (어두운 선)
+    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX,  1.0, -0.635); // 왼쪽 세로틀
+    box(g, 0.07, 2.04, 0.07, 0x2a3f60, inX,  1.0,  0.635); // 오른쪽 세로틀
+    box(g, 0.07, 0.07, 1.42, 0x2a3f60, inX, 2.02,  0);     // 상단 가로틀
+    // 문 창문 (반투명 파랑)
+    const dwin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.40, 0.55),
+      new THREE.MeshBasicMaterial({ color: 0x7aaec8, transparent: true, opacity: 0.65, depthWrite: false }),
+    );
+    dwin.position.set(inX - e * 0.055, 1.62, 0);
+    g.add(dwin);
+    // 창문 프레임 4변
+    box(g, 0.05, 0.42, 0.04, 0x2a3f60, inX - e * 0.055, 1.62, -0.275);
+    box(g, 0.05, 0.42, 0.04, 0x2a3f60, inX - e * 0.055, 1.62,  0.275);
+    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.84,  0);
+    box(g, 0.05, 0.04, 0.57, 0x2a3f60, inX - e * 0.055, 1.40,  0);
+    // 손잡이 (양쪽)
+    box(g, 0.07, 0.06, 0.13, 0x888890, inX - e * 0.07, 1.08,  0.28);
+    box(g, 0.07, 0.06, 0.13, 0x888890, inX - e * 0.07, 1.08, -0.28);
+
+    // ── 천장 조명 (패널 위) ──
+    for (const lz of [-1.625, 1.625]) {
+      box(g, 0.30, 0.05, 0.14, 0xe8e0d0, inX - e * 0.08, 2.56, lz);
+      const lamp = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.02, 0.10),
+        new THREE.MeshBasicMaterial({ color: 0xfffde8 }),
+      );
+      lamp.position.set(inX - e * 0.08, 2.535, lz);
+      g.add(lamp);
+    }
+  }
 }

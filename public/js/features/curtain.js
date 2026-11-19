@@ -23,7 +23,7 @@ function buildCurtains() {
         mat(0x888888),
       );
       rail.position.set(wx, 1.905, zc);
-      scene.add(rail);
+      walls[sg].add(rail);
 
       // 커튼 메쉬
       const curtain = new THREE.Mesh(
@@ -41,7 +41,7 @@ function buildCurtains() {
         targetX:  openX,
         targetSX: 0.20,
       };
-      scene.add(curtain);
+      walls[sg].add(curtain);
       curtainMeshes.push(curtain);
 
       // 클릭 감지용 투명 히트 박스 (창 전체 범위로 커버 — 열린 상태에도 클릭 가능)
@@ -51,7 +51,7 @@ function buildCurtains() {
       );
       hit.position.set(wx, 1.42, zc);
       hit.userData = { curtainIdx: curtainMeshes.length - 1, wx, zc };
-      scene.add(hit);
+      walls[sg].add(hit);
       curtainHits.push(hit);
     }
   }

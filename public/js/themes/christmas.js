@@ -16,7 +16,8 @@ const ChristmasTheme = (() => {
   const TABLE_Z   = [-1.6, 1.6];
   const TABLE_SURFACE_Y = 0.815; // 테이블 상판 윗면 y
 
-  let _group = null;
+  let _group = null;           // 트리만 담는 그룹 (scene에 직접)
+  const _sideGroups = {};      // 벽면 전구 — walls[sg] 자식으로
   const _bulbs = [];
   const _tmp = new THREE.Color();
 
@@ -60,8 +61,12 @@ const ChristmasTheme = (() => {
     _group = new THREE.Group();
     _bulbs.length = 0;
 
-    // 양쪽 벽면 전구 스트링
+    // 양쪽 벽면 전구 스트링 — walls[sg] 자식으로 등록해 벽과 함께 가시성 토글
     for (const sg of [-1, 1]) {
+      const sg_group = new THREE.Group();
+      _sideGroups[sg] = sg_group;
+      walls[sg].add(sg_group);
+
       const zw = sg * (CAR.W / 2 - 0.12);
 
       // 흰 전선
@@ -70,7 +75,7 @@ const ChristmasTheme = (() => {
         new THREE.MeshBasicMaterial({ color: 0xf0f0f0 }),
       );
       wire.position.set(0, WIRE_Y, zw);
-      _group.add(wire);
+      sg_group.add(wire);
 
       let ci = sg < 0 ? 0 : 2;
       for (let x = -7.1; x <= 7.15; x += PITCH) {
@@ -83,7 +88,7 @@ const ChristmasTheme = (() => {
           new THREE.MeshBasicMaterial({ color: 0xe8e8e8 }),
         );
         socket.position.set(x, WIRE_Y - 0.045, zw);
-        _group.add(socket);
+        sg_group.add(socket);
 
         // 전구
         const bulb = new THREE.Mesh(
@@ -99,25 +104,32 @@ const ChristmasTheme = (() => {
           phase: (ci % 2 === 0) ? 0 : Math.PI,
           speed: 2.2,
         };
-        _group.add(bulb);
+        sg_group.add(bulb);
         _bulbs.push(bulb);
       }
     }
 
-    // 4인석 테이블마다 미니 트리 배치
+    // 4인석 테이블 미니 트리 — 벽과 무관하므로 scene에 직접
     for (const tz of TABLE_Z) {
       _group.add(_makeTree(0, TABLE_SURFACE_Y, tz));
     }
-
     scene.add(_group);
   }
 
   // ── 테마 해제 ──
   function dispose() {
     if (!_group) return;
-    _group.traverse((o) => {
-      if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); }
-    });
+    // 벽면 서브그룹 정리
+    for (const sg of [-1, 1]) {
+      const sg_group = _sideGroups[sg];
+      if (sg_group) {
+        sg_group.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        walls[sg].remove(sg_group);
+        _sideGroups[sg] = null;
+      }
+    }
+    // 트리 정리
+    _group.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
     scene.remove(_group);
     _group = null;
     _bulbs.length = 0;

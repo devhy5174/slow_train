@@ -31,3 +31,8 @@ function toast(t) {
 }
 // 말풍선/간식 메뉴 패널 열고 닫기(하나만 열리게)
 function panel(id) { const el = $(id), was = !el.hidden; $('phr').hidden = $('menu').hidden = true; el.hidden = was; }
+// Lucide 아이콘을 버튼 등에 주입하고 SVG로 렌더링
+function setLucideIcon(el, name) {
+  el.innerHTML = `<i data-lucide="${name}"></i>`;
+  if (window.lucide) lucide.createIcons({ nodes: [el] });
+}

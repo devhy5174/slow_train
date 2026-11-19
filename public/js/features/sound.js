@@ -64,7 +64,7 @@ const RailSound = {
 function initSoundUI() {
   const btn = $('bMute'), vol = $('vol');
   // 버튼 아이콘과 슬라이더 값을 현재 상태에 맞춤
-  const sync = () => { btn.textContent = RailSound.muted || RailSound.volume === 0 ? '🔇' : '🔊'; vol.value = RailSound.volume; };
+  const sync = () => { setLucideIcon(btn, RailSound.muted || RailSound.volume === 0 ? 'volume-x' : 'volume-2'); vol.value = RailSound.volume; };
   btn.onclick = () => { RailSound.setMuted(!RailSound.muted); sync(); };
   // 브라우저가 소리를 멈춰 둔 상태(suspended)면 다음 터치/클릭 때 다시 재생
   document.addEventListener('pointerdown', () => { if (RailSound.ctx && RailSound.ctx.state === 'suspended') RailSound.ctx.resume(); });
@@ -83,9 +83,9 @@ function initEarphoneUI() {
   // 이어폰이 기차음을 음소거한 경우를 추적 (사용자가 먼저 음소거했으면 복원하지 않음)
   let _mutedByEarphone = false;
 
-  const syncBtn = () => { btn.textContent = EarphoneMusic.playing ? '🎵' : '🎧'; };
+  const syncBtn  = () => { setLucideIcon(btn, EarphoneMusic.playing ? 'music' : 'headphones'); };
   // bMute 아이콘을 현재 RailSound 상태에 맞춰 갱신
-  const syncMute = () => { const mb = $('bMute'); if (mb) mb.textContent = RailSound.muted || RailSound.volume === 0 ? '🔇' : '🔊'; };
+  const syncMute = () => { const mb = $('bMute'); if (mb) setLucideIcon(mb, RailSound.muted || RailSound.volume === 0 ? 'volume-x' : 'volume-2'); };
 
   btn.onclick = () => {
     if (!EarphoneMusic.audio) {

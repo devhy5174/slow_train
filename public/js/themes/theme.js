@@ -29,7 +29,7 @@ const Theme = {
     }
     localStorage.setItem('slowtrain_theme', name);
     const btn = document.getElementById('bTheme');
-    if (btn) btn.textContent = name === 'default' ? '🌟' : _themeIcon(name);
+    if (btn) setLucideIcon(btn, name === 'default' ? 'sparkles' : _themeIcon(name));
   },
 
   // 저장된 테마 불러오기 (게임 시작 시 호출)
@@ -44,10 +44,9 @@ const Theme = {
   },
 };
 
-// 테마별 버튼 아이콘
 function _themeIcon(name) {
-  const icons = { christmas: '🎄' };
-  return icons[name] || '🌟';
+  const icons = { christmas: 'tree-pine' };
+  return icons[name] || 'sparkles';
 }
 
 // 테마 전환 버튼 이벤트 연결 (buildUI에서 호출)

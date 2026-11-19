@@ -5,6 +5,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    // GitHub Actions 빌드일 때만 /slow_train/ 로 base 설정 (Netlify는 /)
+    base: process.env.GITHUB_ACTIONS ? '/slow_train/' : '/',
     plugins: [
       {
         // index.html의 <!-- ENV_INJECT --> 주석을 Supabase 설정 인라인 스크립트로 치환
