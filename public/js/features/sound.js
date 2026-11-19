@@ -8,7 +8,7 @@
 const SOUND_FILE = null;
 
 const RailSound = {
-  ctx: null, master: null, hit: null, audio: null, timer: null, nextT: 0, started: false, volume: 0.6, muted: false,
+  ctx: null, master: null, hit: null, audio: null, timer: null, nextT: 0, started: false, volume: 0.35, muted: false,
 
   // 소리 시작: 반드시 사용자 클릭(입장 버튼) 직후에 호출해야 브라우저가 재생을 허용함
   start() {
@@ -107,8 +107,8 @@ function initEarphoneUI() {
     }
     // 헤드폰 3D 모델 표시/숨김 (P가 초기화된 뒤에만 접근)
     if (typeof P !== 'undefined' && P.headphones) P.headphones.visible = EarphoneMusic.playing;
-    // [Supabase 연동 시] channel.send(actorSnapshot(P)) 로 헤드폰 상태 포함 브로드캐스트
-    // applyActorSnapshot(remoteActor, snap) 에서 snap.headphones 자동 반영됨 (actor.js 참고)
+    // 헤드폰 상태를 즉시 브로드캐스트 (멀티 비활성 시 no-op)
+    if (typeof Multi !== 'undefined') Multi.sendState();
     syncBtn();
   };
 

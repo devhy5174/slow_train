@@ -620,5 +620,5 @@ const Multi = (() => {
   // 피어 액터 목록 반환 (game.js 말풍선 페이드 루프에서 사용)
   function getPeers() { return Object.values(peers); }
 
-  return { connect, tick, disconnect, requestYield, sendNpcYield, broadcastSpeak, getPeers, isHost: () => _isHost() };
+  return { connect, tick, disconnect, requestYield, sendNpcYield, broadcastSpeak, getPeers, isHost: () => _isHost(), sendState: _sendFullState };
 })();
