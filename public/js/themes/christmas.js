@@ -422,6 +422,10 @@ const ChristmasTheme = (() => {
     }
     scene.add(_group);
 
+    // 끝벽 배너 숨기기 (기본 테마 전용)
+    if (typeof sideBanners !== 'undefined')
+      sideBanners.forEach(b => { b.visible = false; });
+
     // 옷걸이 숨기기 + 크리스마스 랜턴 추가
     for (const sg of [-1, 1]) {
       if (typeof wallHooks !== 'undefined' && wallHooks[sg])
@@ -472,6 +476,10 @@ const ChristmasTheme = (() => {
     scene.remove(_group);
     _group = null;
     _bulbs.length = 0;
+
+    // 끝벽 배너 복원
+    if (typeof sideBanners !== 'undefined')
+      sideBanners.forEach(b => { b.visible = true; });
 
     // 랜턴 정리 + 옷걸이 복원
     for (const sg of [-1, 1]) {

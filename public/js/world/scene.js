@@ -1463,7 +1463,7 @@ const SIDE_BANNERS = [
   ],
   [
     { label: '느리게 가도 괜찮아', sub: '여유 있게, 더 깊이',    emoji: '🌿', bg: '#e8f2e6', fg: '#1a4020', accent: '#4a9040' },
-    { label: '다음 정차: 풍경 역', sub: '목적지를 즐기는 여행',  emoji: '🚉', bg: '#e6eef8', fg: '#1a2a5a', accent: '#3a60b8' },
+    { label: 'metamoa',           sub: '디지털 세상을 모아모아', emoji: '🌐', bg: '#ece8ff', fg: '#3a1a7a', accent: '#7c54c8', brand: true },
   ],
 ];
 
@@ -1487,30 +1487,56 @@ function _makeBannerTex(ad, cb) {
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, W - 2, H - 2);
 
-  // 이모지
-  ctx.font = '30px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(ad.emoji, 18, H / 2 - 4);
+  if (ad.brand) {
+    // 브랜드 광고 레이아웃: 중앙 집중형
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
-  // 메인 텍스트
-  ctx.fillStyle = ad.fg;
-  ctx.font = 'bold 22px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(ad.label, 62, H / 2 - 11);
+    // 이모지
+    ctx.font = '28px sans-serif';
+    ctx.fillText(ad.emoji, W * 0.18, H / 2);
 
-  // 서브 텍스트
-  ctx.fillStyle = ad.fg + '99';
-  ctx.font = '13px sans-serif';
-  ctx.fillText(ad.sub, 62, H / 2 + 14);
+    // 브랜드명 (크게)
+    ctx.fillStyle = ad.fg;
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(ad.label, W * 0.56, H / 2 - 12);
 
-  // 우측 브랜딩
-  ctx.fillStyle = ad.accent;
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('느린 기차', W - 10, H / 2);
+    // 서브
+    ctx.fillStyle = ad.fg + '99';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(ad.sub, W * 0.56, H / 2 + 14);
+
+    // 우측 "AD" 태그
+    ctx.fillStyle = ad.accent + '88';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('AD', W - 10, H / 2);
+  } else {
+    // 이모지
+    ctx.font = '30px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ad.emoji, 18, H / 2 - 4);
+
+    // 메인 텍스트
+    ctx.fillStyle = ad.fg;
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ad.label, 62, H / 2 - 11);
+
+    // 서브 텍스트
+    ctx.fillStyle = ad.fg + '99';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(ad.sub, 62, H / 2 + 14);
+
+    // 우측 브랜딩
+    ctx.fillStyle = ad.accent;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('느린 기차', W - 10, H / 2);
+  }
 
   cb(new THREE.CanvasTexture(cv));
 }
@@ -1660,6 +1686,8 @@ function _makeCarNumTex() {
 const adHits = [];
 // 양쪽 벽 옷걸이 그룹 — 크리스마스 테마 시 숨기고 랜턴으로 교체
 const wallHooks = {};
+// 끝벽 작은 배너 메쉬 — 크리스마스 테마 시 숨김
+const sideBanners = [];
 // 화이트보드 클릭 가능 메쉬 (포스트잇 팝업용)
 const whiteboardHits = [];
 let whiteboardMesh = null; // 텍스처 갱신용
@@ -1812,7 +1840,7 @@ function buildEndWallDecor() {
         }
       });
 
-      // ── 작은 배너 (기존 광고판 위, y≈1.95) ──
+      // ── 작은 배너 (기존 광고판 위, y≈1.95) — 기본 테마 전용 ──
       _makeBannerTex(SIDE_BANNERS[eIdx][si], (tex) => {
         const bp = new THREE.Mesh(
           new THREE.PlaneGeometry(1.3, 0.37),
@@ -1821,6 +1849,7 @@ function buildEndWallDecor() {
         bp.position.set(inX, 1.95, pz);
         bp.rotation.y = ry;
         g.add(bp);
+        sideBanners.push(bp); // 크리스마스 테마 시 숨김용
       });
     }
 
