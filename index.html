@@ -303,6 +303,12 @@
     <!-- 좌석 ID 툴팁(마우스를 좌석 위에 올릴 때) -->
     <div id="tip"></div>
 
+    <!-- ===== 로딩 화면 ===== -->
+    <div id="loadingScreen" hidden aria-label="로딩 중">
+      <div id="ldEmoji" aria-hidden="true">🚂</div>
+      <div id="ldText" aria-live="polite"></div>
+    </div>
+
     <!-- ===== 외부 라이브러리 (CDN) ===== -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -350,6 +356,8 @@
     <!-- 11.5. 창문 커튼 -->
     <script src="js/features/whiteboard.js"></script>
     <!-- 11.6. 화이트보드 포스트잇 -->
+    <script src="js/features/loading.js"></script>
+    <!-- 11.7. 로딩 화면 -->
     <script src="js/ui/ui.js"></script>
     <!-- 12. 하단 버튼/팝업 UI -->
     <script src="js/features/ticket.js"></script>

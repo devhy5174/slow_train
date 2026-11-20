@@ -34,8 +34,10 @@ $('form').addEventListener('submit', e => {
   $('hn').textContent = name;
   $('hc').textContent = `실제 승객 1/32명 · ${GameState.hasTicket ? '🎫 승차권 있음' : '🎫 승차권 없음'}`;
 
+  // 로딩 화면 표시 → 5초 후 페이드 아웃, 완료 시 승차권 팝업
+  showLoadingScreen(() => { if (GameState.hasTicket) showMyTicket(); });
+
   Object.assign(RailSound, { muted: !!(settings && settings.muted), volume: settings && typeof settings.volume === 'number' ? settings.volume : 0.35 });
   build(saved); RailSound.start(); // 입장 버튼 클릭 직후 시작(브라우저 자동재생 정책)
   Multi.connect(name, GameState.carId); // Supabase Realtime 멀티플레이 연결
-  if (GameState.hasTicket) showMyTicket(); // 승차권 구매자에게 지정석 안내 팝업
 });

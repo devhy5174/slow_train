@@ -209,10 +209,10 @@ function wallSide(sg) {
   }
 
   // ── 짐칸 선반 (창문 위, 벽면 따라) ──
-  const SY  = 2.08;                     // 선반 y
-  const SD  = 0.27;                     // 선반 깊이
-  const szc = zw - sg * (SD / 2);      // 선반 판 중심 z
-  const frz = zw - sg * (SD - 0.013);  // 앞 레일 z
+  const SY  = 2.08;                          // 선반 y
+  const SD  = 0.195;                         // 선반 깊이 — 뒷면이 벽 안쪽 면에 딱 맞게 단축 (벽 뚫림 방지)
+  const szc = zw - sg * (0.075 + SD / 2);   // 선반 판 중심 z (뒷 끝 = 벽 안쪽 면)
+  const frz = zw - sg * 0.257;              // 앞 레일 z (기존 위치 유지)
 
   box(g, L - 0.3, 0.024, SD, 0xb89060, 0, SY, szc);                   // 선반 판
   box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.13, frz);        // 앞 안전봉
@@ -262,7 +262,7 @@ function wallSide(sg) {
 
   // ── 옷걸이 고리 — 창 사이 기둥 7곳, 짐선반 아래 ──
   const HKY = 1.93;                       // 걸이 y (선반 2.08 아래)
-  const hkZi = zw - sg * 0.076;           // 벽 안쪽 면 z
+  const hkZi = zw - sg * 0.090;           // 벽 안쪽 면에서 충분히 띄움 (z-fighting 방지)
   const hkD  = -sg;                       // 실내 방향
   const hkG  = new THREE.Group();
   [-5.7, -3.8, -1.9, 0, 1.9, 3.8, 5.7].forEach(hx => {
@@ -1454,6 +1454,67 @@ const END_WALL_ADS = [
   ],
 ];
 
+// 기존 광고판 위 작은 배너 4개 (기본 테마 / 느린기차 광고)
+// SIDE_BANNERS[eIdx][si]: eIdx 0=뒤쪽, 1=앞쪽 / si 0=z음수, 1=z양수
+const SIDE_BANNERS = [
+  [
+    { label: '창밖을 즐기세요',    sub: '느린 기차의 여유',      emoji: '🌾', bg: '#f7ecd4', fg: '#5a3800', accent: '#c89040' },
+    { label: '따뜻한 간식 한 잔', sub: '판매원을 불러보세요',    emoji: '☕', bg: '#f5e4d4', fg: '#5a2800', accent: '#b85830' },
+  ],
+  [
+    { label: '느리게 가도 괜찮아', sub: '여유 있게, 더 깊이',    emoji: '🌿', bg: '#e8f2e6', fg: '#1a4020', accent: '#4a9040' },
+    { label: '다음 정차: 풍경 역', sub: '목적지를 즐기는 여행',  emoji: '🚉', bg: '#e6eef8', fg: '#1a2a5a', accent: '#3a60b8' },
+  ],
+];
+
+// 작은 배너 캔버스 텍스처 생성
+function _makeBannerTex(ad, cb) {
+  const W = 320, H = 86;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // 배경
+  ctx.fillStyle = ad.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 왼쪽 액센트 띠
+  ctx.fillStyle = ad.accent;
+  ctx.fillRect(0, 0, 8, H);
+
+  // 테두리
+  ctx.strokeStyle = ad.accent + 'aa';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // 이모지
+  ctx.font = '30px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ad.emoji, 18, H / 2 - 4);
+
+  // 메인 텍스트
+  ctx.fillStyle = ad.fg;
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ad.label, 62, H / 2 - 11);
+
+  // 서브 텍스트
+  ctx.fillStyle = ad.fg + '99';
+  ctx.font = '13px sans-serif';
+  ctx.fillText(ad.sub, 62, H / 2 + 14);
+
+  // 우측 브랜딩
+  ctx.fillStyle = ad.accent;
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('느린 기차', W - 10, H / 2);
+
+  cb(new THREE.CanvasTexture(cv));
+}
+
 // 광고 캔버스 텍스처 생성 (src 있으면 이미지 로드)
 function _makeAdTex(ad, cb) {
   const W = 256,
@@ -1749,6 +1810,17 @@ function buildEndWallDecor() {
           whiteboardMesh = p;
           whiteboardHits.push(p);
         }
+      });
+
+      // ── 작은 배너 (기존 광고판 위, y≈1.95) ──
+      _makeBannerTex(SIDE_BANNERS[eIdx][si], (tex) => {
+        const bp = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.3, 0.37),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+        );
+        bp.position.set(inX, 1.95, pz);
+        bp.rotation.y = ry;
+        g.add(bp);
       });
     }
 
