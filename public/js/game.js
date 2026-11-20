@@ -319,6 +319,8 @@ function initInput() {
     if (ch && (!h || ch.distance < h.distance)) return toggleCurtain(ch.object.userData.curtainIdx);
     const ad = ray.intersectObjects(adHits)[0]; // 광고 이미지 패널 클릭
     if (ad) return showImageModal(ad.object.userData.imgSrc);
+    const wb = ray.intersectObjects(whiteboardHits)[0]; // 화이트보드 클릭
+    if (wb) return openWhiteboardModal();
     const sq = ray.intersectObjects(sqHits)[0]; // 신문지 쭈그려 앉기
     if (sq) return goSquat(P, sq.object.userData.sqPos);
     if (h) {

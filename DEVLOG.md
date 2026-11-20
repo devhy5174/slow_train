@@ -1,3 +1,25 @@
+## 2026-11-20 — 화이트보드 포스트잇 기능 추가
+
+### 변경 파일
+- `public/js/features/whiteboard.js` (신규) — 포스트잇 UI, Supabase 저장/로드, 로컬 폴백
+- `public/js/world/scene.js` — 화이트보드 클릭 메쉬 등록, 포스트잇 3D 텍스처(3×3 그리드)
+- `public/js/game.js` — 화이트보드 클릭 처리 추가
+- `public/js/ui/ui.js` — initWhiteboard() 호출 추가
+- `index.html` — 화이트보드 모달 추가, whiteboard.js 스크립트 태그
+- `public/css/style.css` — 포스트잇 팝업 UI 스타일
+
+### 기능
+- 앞쪽 끝벽 화이트보드 클릭 시 팝업 오픈
+- 기본: 보기 모드 (전체 메모 목록, 최신순)
+- "나도 남기기" → 쓰기 모드 (문구 5개 선택 + 이모티콘 10개)
+- 날짜 자동 기재, Supabase DB 저장 (없으면 localStorage 폴백)
+- 3D 보드에 포스트잇 최대 9개(3열×3행) 부착 모습 반영
+
+### 다음 할 일
+- Supabase `whiteboard_postits` 테이블 생성 필요 (SQL 별도 제공)
+
+---
+
 ## 2026-11-18 — 캐릭터 외형 전면 리디자인 (얼굴·몸통·모자·카트)
 
 ### 변경 파일

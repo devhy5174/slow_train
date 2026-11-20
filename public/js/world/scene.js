@@ -1455,24 +1455,9 @@ function _makeAdTex(ad, cb) {
     ctx.fillRect(0, 0, W, H);
 
     if (ad.type === "whiteboard") {
-      // 화이트보드: 흰 배경 + 연한 가로선 + 알루미늄 테두리
-      ctx.fillStyle = "#f9f9f9";
-      ctx.fillRect(0, 0, W, H);
-      ctx.strokeStyle = "#b0b0b0";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(3, 3, W - 6, H - 6);
-      ctx.strokeStyle = "#dddddd";
-      ctx.lineWidth = 1;
-      for (let ly = 32; ly < H - 10; ly += 26) {
-        ctx.beginPath();
-        ctx.moveTo(16, ly);
-        ctx.lineTo(W - 16, ly);
-        ctx.stroke();
-      }
-      ctx.fillStyle = "#c0c0c0";
-      ctx.font = "11px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("White Board", W / 2, H - 8);
+      // 화이트보드는 _drawWhiteboardTex로 위임 (포스트잇 반영)
+      _drawWhiteboardTex([], cb);
+      return;
     } else if (ad.type === "korea") {
       // 대한민국 지도: 바다 + 한반도 아웃라인 + 제주도
       ctx.fillStyle = "#b8d8f0";
@@ -1599,6 +1584,94 @@ function _makeCarNumTex() {
 
 // 클릭 가능한 광고 이미지 패널 메쉬 (game.js 레이캐스팅 · 커서 · 팝업용)
 const adHits = [];
+// 화이트보드 클릭 가능 메쉬 (포스트잇 팝업용)
+const whiteboardHits = [];
+let whiteboardMesh = null; // 텍스처 갱신용
+
+// 포스트잇이 붙은 화이트보드 canvas 텍스처 생성
+function _drawWhiteboardTex(posts, cb) {
+  const W = 256, H = 192;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // 흰 배경 + 테두리
+  ctx.fillStyle = '#f9f9f9';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#b0b0b0';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W - 6, H - 6);
+  // 가로 줄선
+  ctx.strokeStyle = '#dddddd';
+  ctx.lineWidth = 1;
+  for (let ly = 32; ly < H - 10; ly += 26) {
+    ctx.beginPath(); ctx.moveTo(16, ly); ctx.lineTo(W - 16, ly); ctx.stroke();
+  }
+
+  // 포스트잇 최대 9개 (3열×3행) — 보드 전체 채움
+  const COLS = ['#fffde7', '#fce4ec', '#e8f5e9', '#e3f2fd', '#f3e5f5'];
+  const pw = 72, ph = 52;   // 포스트잇 크기
+  const gx = 6,  gy = 7;   // 열·행 간격
+  const mx = 8,  my = 7;   // 좌·상 여백
+  const TILTS = [-4, 3, -2, 5, -3, 4, -5, 2, -1]; // 각 슬롯 고정 기울기(deg)
+  posts.slice(-9).forEach((p, i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const bx = mx + col * (pw + gx);
+    const by = my + row * (ph + gy);
+    const angle = TILTS[i] * Math.PI / 180;
+
+    ctx.save();
+    ctx.translate(bx + pw / 2, by + ph / 2);
+    ctx.rotate(angle);
+    // 그림자
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    ctx.fillRect(-pw / 2 + 2, -ph / 2 + 3, pw, ph);
+    // 포스트잇 본체
+    ctx.fillStyle = p.color || COLS[i % COLS.length];
+    ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+    // 접착 테이프 느낌 (상단 반투명)
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillRect(-pw / 2, -ph / 2, pw, 7);
+    // 이모티콘
+    if (p.emoji) {
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(p.emoji, 0, -ph / 2 + 8);
+    }
+    // 텍스트 (최대 10자)
+    ctx.font = 'bold 8px sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const short = p.text.length > 10 ? p.text.slice(0, 9) + '…' : p.text;
+    ctx.fillText(short, 0, -ph / 2 + (p.emoji ? 25 : 10));
+    // 날짜
+    ctx.font = '6.5px sans-serif';
+    ctx.fillStyle = '#888';
+    ctx.fillText(p.date, 0, ph / 2 - 9);
+    ctx.restore();
+  });
+
+  // 포스트잇 없으면 안내 문구
+  if (posts.length === 0) {
+    ctx.fillStyle = '#c0c0c0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('White Board', W / 2, H - 8);
+  }
+
+  cb(new THREE.CanvasTexture(cv));
+}
+
+// 외부(whiteboard.js)에서 호출: 포스트잇 추가 후 3D 텍스처 갱신
+function updateWhiteboardTex(posts) {
+  if (!whiteboardMesh) return;
+  _drawWhiteboardTex(posts, tex => {
+    whiteboardMesh.material.map = tex;
+    whiteboardMesh.material.needsUpdate = true;
+  });
+}
 
 // 앞뒤 끝벽 인테리어 장식 본체
 function buildEndWallDecor() {
@@ -1655,6 +1728,11 @@ function buildEndWallDecor() {
         if (END_WALL_ADS[eIdx][si].src) {
           p.userData.imgSrc = END_WALL_ADS[eIdx][si].src;
           adHits.push(p);
+        }
+        // 화이트보드 패널 → whiteboardHits에 등록, 메쉬 참조 저장
+        if (END_WALL_ADS[eIdx][si].type === 'whiteboard') {
+          whiteboardMesh = p;
+          whiteboardHits.push(p);
         }
       });
     }

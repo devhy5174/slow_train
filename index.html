@@ -6,6 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+    <meta name="metamoa-site-verification" content="JRNAvwNpLPv34KLgjJi5kD" />
     <title>느린 기차</title>
     <!-- 모든 스타일은 css/style.css 한 곳에서 관리 -->
     <link rel="stylesheet" href="css/style.css" />
@@ -70,10 +71,12 @@
         <!-- 탑승 버튼 -->
         <div class="ticket-btns">
           <button type="submit" data-mode="ticket">
-            <span><i data-lucide="ticket"></i></span><span>승차권으로 <br />탑승하기</span><b>▶</b>
+            <span><i data-lucide="ticket"></i></span
+            ><span>승차권으로 <br />탑승하기</span><b>▶</b>
           </button>
           <button type="submit" data-mode="free" class="free">
-            <span><i data-lucide="user"></i></span><span>그냥 올라타기</span><b>▶</b>
+            <span><i data-lucide="user"></i></span><span>그냥 올라타기</span
+            ><b>▶</b>
           </button>
         </div>
       </form>
@@ -89,8 +92,12 @@
         >
         <button id="bSay" class="alt">말풍선</button>
         <button id="bShop" class="alt" disabled>말걸기</button>
-        <button id="bTicket" class="alt" hidden><i data-lucide="ticket"></i> 승차권 확인</button>
-        <button id="bFindSeat" class="alt" hidden><i data-lucide="map-pin"></i> 내 자리 찾기</button>
+        <button id="bTicket" class="alt" hidden>
+          <i data-lucide="ticket"></i> 승차권 확인
+        </button>
+        <button id="bFindSeat" class="alt" hidden>
+          <i data-lucide="map-pin"></i> 내 자리 찾기
+        </button>
         <button id="bDrop" class="alt" hidden>간식 버리기</button>
         <button id="bExit" class="alt" hidden>나가기</button>
         <button id="stand" hidden>일어나기</button>
@@ -211,14 +218,37 @@
 
       <!-- 소리 컨트롤 묶음 박스: 상단바 아래 오른쪽 고정 -->
       <div class="sound-group">
-        <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기"><i data-lucide="volume-2"></i></button>
-        <input id="vol" type="range" min="0" max="1" step="0.05" aria-label="볼륨" />
+        <button id="bMute" class="alt icon" aria-label="소리 켜기/끄기">
+          <i data-lucide="volume-2"></i>
+        </button>
+        <input
+          id="vol"
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          aria-label="볼륨"
+        />
         <span class="sound-sep"></span>
-        <button id="bEarphone" class="alt icon" aria-label="이어폰 꽂기/빼기"><i data-lucide="headphones"></i></button>
-        <input id="volEar" type="range" min="0" max="1" step="0.05" value="0.7" aria-label="이어폰 볼륨" />
+        <button id="bEarphone" class="alt icon" aria-label="이어폰 꽂기/빼기">
+          <i data-lucide="headphones"></i>
+        </button>
+        <input
+          id="volEar"
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value="0.7"
+          aria-label="이어폰 볼륨"
+        />
         <span class="sound-sep"></span>
-        <button id="bInfo" class="alt icon" aria-label="저작권 정보"><i data-lucide="info"></i></button>
-        <button id="bTheme" class="alt icon" aria-label="테마 변경"><i data-lucide="sparkles"></i></button>
+        <button id="bInfo" class="alt icon" aria-label="저작권 정보">
+          <i data-lucide="info"></i>
+        </button>
+        <button id="bTheme" class="alt icon" aria-label="테마 변경">
+          <i data-lucide="sparkles"></i>
+        </button>
       </div>
 
       <!-- 광고 이미지 확대 팝업 -->
@@ -228,6 +258,13 @@
             <img id="imageModalImg" src="" alt="" />
           </div>
           <div class="row"><button id="imageModalClose">닫기</button></div>
+        </div>
+      </div>
+
+      <!-- 화이트보드 포스트잇 팝업 -->
+      <div class="modal" id="whiteboardModal" hidden>
+        <div class="wb-card">
+          <div id="wbBody"></div>
         </div>
       </div>
 
@@ -310,6 +347,8 @@
     <!-- 11. 간식 판매원 -->
     <script src="js/features/curtain.js"></script>
     <!-- 11.5. 창문 커튼 -->
+    <script src="js/features/whiteboard.js"></script>
+    <!-- 11.6. 화이트보드 포스트잇 -->
     <script src="js/ui/ui.js"></script>
     <!-- 12. 하단 버튼/팝업 UI -->
     <script src="js/features/ticket.js"></script>
@@ -320,6 +359,8 @@
     <!-- 15. 멀티플레이 (Supabase Realtime) -->
     <script src="js/main.js"></script>
     <!-- 14. 시작 화면 → 게임 진입 -->
-    <script>lucide.createIcons();</script>
+    <script>
+      lucide.createIcons();
+    </script>
   </body>
 </html>

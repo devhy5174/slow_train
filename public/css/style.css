@@ -1,7 +1,7 @@
 /* =====================================================
    느린 기차 — 전체 스타일
    구성: 1) 공통(변수/리셋)  2) 시작 화면(승차권)  3) 게임 화면(HUD/하단 바)
-         4) 패널(말풍선/간식 메뉴)  5) 팝업(모달/카드)
+         4) 패널(말풍선/간식 메뉴)  5) 팝업(모달/카드)  6) 화이트보드 포스트잇
    ===================================================== */
 
 /* ---------- 1) 공통: 색상 변수 + 다크모드 + 리셋 ---------- */
@@ -934,3 +934,383 @@ svg.lucide {
   outline: 3px solid #f2b632;
   outline-offset: 2px;
 }
+
+/* ---------- 6) 화이트보드 포스트잇 ---------- */
+
+.wb-card {
+  position: relative;
+  width: min(360px, 92vw);
+  background: #faf7f2;
+  border-radius: 8px;
+  border: 1px solid #d4c8b0;
+  padding: 16px 16px 14px;
+  box-shadow: 0 8px 36px rgba(10,4,0,0.55), 0 1px 4px rgba(200,160,80,0.15);
+  color: #1d2f4f;
+}
+.wb-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.wb-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1d2f4f;
+  letter-spacing: 0.3px;
+}
+.wb-write-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.wb-date {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 600;
+}
+.wb-loading {
+  text-align: center;
+  font-size: 12px;
+  color: #bbb;
+  padding: 24px 0;
+}
+.wb-section { margin-bottom: 10px; }
+.wb-label {
+  font-size: 10px;
+  color: #9aabb8;
+  font-weight: 700;
+  margin-bottom: 5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.wb-text-btn {
+  font: inherit;
+  font-size: 12px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 11px;
+  margin-bottom: 4px;
+  border: 1px solid #e0d8cc;
+  border-radius: 6px;
+  background: #fff;
+  color: #3a4a5a;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.wb-text-btn:hover { background: #fffde7; border-color: #f2b632; }
+.wb-text-btn.on { background: #fffde7; border-color: #f2b632; color: #1d2f4f; font-weight: 700; }
+
+.wb-emoji-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.wb-emoji-btn {
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e0d8cc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
+  line-height: 1;
+}
+.wb-emoji-btn:hover { background: #fffde7; transform: scale(1.1); }
+.wb-emoji-btn.on { background: #fffde7; border-color: #f2b632; transform: scale(1.1); }
+
+.wb-preview {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 2px;
+}
+.wb-preview-hint { font-size: 11px; color: #ccc; }
+.wb-postit-preview {
+  width: 110px;
+  min-height: 82px;
+  border-radius: 2px;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.14);
+  padding: 10px 10px 7px;
+  transform: rotate(-2deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.wb-postit-preview::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 28px; height: 10px;
+  background: rgba(255,255,255,0.65);
+  border-radius: 2px;
+}
+.wb-pi-emoji { font-size: 18px; line-height: 1.2; }
+.wb-pi-text { font-size: 11px; font-weight: 700; color: #333; text-align: center; line-height: 1.4; }
+.wb-pi-date { font-size: 10px; color: #999; }
+
+.wb-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 4px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wb-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid #fffde7;
+  border-radius: 0 6px 6px 0;
+}
+.wb-li-emoji { font-size: 14px; flex-shrink: 0; }
+.wb-li-text { font-size: 12px; color: #2a3a52; font-weight: 600; flex: 1; min-width: 0; }
+.wb-li-date { font-size: 10px; color: #bbb; flex-shrink: 0; }
+.wb-empty {
+  text-align: center;
+  color: #ccc;
+  font-size: 12px;
+  padding: 22px 0;
+  line-height: 1.8;
+}
+.wb-btn-row {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.wb-btn-main {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border: 1.5px solid #1d2f4f;
+  border-radius: 5px;
+  background: #1d2f4f;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.wb-btn-main:hover { filter: brightness(1.18); }
+.wb-btn-main:disabled { opacity: 0.35; cursor: not-allowed; }
+.wb-btn-sub {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid #c0a880;
+  border-radius: 5px;
+  background: transparent;
+  color: #7a8a9a;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.wb-btn-sub:hover { background: rgba(0,0,0,0.04); }
+
+/* ---------- 6) 화이트보드 포스트잇 ---------- */
+
+/* 카드 본체 — 남색 헤더 없이 종이 느낌으로 */
+.wb-card {
+  position: relative;
+  width: min(360px, 92vw);
+  background: #faf7f2;
+  border-radius: 8px;
+  border: 1px solid #d4c8b0;
+  padding: 16px 16px 14px;
+  box-shadow: 0 8px 36px rgba(10, 4, 0, 0.55), 0 1px 4px rgba(200, 160, 80, 0.15);
+  color: #1d2f4f;
+}
+
+/* 타이틀 행 */
+.wb-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.wb-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1d2f4f;
+  letter-spacing: 0.3px;
+}
+
+/* 쓰기 헤더 (타이틀 + 날짜 양쪽 정렬) */
+.wb-write-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.wb-date {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 600;
+}
+
+/* 섹션 */
+.wb-section { margin-bottom: 10px; }
+.wb-label {
+  font-size: 11px;
+  color: #9aabb8;
+  font-weight: 700;
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* 문구 버튼 */
+.wb-text-btn {
+  font: inherit;
+  font-size: 12px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 11px;
+  margin-bottom: 4px;
+  border: 1px solid #e0d8cc;
+  border-radius: 6px;
+  background: #fff;
+  color: #3a4a5a;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.wb-text-btn:hover { background: #fffde7; border-color: #f2b632; }
+.wb-text-btn.on {
+  background: #fffde7;
+  border-color: #f2b632;
+  color: #1d2f4f;
+  font-weight: 700;
+}
+
+/* 이모티콘 선택 */
+.wb-emoji-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.wb-emoji-btn {
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e0d8cc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
+  line-height: 1;
+}
+.wb-emoji-btn:hover { background: #fffde7; transform: scale(1.1); }
+.wb-emoji-btn.on {
+  background: #fffde7;
+  border-color: #f2b632;
+  transform: scale(1.1);
+}
+
+/* 미리보기 */
+.wb-preview {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 2px;
+}
+.wb-preview-hint { font-size: 11px; color: #ccc; }
+
+/* 미리보기 포스트잇 */
+.wb-postit-preview {
+  width: 110px;
+  min-height: 85px;
+  border-radius: 2px;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.14);
+  padding: 10px 10px 7px;
+  transform: rotate(-2deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.wb-postit-preview::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 28px; height: 10px;
+  background: rgba(255,255,255,0.65);
+  border-radius: 2px;
+}
+.wb-pi-emoji { font-size: 18px; line-height: 1.2; }
+.wb-pi-text { font-size: 11px; font-weight: 700; color: #333; text-align: center; line-height: 1.4; }
+.wb-pi-date { font-size: 10px; color: #999; }
+
+/* 보기 모드 목록 */
+.wb-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 4px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wb-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--pc, #fffde7);
+  border-radius: 0 6px 6px 0;
+  background: rgba(255, 253, 231, 0.5); /* 포스트잇 색 연하게 — JS에서 inline style로 덮어씀 */
+}
+.wb-li-emoji { font-size: 14px; flex-shrink: 0; }
+.wb-li-text { font-size: 12px; color: #2a3a52; font-weight: 600; flex: 1; min-width: 0; }
+.wb-li-date { font-size: 10px; color: #bbb; flex-shrink: 0; }
+.wb-empty {
+  text-align: center;
+  color: #ccc;
+  font-size: 12px;
+  padding: 22px 0;
+  line-height: 1.8;
+}
+
+/* 버튼 행 */
+.wb-btn-row {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.wb-btn-main {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border: 1.5px solid #1d2f4f;
+  border-radius: 5px;
+  background: #1d2f4f;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.wb-btn-main:hover { filter: brightness(1.18); }
+.wb-btn-main:disabled { opacity: 0.35; cursor: not-allowed; }
+.wb-btn-sub {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid #c0a880;
+  border-radius: 5px;
+  background: transparent;
+  color: #7a8a9a;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.wb-btn-sub:hover { background: rgba(0,0,0,0.04); }
