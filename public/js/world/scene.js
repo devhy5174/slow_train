@@ -259,6 +259,19 @@ function wallSide(sg) {
   [[-7.0,0x6a3a1a],[-4.1,0x1a3a6a],[-1.1,0x303030],[1.1,0x5a5038],[3.8,0x5a2020],[6.5,0x202840]].forEach(([bx, c]) => {
     box(g, 0.11, 0.025, 0.025, c, bx, SY + 0.012 + 0.26, szc);
   });
+
+  // ── 옷걸이 고리 — 창 사이 기둥 7곳, 짐선반 아래 ──
+  const HKY = 1.93;                       // 걸이 y (선반 2.08 아래)
+  const hkZi = zw - sg * 0.076;           // 벽 안쪽 면 z
+  const hkD  = -sg;                       // 실내 방향
+  const hkG  = new THREE.Group();
+  [-5.7, -3.8, -1.9, 0, 1.9, 3.8, 5.7].forEach(hx => {
+    box(hkG, 0.034, 0.054, 0.010, 0x787888, hx, HKY,        hkZi);              // 고정판
+    box(hkG, 0.011, 0.011, 0.065, 0xb0b0c0, hx, HKY - 0.013, hkZi + hkD*0.0325); // 수평 암
+    box(hkG, 0.011, 0.028, 0.011, 0xb0b0c0, hx, HKY - 0.001, hkZi + hkD*0.065);  // 위로 꺾인 끝
+  });
+  g.add(hkG);
+  wallHooks[sg] = hkG;
 }
 
 // 객차 뼈대 생성: 바닥·차체·통로 카펫·양쪽 창가 벽·양 끝 벽과 출입문
@@ -1584,6 +1597,8 @@ function _makeCarNumTex() {
 
 // 클릭 가능한 광고 이미지 패널 메쉬 (game.js 레이캐스팅 · 커서 · 팝업용)
 const adHits = [];
+// 양쪽 벽 옷걸이 그룹 — 크리스마스 테마 시 숨기고 랜턴으로 교체
+const wallHooks = {};
 // 화이트보드 클릭 가능 메쉬 (포스트잇 팝업용)
 const whiteboardHits = [];
 let whiteboardMesh = null; // 텍스처 갱신용

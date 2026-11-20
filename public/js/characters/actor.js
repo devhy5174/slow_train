@@ -181,7 +181,7 @@ function makeChar(shirt, label, o) {
 
 // 행위자(Actor) 상태 객체 생성 — 플레이어와 NPC가 같은 구조를 사용
 function mkActor(id, name, o) {
-  const label = o.label || (o.npc ? `베타 ${name}` : name); // NPC는 이름표에 '베타'를 붙여 실제 이용자와 구분
+  const label = o.label || name;
   return {
     id,
     name,

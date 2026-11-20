@@ -19,6 +19,9 @@ const ChristmasTheme = (() => {
   let _group = null;           // 트리만 담는 그룹 (scene에 직접)
   const _sideGroups = {};      // 벽면 전구 — walls[sg] 자식으로
   const _wreaths = {};         // 출입문 리스 — ends[e] 연동
+  const _lanternGroups = {};   // 크리스마스 랜턴 — 훅 대신 표시
+  const _signs       = [];     // 전광판 애니메이션 데이터
+  const _signGroups  = {};     // ends[e] 연동
   const _bulbs = [];
   const _tmp = new THREE.Color();
 
@@ -108,6 +111,191 @@ const ChristmasTheme = (() => {
     const tL = new THREE.Mesh(tG, BM); tL.position.set(0, R + 0.004, -0.020); tL.rotation.z =  0.28; g.add(tL);
     const tR = new THREE.Mesh(tG, BM); tR.position.set(0, R + 0.004,  0.020); tR.rotation.z = -0.28; g.add(tR);
 
+    return g;
+  }
+
+  // ── 크리스마스 랜턴 그룹 생성 (한쪽 벽 전체) ──
+  // 이미지 참고: 황금 랜턴 + 솔가지 + 빨간 리본 + 호랑가시 열매, 은은한 촛불 글로우
+  function _makeLanternGroup(sg) {
+    const HY   = 1.72;
+    const zi   = sg * (CAR.W / 2 - 0.076);
+    const dir  = -sg;  // 실내 방향
+
+    const GOLD  = 0xb86a08, GOLD_L = 0xd48210;
+    const RED   = 0xaa0808, RED_L  = 0xcc1010;
+    const PINE_D = 0x0d4a14, PINE_L = 0x1a7020;
+    const HOLLY = 0x1a5c1a, BERRY  = 0xcc0a0a;
+    const METAL = 0x3a2810;
+
+    const outerG = new THREE.Group();
+
+    [-5.7, -3.8, -1.9, 0, 1.9, 3.8, 5.7].forEach((hx, idx) => {
+      const g = new THREE.Group();
+      g.position.set(hx, HY, zi + dir * 0.07); // 랜턴 중심: 벽면에서 실내 쪽으로
+
+      const mk = (geo, col, x, y, z) => {
+        const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col }));
+        m.position.set(x || 0, y || 0, z || 0);
+        g.add(m);
+        return m;
+      };
+
+      const wd = -dir; // 벽 방향 (솔가지를 벽쪽에 붙임)
+
+      // 걸이 고리 (최상단)
+      mk(new THREE.CylinderGeometry(0.007, 0.007, 0.052, 6), METAL, 0, 0.165);
+      const ring = mk(new THREE.TorusGeometry(0.013, 0.005, 6, 12), METAL, 0, 0.192);
+      ring.rotation.x = Math.PI / 2;
+
+      // 솔가지 클러스터 (랜턴 뒤 = 벽 방향으로 살짝 붙음)
+      [
+        [-0.090,  0.040, wd*0.020,  0.5, PINE_D],
+        [ 0.090,  0.040, wd*0.020, -0.5, PINE_D],
+        [-0.070, -0.040, wd*0.018,  0.3, PINE_L],
+        [ 0.070, -0.040, wd*0.018, -0.3, PINE_L],
+        [ 0.000,  0.075, wd*0.028,  0.0, PINE_D],
+        [-0.080, -0.090, wd*0.015,  0.5, PINE_L],
+        [ 0.080, -0.090, wd*0.015, -0.5, PINE_L],
+      ].forEach(([x, y, z, rz, col]) => {
+        const s = new THREE.Mesh(
+          new THREE.SphereGeometry(0.055, 7, 5),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        s.scale.set(0.55, 0.36, 0.30);
+        s.position.set(x, y, z);
+        s.rotation.z = rz;
+        g.add(s);
+      });
+
+      // 랜턴 프레임 (4모서리 기둥 + 상하판 + 지붕)
+      const FH = 0.170, FW = 0.044;
+      for (const [fx, fz] of [[-FW,-FW],[-FW,FW],[FW,-FW],[FW,FW]])
+        mk(new THREE.BoxGeometry(0.009, FH, 0.009), GOLD, fx, 0, fz);
+      mk(new THREE.BoxGeometry(0.100, 0.011, 0.100), GOLD_L, 0,  FH/2 + 0.005);
+      mk(new THREE.BoxGeometry(0.100, 0.011, 0.100), GOLD,   0, -FH/2 - 0.005);
+      const roof = mk(new THREE.ConeGeometry(0.056, 0.038, 4), GOLD_L, 0, FH/2 + 0.028);
+      roof.rotation.y = Math.PI / 4;
+
+      // 유리 본체 (반투명)
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(0.090, FH - 0.015, 0.090),
+        new THREE.MeshBasicMaterial({ color: 0xfffff0, transparent: true, opacity: 0.22, depthWrite: false }),
+      );
+      g.add(glass);
+
+      // 촛불 글로우 — _bulbs에 등록해 은은하게 흔들림
+      const candle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 7, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffee88 }),
+      );
+      candle.position.y = -0.022;
+      candle.userData = {
+        bright: new THREE.Color(0xffee88),
+        dim:    new THREE.Color(0xffee88).multiplyScalar(0.28),
+        phase:  (idx / 7) * Math.PI * 2,
+        speed:  0.55 + (idx % 4) * 0.18,
+      };
+      g.add(candle);
+      _bulbs.push(candle);
+
+      // 빨간 리본 (랜턴 위)
+      const BM = new THREE.MeshBasicMaterial({ color: RED });
+      const lG  = new THREE.TorusGeometry(0.030, 0.011, 6, 14);
+      const ll = new THREE.Mesh(lG, BM); ll.position.set(-0.028, FH/2+0.012, 0); ll.rotation.z = -0.5; g.add(ll);
+      const lr = new THREE.Mesh(lG, BM); lr.position.set( 0.028, FH/2+0.012, 0); lr.rotation.z =  0.5; g.add(lr);
+      mk(new THREE.SphereGeometry(0.016, 8, 6), RED_L, 0, FH/2+0.016);         // 중앙 매듭
+      const t1 = mk(new THREE.BoxGeometry(0.010, 0.034, 0.009), RED, -0.018, FH/2-0.008); t1.rotation.z =  0.25;
+      const t2 = mk(new THREE.BoxGeometry(0.010, 0.034, 0.009), RED,  0.018, FH/2-0.008); t2.rotation.z = -0.25;
+
+      // 호랑가시 잎 (하단)
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        const lf = new THREE.Mesh(
+          new THREE.BoxGeometry(0.034, 0.013, 0.022),
+          new THREE.MeshBasicMaterial({ color: HOLLY }),
+        );
+        lf.position.set(Math.cos(a)*0.038, -FH/2-0.013, Math.sin(a)*0.038);
+        lf.rotation.y = a;
+        g.add(lf);
+      }
+      // 빨간 열매 3개
+      for (let i = 0; i < 3; i++) {
+        const a = ((i + 0.5) / 3) * Math.PI * 2;
+        mk(new THREE.SphereGeometry(0.011, 7, 5), BERRY,
+           Math.cos(a)*0.020, -FH/2-0.010, Math.sin(a)*0.020);
+      }
+
+      outerG.add(g);
+    });
+    return outerG;
+  }
+
+  // ── 전광판 캔버스 갱신 ──
+  const SIGN_BRIGHT = ['#ff2244','#ff7700','#ffdd00','#44ee44','#00bbff','#ff44cc'];
+  function _drawSign(s) {
+    const { cv, letters, litCount } = s;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const lw = W / letters.length;
+
+    ctx.fillStyle = '#040408';
+    ctx.fillRect(0, 0, W, H);
+
+    letters.forEach((ch, i) => {
+      const lit = i < litCount;
+      ctx.font = `bold ${Math.floor(H * 0.72)}px "Courier New", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (lit) {
+        const col = SIGN_BRIGHT[i % SIGN_BRIGHT.length];
+        // 글자 뒤 은은한 glow 배경
+        ctx.fillStyle = col + '28';
+        ctx.fillRect(lw * i + 1, 2, lw - 2, H - 4);
+        ctx.fillStyle = col;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 7;
+      } else {
+        ctx.fillStyle = '#1a0a0a';
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillText(ch, lw * i + lw / 2, H / 2);
+      ctx.shadowBlur = 0;
+    });
+    s.tex.needsUpdate = true;
+  }
+
+  // ── 전광판 메쉬 생성 ──
+  function _makeSignMesh(text, inX, y, z, ry) {
+    const letters = text.split('');
+    const CW = 38, CH = 66;
+    const W = letters.length * CW, H = CH;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+
+    const tex = new THREE.CanvasTexture(cv);
+    const pw = letters.length * 0.098; // 메쉬 너비
+    const ph = 0.19;                   // 메쉬 높이
+
+    const g = new THREE.Group();
+    g.position.set(inX, y, z);
+    g.rotation.y = ry;
+
+    // 테두리 프레임
+    g.add(Object.assign(
+      new THREE.Mesh(new THREE.BoxGeometry(pw + 0.022, ph + 0.022, 0.012),
+        new THREE.MeshBasicMaterial({ color: 0x0a0a1a })),
+    ));
+    // 디스플레이 패널
+    const panel = new THREE.Mesh(
+      new THREE.PlaneGeometry(pw, ph),
+      new THREE.MeshBasicMaterial({ map: tex }),
+    );
+    panel.position.z = 0.007;
+    g.add(panel);
+
+    const s = { cv, tex, letters, litCount: 0, timer: 0 };
+    _signs.push(s);
+    _drawSign(s);
     return g;
   }
 
@@ -234,6 +422,15 @@ const ChristmasTheme = (() => {
     }
     scene.add(_group);
 
+    // 옷걸이 숨기기 + 크리스마스 랜턴 추가
+    for (const sg of [-1, 1]) {
+      if (typeof wallHooks !== 'undefined' && wallHooks[sg])
+        wallHooks[sg].visible = false;
+      const lg = _makeLanternGroup(sg);
+      _lanternGroups[sg] = lg;
+      walls[sg].add(lg);
+    }
+
     // 출입문 창문 리스 — ends[e] 에 넣어 끝벽과 함께 가시성 토글
     for (const e of [-1, 1]) {
       const wx = e * (CAR.L / 2 - 0.19); // 창문 안쪽 면 바로 앞
@@ -242,6 +439,19 @@ const ChristmasTheme = (() => {
       scene.add(wreath);
       ends[e].push(wreath);
       _wreaths[e] = wreath;
+    }
+
+    // 출입문 좌우 전광판 — ends[e]에 넣어 끝벽과 함께 가시성 토글
+    // 왼쪽(z=-1.625): merry  /  오른쪽(z=+1.625): christmas!
+    for (const e of [-1, 1]) {
+      const inX = e * (CAR.L / 2 - 0.09);
+      const ry  = (-e * Math.PI) / 2;
+      const sg = new THREE.Group();
+      sg.add(_makeSignMesh('merry christmas', inX, 1.98, -1.625, ry));
+      sg.add(_makeSignMesh('happy new year',  inX, 1.98,  1.625, ry));
+      scene.add(sg);
+      ends[e].push(sg);
+      _signGroups[e] = sg;
     }
   }
 
@@ -263,6 +473,18 @@ const ChristmasTheme = (() => {
     _group = null;
     _bulbs.length = 0;
 
+    // 랜턴 정리 + 옷걸이 복원
+    for (const sg of [-1, 1]) {
+      const lg = _lanternGroups[sg];
+      if (lg) {
+        lg.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        walls[sg].remove(lg);
+        _lanternGroups[sg] = null;
+      }
+      if (typeof wallHooks !== 'undefined' && wallHooks[sg])
+        wallHooks[sg].visible = true;
+    }
+
     // 리스 정리
     for (const e of [-1, 1]) {
       const w = _wreaths[e];
@@ -280,14 +502,36 @@ const ChristmasTheme = (() => {
         _wreaths[e] = null;
       }
     }
+
+    // 전광판 정리
+    _signs.length = 0;
+    for (const e of [-1, 1]) {
+      const sg = _signGroups[e];
+      if (sg) {
+        sg.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        scene.remove(sg);
+        const idx = ends[e].indexOf(sg);
+        if (idx !== -1) ends[e].splice(idx, 1);
+        _signGroups[e] = null;
+      }
+    }
   }
 
-  // ── 매 프레임: 홀짝 교차 반짝임 ──
+  // ── 매 프레임: 전구 반짝임 + 전광판 글자 순차 점등 ──
   function tick(dt) {
     for (const b of _bulbs) {
       const u = b.userData;
       u.phase += dt * u.speed;
       b.material.color.copy(Math.sin(u.phase) > 0 ? u.bright : u.dim);
+    }
+    for (const s of _signs) {
+      s.timer -= dt;
+      if (s.timer <= 0) {
+        // 전체 lit 후 2틱 대기했다가 처음으로
+        s.litCount = s.litCount >= s.letters.length + 2 ? 0 : s.litCount + 1;
+        s.timer = 0.28;
+        _drawSign(s);
+      }
     }
   }
 
