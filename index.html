@@ -112,6 +112,14 @@
         <button id="bExitTrainView">↩ 돌아가기</button>
       </div>
 
+      <!-- 개발자 시간대 테스트 패널 (?dev=1 일 때만 표시) -->
+      <div id="devTimePanel" hidden>
+        <span class="dev-label">🛠 시간대</span>
+        <button onclick="DayNight.setZone('day')">☀️ 낮</button>
+        <button onclick="DayNight.setZone('sunset')">🌇 노을</button>
+        <button onclick="DayNight.setZone('night')">🌙 밤</button>
+      </div>
+
       <!-- 말풍선 문구 선택 패널 / 간식 메뉴 패널 / 상단 알림 -->
       <div class="panel" id="phr" hidden></div>
       <div class="panel" id="menu" hidden></div>
@@ -367,6 +375,8 @@
     <!-- 11.7. 로딩 화면 -->
     <script src="js/features/trainview.js"></script>
     <!-- 11.8. 기차멍 모드 -->
+    <script src="js/features/daynight.js"></script>
+    <!-- 11.9. 낮·노을·밤 시간대 전환 -->
     <script src="js/ui/ui.js"></script>
     <!-- 12. 하단 버튼/팝업 UI -->
     <script src="js/features/ticket.js"></script>

@@ -84,6 +84,7 @@ function update(dt) {
   tickSmoke(dt);  // 굴뚝 연기 파티클
   tickCurtains(dt); // 커튼 애니메이션
   Theme.tick(dt); // 테마 애니메이션
+  DayNight.tick(dt); // 낮·노을·밤 조명 전환
   Multi.tick(dt); // 멀티플레이 위치 동기화
   separate();
   // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거
@@ -131,32 +132,35 @@ function initRenderer() {
   $("game").insertBefore(renderer.domElement, $("game").firstChild); // 캔버스를 #game 맨 앞에 삽입(UI가 위에 오도록)
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xcfe8f0);
-  scene.add(new THREE.HemisphereLight(0xfff3dc, 0xb8895a, 0.85)); // 하늘/바닥 환경광
+  const hemiLight = new THREE.HemisphereLight(0xfff3dc, 0xb8895a, 0.85); // 하늘/바닥 환경광
+  scene.add(hemiLight);
   // 햇살(그림자 생성) + 보조광
-  const sun = new THREE.DirectionalLight(0xffd9a0, 1.3);
-  sun.position.set(-4, 9, -9);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, {
+  const sunLight = new THREE.DirectionalLight(0xffd9a0, 1.3);
+  sunLight.position.set(-4, 9, -9);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(2048, 2048);
+  Object.assign(sunLight.shadow.camera, {
     left: -12,
     right: 12,
     top: 12,
     bottom: -12,
   });
-  sun.shadow.bias = -0.0005;
-  scene.add(sun);
-  const fill = new THREE.DirectionalLight(0xfff6e8, 0.4);
-  fill.position.set(2, 8, 10);
-  scene.add(fill);
+  sunLight.shadow.bias = -0.0005;
+  scene.add(sunLight);
+  const fillLight = new THREE.DirectionalLight(0xfff6e8, 0.4);
+  fillLight.position.set(2, 8, 10);
+  scene.add(fillLight);
   // 객차 아래 넓은 풀밭 바닥
-  const ground = new THREE.Mesh(
+  const groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(140, 110),
     mat(0x8fbf6a),
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -1.55;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  groundMesh.rotation.x = -Math.PI / 2;
+  groundMesh.position.y = -1.55;
+  groundMesh.receiveShadow = true;
+  scene.add(groundMesh);
+  // 낮·노을·밤 시간대 조명 초기화 (접속 시각 기준 즉시 적용)
+  DayNight.init(hemiLight, sunLight, fillLight, groundMesh);
 }
 
 // 객차·창밖 풍경·좌석·테이블·좌석 터치 영역·좌석 번호 레이블 생성

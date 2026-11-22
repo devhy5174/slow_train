@@ -23,6 +23,12 @@ Repo.loadProfile().then(p => { saved = p; if (p && p.nickname) $('nick').value =
 // 저장된 사운드 설정(음소거/볼륨) 불러오기
 Repo.loadSettings().then(v => { settings = v; });
 
+// ?dev=1 URL 파라미터가 있을 때 개발자 패널 표시
+if (new URLSearchParams(location.search).get('dev') === '1') {
+  const devPanel = $('devTimePanel');
+  if (devPanel) devPanel.hidden = false;
+}
+
 // 입장 폼 제출: 입장 방식 확인 → 화면 전환 → HUD 문구 → 사운드 설정 → 게임 시작
 $('form').addEventListener('submit', e => {
   e.preventDefault();
