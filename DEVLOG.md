@@ -1,3 +1,17 @@
+## 2026-11-22 — 밤 모드 객실 천장 조명 + 눈 발광 버그 수정
+
+### 변경 파일
+- `public/js/features/daynight.js` — 객실 PointLight 5개 추가, interiorInt 프리셋 추가
+- `public/js/characters/avatar.js` — 눈·볼터치 MeshBasicMaterial → MeshStandardMaterial
+
+### 문제 → 해결
+- 밤 모드에서 객실이 너무 어두움 → 아이보리 PointLight 5개(천장 y=2.4) 추가, 밤=1.0·노을=0.3·낮=0 보간
+- 캐릭터 눈이 밤에 과도하게 빛남 → MeshBasicMaterial(조명 무시) → MeshStandardMaterial(조명 반응)
+- PointLight distance=5.5, decay=2 → 창밖 풍경에 불필요한 빛 없음
+- intensity<0.01일 때 light.visible=false 처리 → 모바일 셰이더 연산 절약
+
+---
+
 ## 2026-11-22 — 낮·노을·밤 시간대 자동 전환 추가
 
 ### 변경 파일

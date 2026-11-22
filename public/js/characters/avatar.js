@@ -8,7 +8,7 @@
 
 const HEAD_Y = 1.13; // 머리 구체 중심 y (목과 살짝 겹치게: 하단 0.86, 목 상단 0.90에서 0.04 겹침)
 
-// 눈 머티리얼 — 연갈색 동그란 점 (찍은 것처럼 얼굴에 밀착)
+// 눈 머티리얼 — 연갈색 동그란 점 (MeshStandardMaterial → 조명에 반응, 밤에 과도하게 빛나지 않음)
 function _makeEyeDot() {
   const cv = document.createElement("canvas");
   cv.width = 32;
@@ -19,14 +19,16 @@ function _makeEyeDot() {
   ctx.beginPath();
   ctx.arc(16, 16, 12, 0, Math.PI * 2);
   ctx.fill();
-  return new THREE.MeshBasicMaterial({
+  return new THREE.MeshStandardMaterial({
     map: new THREE.CanvasTexture(cv),
     transparent: true,
     depthWrite: false,
+    roughness: 1.0,
+    metalness: 0,
   });
 }
 
-// 볼터치 머티리얼 — 연한 복숭아빛 그라디언트 원 (공통 사용)
+// 볼터치 머티리얼 — 연한 복숭아빛 그라디언트 원 (조명에 반응)
 function _makeBlushMat() {
   const cv = document.createElement("canvas");
   cv.width = 64;
@@ -38,10 +40,12 @@ function _makeBlushMat() {
   gr.addColorStop(1, "rgba(255, 148, 120, 0)");
   ctx.fillStyle = gr;
   ctx.fillRect(0, 0, 64, 48);
-  return new THREE.MeshBasicMaterial({
+  return new THREE.MeshStandardMaterial({
     map: new THREE.CanvasTexture(cv),
     transparent: true,
     depthWrite: false,
+    roughness: 1.0,
+    metalness: 0,
   });
 }
 
