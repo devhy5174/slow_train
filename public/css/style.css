@@ -852,6 +852,30 @@ svg.lucide {
   margin: 2px 0;
   background: rgba(255, 255, 255, 0.45);
 }
+.mytk-guide {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(240, 248, 255, 0.60);
+  border: 1.5px solid #94b0c8;
+  border-radius: 4px;
+}
+.mytk-guide-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d2f4f;
+  margin: 0 0 5px;
+}
+.mytk-check {
+  color: #e01010;
+  font-size: 15px;
+  font-weight: 900;
+}
+.mytk-guide-desc {
+  font-size: 13px;
+  color: #4a6080;
+  margin: 0;
+  line-height: 1.65;
+}
 .mytk-row {
   display: flex;
   align-items: center;
