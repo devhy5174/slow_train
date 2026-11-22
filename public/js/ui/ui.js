@@ -27,7 +27,7 @@ function buildUI() {
   $('bGetOff').onclick = () => {
     if (confirm('열차에서 내리시겠어요?')) location.reload();
   };
-  initModals(); initSoundUI(); initTicketUI(); initThemeUI(); initWhiteboard();
+  initModals(); initSoundUI(); initTicketUI(); initThemeUI(); initWhiteboard(); initTrainViewUI();
 }
 
 // 표 검사/지정석 안내/숨는 곳/퇴장 팝업의 버튼 이벤트 연결

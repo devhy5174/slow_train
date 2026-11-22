@@ -15,25 +15,28 @@ function update(dt) {
     (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   let moving = false;
   const pos = P.g.position;
-  if (f || r) {
-    // 카메라 기준 이동 + 통로 안으로 제한(좌석/테이블/벽 통과 불가)
-    leaveSpot(P);
-    P.path = [];
-    cancelRes(P);
-    const d = new THREE.Vector3();
-    cam.getWorldDirection(d);
-    d.y = 0;
-    d.normalize();
-    const v = new THREE.Vector3(
-      d.x * f - d.z * r,
-      0,
-      d.z * f + d.x * r,
-    ).normalize();
-    pos.x = Math.max(-XMAX, Math.min(XMAX, pos.x + v.x * P.speed * dt));
-    pos.z = Math.max(-AISLE, Math.min(AISLE, pos.z + v.z * P.speed * dt));
-    face(P, v.x, v.z);
-    moving = true;
-  } else moving = stepPath(P, dt);
+  // 기차멍 모드 중에는 키보드·경로 이동 완전 차단
+  if (!TrainView.active) {
+    if (f || r) {
+      // 카메라 기준 이동 + 통로 안으로 제한(좌석/테이블/벽 통과 불가)
+      leaveSpot(P);
+      P.path = [];
+      cancelRes(P);
+      const d = new THREE.Vector3();
+      cam.getWorldDirection(d);
+      d.y = 0;
+      d.normalize();
+      const v = new THREE.Vector3(
+        d.x * f - d.z * r,
+        0,
+        d.z * f + d.x * r,
+      ).normalize();
+      pos.x = Math.max(-XMAX, Math.min(XMAX, pos.x + v.x * P.speed * dt));
+      pos.z = Math.max(-AISLE, Math.min(AISLE, pos.z + v.z * P.speed * dt));
+      face(P, v.x, v.z);
+      moving = true;
+    } else moving = stepPath(P, dt);
+  }
   if (P.state !== "sit") animate(P, moving, dt);
   for (const n of NPCS) {
     if (!n.g.visible) continue; // 비활성 NPC는 건너뜀
@@ -52,8 +55,18 @@ function update(dt) {
   if (Multi.isHost()) conductorTick(dt); // 호스트만 역무원 AI 실행 (비호스트는 Multi.tick에서 애니메이션)
   kickTick(dt);
   nookTick();
-  // 카메라 타겟을 플레이어 위치로 이동(줌·회전 오프셋 유지)
-  if (ctl && P) {
+  // 기차멍 모드: 착석 상태가 해제되면 자동 종료
+  if (TrainView.active && P.state !== 'sit') exitTrainView();
+
+  // 기차멍 모드: 카메라를 목표 위치로 부드럽게 이동
+  if (TrainView.active && TrainView.targetPos) {
+    const a = Math.min(1, dt * 1.8);
+    cam.position.lerp(TrainView.targetPos, a);
+    if (ctl) ctl.target.lerp(TrainView.targetLook, a);
+  }
+
+  // 카메라 타겟을 플레이어 위치로 이동(줌·회전 오프셋 유지) — 기차멍 중에는 건너뜀
+  if (ctl && P && !TrainView.active) {
     const dx = P.g.position.x - ctl.target.x,
       dz = P.g.position.z - ctl.target.z;
     ctl.target.x += dx;
@@ -90,6 +103,8 @@ function update(dt) {
     }
   }
   $("stand").hidden = P.state !== "sit" && P.state !== "squat"; // 앉거나 쭈그린 상태에 표시
+  // 기차멍 버튼: 앉은 상태 + 헤드셋 착용 중일 때만 표시
+  $("bTrainView").hidden = P.state !== "sit" || !EarphoneMusic.playing;
 }
 
 // 현재 프로필(닉네임·객차·좌석·승차권·위치)을 Repo에 저장
@@ -300,10 +315,12 @@ function initInput() {
   // 클릭/탭 판정: 누른 위치와 뗀 위치가 거의 같을 때만 '클릭'(드래그 회전과 구분)
   let down = null;
   dom.addEventListener("pointerdown", (e) => {
+    if (TrainView.active) return; // 기차멍 중 캔버스 터치 차단
     down = { x: e.clientX, y: e.clientY };
   });
   dom.addEventListener("pointerup", (e) => {
     if (
+      TrainView.active || // 기차멍 중 캔버스 터치 차단
       GameState.inspecting ||
       !down ||
       Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6
@@ -411,6 +428,7 @@ function fit() {
   cam.aspect = a;
   cam.updateProjectionMatrix();
   if (portrait === lastPortrait) return;
+  if (TrainView.active) return; // 기차멍 중 방향 전환 시 카메라 리셋 차단 (lastPortrait 갱신 안 함)
   lastPortrait = portrait;
   const t = 0.728,
     dir = portrait

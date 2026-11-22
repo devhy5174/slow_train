@@ -192,6 +192,15 @@ function getPlayerSeatState() {
 function openTicket() {
   _clearInspectTimer();
 
+  // 기차멍 모드 중이면 팝업 없이 자동 판정 (무임승차는 퇴장 흐름 유지)
+  if (TrainView.active) {
+    _inspectTimer = setTimeout(() => {
+      _inspectTimer = null;
+      if (!GameState.ended) processTicketCheck();
+    }, 1200);
+    return;
+  }
+
   // ---- UI 구성 ----
   const list = $("tkList");
   list.innerHTML = "";
@@ -308,16 +317,16 @@ function showTicket() {
     C.pause = 4;
     const n = GameState.ticket ? GameState.ticket.displayNum : "?";
     speak(C, `지정석은 ${n}번입니다. 안내해 드릴까요?`, 5);
-    setTimeout(() => {
-      if (!GameState.ended && P.state === "sit") {
-        $("seatGuideNum").textContent = `${n}번`;
-        $("seatGuideModal").hidden = false;
-        // 3초 후 자동 닫힘 (응답 없을 경우)
-        setTimeout(() => {
-          $("seatGuideModal").hidden = true;
-        }, 3000);
-      }
-    }, 1600);
+    // 기차멍 모드 중이면 자리 안내 팝업 생략
+    if (!TrainView.active) {
+      setTimeout(() => {
+        if (!GameState.ended && P.state === "sit") {
+          $("seatGuideNum").textContent = `${n}번`;
+          $("seatGuideModal").hidden = false;
+          setTimeout(() => { $("seatGuideModal").hidden = true; }, 3000);
+        }
+      }, 1600);
+    }
   } else if (state === "free_seat") {
     // 자유석: 정상 통과
     speak(C, "확인했습니다. 좋은 여행 되세요!", 4);
@@ -375,6 +384,7 @@ function declineSeatGuide() {
 // [Supabase SYNC-3/5] 서버 판정 결과 수신 후 kick 이벤트 브로드캐스트
 function noTicket() {
   $("tkModal").hidden = true;
+  exitTrainView(); // 기차멍 중이더라도 퇴장 카운트다운은 정상 표시
   speak(C, "승차권이 없으시군요. 5초 후 하차 조치됩니다.", 5);
   C.mode = "walk";
   C.pause = 8;

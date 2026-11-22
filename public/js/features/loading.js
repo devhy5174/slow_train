@@ -1,11 +1,11 @@
 /* =====================================================
    로딩 화면 (loading.js)
    showLoadingScreen(onDone?) : 폼 제출 시 호출
-   5초 표시 후 자동 페이드 아웃 → onDone 콜백
+   3초 표시 후 자동 페이드 아웃 → onDone 콜백
    ===================================================== */
 
 (function () {
-  const MIN_MS  = 5000;
+  const MIN_MS  = 3000;
   const TYPE_MS = 160;
   const FULL_TEXT = '기차 탑승중...';
 

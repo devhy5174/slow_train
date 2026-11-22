@@ -102,7 +102,14 @@
         <button id="bDrop" class="alt" hidden>간식 버리기</button>
         <button id="bExit" class="alt" hidden>나가기</button>
         <button id="stand" hidden>일어나기</button>
+        <button id="bTrainView" class="alt" hidden>🚂 기차멍</button>
         <button id="bGetOff" class="alt">🚉 내리기</button>
+      </div>
+
+      <!-- 기차멍 모드 오버레이: 기차멍 중에만 표시 -->
+      <div id="trainViewOverlay" hidden>
+        <p class="tv-hint">창밖을 바라보는 중</p>
+        <button id="bExitTrainView">↩ 돌아가기</button>
       </div>
 
       <!-- 말풍선 문구 선택 패널 / 간식 메뉴 패널 / 상단 알림 -->
@@ -358,6 +365,8 @@
     <!-- 11.6. 화이트보드 포스트잇 -->
     <script src="js/features/loading.js"></script>
     <!-- 11.7. 로딩 화면 -->
+    <script src="js/features/trainview.js"></script>
+    <!-- 11.8. 기차멍 모드 -->
     <script src="js/ui/ui.js"></script>
     <!-- 12. 하단 버튼/팝업 UI -->
     <script src="js/features/ticket.js"></script>
