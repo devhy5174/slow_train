@@ -22,9 +22,9 @@ function enterTrainView() {
   // 현재 카메라 위치 저장 (복원용)
   TrainView.savedPos = cam.position.clone();
 
-  // 목표: 캐릭터 앞쪽(+x)에서 약간 통로 방향으로 비스듬히 — 정면+창문이 함께 보이는 각도
+  // 목표: 캐릭터가 화면 중심에 오도록 — 카메라를 캐릭터 앞쪽에서 직접 바라보는 구도
   TrainView.targetPos  = new THREE.Vector3(px + 1.2, 1.5, -side * 0.2);
-  TrainView.targetLook = new THREE.Vector3(px - 0.3, 0.75, side * 1.7);
+  TrainView.targetLook = new THREE.Vector3(px + 0.3, 0.9,  pz);
 
   TrainView.active = true;
 
