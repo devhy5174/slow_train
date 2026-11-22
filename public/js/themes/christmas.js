@@ -25,6 +25,10 @@ const ChristmasTheme = (() => {
   const _bulbs = [];
   const _tmp = new THREE.Color();
 
+  // ── 외부 장식 추가 상태 ──
+  const _extLightGroups = {}; // 외부 전구 (walls[sg] 자식)
+  const _xscMeshes = [];       // SCN 에 추가한 나무 전구 메쉬 (해제 시 제거용)
+
   // ── 출입문 창문 리스 1개 생성 ──
   function _makeWreath() {
     const g = new THREE.Group();
@@ -333,6 +337,122 @@ const ChristmasTheme = (() => {
     return g;
   }
 
+  // ── sc() 래퍼: 추가한 메쉬를 _xscMeshes 에 등록해 dispose 시 제거 ──
+  function _xsc(m, k, p) {
+    sc(m, k, p);
+    _xscMeshes.push(m);
+  }
+
+  // ── 기존 창밖 나무에 크리스마스 전구 조명 달기 ──
+  // scene.js scenery()의 나무와 동일한 위치·scroll 파라미터로 전구를 추가
+  function _buildTreeLights() {
+    const BC = [0xff1111, 0xffee00, 0x0055ff, 0x11cc33, 0xff6600, 0xff44cc];
+    for (const sg of [-1, 1]) {
+      for (let i = 0; i < 25; i++) {
+        const tx = -45 + i * 3.6;
+        const tz = sg * (12 + (i % 4) * 2.4);
+        // 나무 한 그루당 전구 4개 — 높이별로 나선형 배치
+        for (let j = 0; j < 4; j++) {
+          const angle = (j / 4) * Math.PI * 2 + i * 1.1; // 나무마다 다른 시작 각도
+          const hy  = 0.85 + j * 0.42;                    // 줄기(0.85) → 잎 상단(2.5)
+          const r   = 0.70 - j * 0.10;                    // 위로 갈수록 좁아짐
+          const col = BC[(i * 4 + j) % BC.length];
+          const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 5, 4),
+            new THREE.MeshBasicMaterial({ color: col }),
+          );
+          bulb.position.set(
+            tx + Math.cos(angle) * r,
+            hy,
+            tz + Math.sin(angle) * r,
+          );
+          bulb.userData = {
+            bright: new THREE.Color(col),
+            dim:    new THREE.Color(col).multiplyScalar(0.06),
+            phase:  (i * 4 + j) * 0.52,
+            speed:  1.8 + (j % 5) * 0.38,
+          };
+          _xsc(bulb, 1, 90); // 나무와 동일한 scroll 파라미터
+          _bulbs.push(bulb);
+        }
+      }
+    }
+  }
+
+  // ── 외부 전구 스트링 (기차 양쪽 외벽) ──
+  function _buildExteriorLights() {
+    for (const sg of [-1, 1]) {
+      const sg_grp = new THREE.Group();
+      _extLightGroups[sg] = sg_grp;
+      walls[sg].add(sg_grp);
+
+      const zOut = sg * (CAR.W / 2 + 0.13); // 외벽 바깥 면
+
+      // 얇은 전선 2줄 (상단·하단)
+      for (const wy of [0.87, 1.97]) {
+        const wire = new THREE.Mesh(
+          new THREE.BoxGeometry(CAR.L - 0.1, 0.009, 0.009),
+          new THREE.MeshBasicMaterial({ color: 0x0a0808 }),
+        );
+        wire.position.set(0, wy, zOut);
+        sg_grp.add(wire);
+      }
+
+      // 하단 전선 — 다색 전구
+      let ci = sg < 0 ? 0 : 2;
+      for (let x = -(CAR.L / 2 - 0.5); x <= CAR.L / 2 - 0.4; x += 0.95) {
+        const col = COLORS[ci % COLORS.length];
+        ci++;
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.055, 6, 5),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        bulb.scale.set(1, 1.4, 1);
+        bulb.position.set(x, 0.81, zOut);
+        bulb.userData = {
+          bright: new THREE.Color(col),
+          dim: new THREE.Color(col).multiplyScalar(0.05),
+          phase: ci * 0.4 + (sg < 0 ? 0 : Math.PI),
+          speed: 2.0 + (ci % 5) * 0.3,
+        };
+        sg_grp.add(bulb);
+        _bulbs.push(bulb);
+      }
+
+      // 상단 전선 — 황금 전구
+      ci = sg < 0 ? 1 : 3;
+      for (let x = -(CAR.L / 2 - 0.5); x <= CAR.L / 2 - 0.4; x += 0.95) {
+        const col = ci % 2 === 0 ? 0xffd700 : 0xffee44;
+        ci++;
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.040, 6, 4),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        bulb.scale.set(1, 1.3, 1);
+        bulb.position.set(x, 2.01, zOut);
+        bulb.userData = {
+          bright: new THREE.Color(col),
+          dim: new THREE.Color(col).multiplyScalar(0.04),
+          phase: ci * 0.3,
+          speed: 1.8 + (ci % 6) * 0.25,
+        };
+        sg_grp.add(bulb);
+        _bulbs.push(bulb);
+      }
+
+      // 창문 기둥마다 빨간 리본 보우
+      for (let i = 0; i < 7; i++) {
+        const bx = (i - 3) * 1.9;
+        const BM = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
+        const lG = new THREE.TorusGeometry(0.025, 0.009, 5, 12);
+        const ll = new THREE.Mesh(lG, BM); ll.position.set(bx, 1.42, zOut - sg * 0.012); ll.rotation.set(0.4, 0, 0); sg_grp.add(ll);
+        const lr = new THREE.Mesh(lG, BM); lr.position.set(bx, 1.42, zOut + sg * 0.012); lr.rotation.set(-0.4, 0, 0); sg_grp.add(lr);
+        const ctr = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
+        ctr.position.set(bx, 1.42, zOut); sg_grp.add(ctr);
+      }
+    }
+  }
+
   // ── 빌드 ──
   function build() {
     if (_group) dispose();
@@ -457,6 +577,10 @@ const ChristmasTheme = (() => {
       ends[e].push(sg);
       _signGroups[e] = sg;
     }
+
+    // 외부 장식 (외벽 전구·리본, 창밖 나무 전구)
+    _buildExteriorLights();
+    _buildTreeLights();
   }
 
   // ── 테마 해제 ──
@@ -523,6 +647,26 @@ const ChristmasTheme = (() => {
         _signGroups[e] = null;
       }
     }
+
+    // 외부 전구 그룹 정리
+    for (const sg of [-1, 1]) {
+      const eg = _extLightGroups[sg];
+      if (eg) {
+        eg.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+        walls[sg].remove(eg);
+        delete _extLightGroups[sg];
+      }
+    }
+
+    // 나무 전구 메쉬 — scene 과 SCN 에서 모두 제거
+    for (const m of _xscMeshes) {
+      scene.remove(m);
+      const idx = SCN.findIndex(o => o.m === m);
+      if (idx !== -1) SCN.splice(idx, 1);
+      if (m.geometry) m.geometry.dispose();
+      if (m.material) m.material.dispose();
+    }
+    _xscMeshes.length = 0;
   }
 
   // ── 매 프레임: 전구 반짝임 + 전광판 글자 순차 점등 ──
@@ -535,7 +679,6 @@ const ChristmasTheme = (() => {
     for (const s of _signs) {
       s.timer -= dt;
       if (s.timer <= 0) {
-        // 전체 lit 후 2틱 대기했다가 처음으로
         s.litCount = s.litCount >= s.letters.length + 2 ? 0 : s.litCount + 1;
         s.timer = 0.28;
         _drawSign(s);
