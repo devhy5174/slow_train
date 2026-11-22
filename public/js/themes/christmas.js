@@ -28,6 +28,9 @@ const ChristmasTheme = (() => {
   // ── 외부 장식 추가 상태 ──
   const _extLightGroups = {};   // 주 객차 외부 전구 (walls[sg] 자식)
   const _rearCarLightGroups = []; // 뒤 객차 외부 전구 그룹 (scene 직접)
+  let _locoDecorGroup = null;     // 기관차 크리스마스 장식 그룹 (scene 직접)
+  const _hpDecorMeshes = [];      // 헤드셋 장식 메쉬 (P.headphones 자식)
+  let _hpDecorDone = false;       // 헤드셋 장식 1회 적용 여부
   const _xscMeshes = [];          // SCN 에 추가한 나무 전구 메쉬 (해제 시 제거용)
 
   // ── 출입문 창문 리스 1개 생성 ──
@@ -466,6 +469,187 @@ const ChristmasTheme = (() => {
     }
   }
 
+  // ── 헤드셋용 미니 사슴뿔 1개 (sg: ±1) ──
+  function _makeHPAntler(sg) {
+    const g = new THREE.Group();
+    const COL = 0x5a2808;
+    const mk = (w, h, d, x, y, z, rz) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: COL }));
+      m.position.set(x, y, z);
+      if (rz) m.rotation.z = rz;
+      g.add(m);
+    };
+    mk(0.018, 0.13, 0.018,   0,       0.065,  0,       sg * 0.22); // 메인 줄기
+    mk(0.014, 0.09, 0.014,   sg*0.018, 0.12,  0.028,  sg * 0.52); // 앞 갈래
+    mk(0.014, 0.09, 0.014,   sg*0.018, 0.12, -0.028,  sg * 0.52); // 뒤 갈래
+    mk(0.012, 0.06, 0.012,   sg*0.012, 0.085, 0.015,  sg * 0.80); // 중간 가지
+    return g;
+  }
+
+  // ── 헤드셋 크리스마스 장식 추가 (P.headphones 자식으로) ──
+  function _decorateHeadphones(hp) {
+    // 사슴뿔 (밴드 양쪽 상단)
+    for (const sg of [-1, 1]) {
+      const a = _makeHPAntler(sg);
+      a.position.set(sg * 0.14, 0.32, 0);
+      hp.add(a);
+      _hpDecorMeshes.push(a);
+    }
+
+    // 빨간 코 (밴드 앞면 중앙, 천천히 반짝)
+    const nose = new THREE.Mesh(
+      new THREE.SphereGeometry(0.028, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xff1111 }),
+    );
+    nose.position.set(0, 0.295, 0.082);
+    nose.userData = { bright: new THREE.Color(0xff2222), dim: new THREE.Color(0xbb0000), phase: 0, speed: 1.1 };
+    hp.add(nose);
+    _hpDecorMeshes.push(nose);
+    _bulbs.push(nose);
+
+    // 귀 컵 반짝이 보석 (각 컵에 3개)
+    const GC = [0xff1111, 0xffee00, 0x0055ff, 0x11cc33, 0xff6600];
+    for (const sx of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2;
+        const col = GC[i % GC.length];
+        const gem = new THREE.Mesh(
+          new THREE.SphereGeometry(0.013, 6, 5),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        gem.position.set(sx * 0.344, -0.038 + Math.sin(a) * 0.052, 0.015 + Math.cos(a) * 0.052);
+        gem.userData = { bright: new THREE.Color(col), dim: new THREE.Color(col).multiplyScalar(0.05), phase: i * 1.1 + (sx < 0 ? 0 : Math.PI), speed: 2.2 + i * 0.4 };
+        hp.add(gem);
+        _hpDecorMeshes.push(gem);
+        _bulbs.push(gem);
+      }
+    }
+
+    _hpDecorDone = true;
+  }
+
+  // ── 루돌프 뿔 1개 생성 (sg: +1=오른쪽, -1=왼쪽) ──
+  function _makeLocoAntler(sg) {
+    const g = new THREE.Group();
+    const COL = 0x5a2808;
+    const mk = (w, h, d, x, y, z, rx, ry, rz) => {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshBasicMaterial({ color: COL }),
+      );
+      m.position.set(x, y, z);
+      if (rx) m.rotation.x = rx;
+      if (ry) m.rotation.y = ry;
+      if (rz) m.rotation.z = rz;
+      g.add(m);
+    };
+    // 메인 줄기 (바깥으로 살짝 기울어짐)
+    mk(0.085, 0.80, 0.085,  0,    0.40,  0,       0, 0, sg * 0.30);
+    // 위쪽 두 갈래 (앞·뒤로 넓게 벌어짐)
+    mk(0.072, 0.52, 0.072,  sg * 0.12, 0.76,  0.22,  0, 0, sg * 0.58);
+    mk(0.072, 0.52, 0.072,  sg * 0.12, 0.76, -0.22,  0, 0, sg * 0.58);
+    // 각 갈래 끝 작은 포인트
+    mk(0.058, 0.26, 0.058,  sg * 0.20, 0.98,  0.34,  0, 0, sg * 0.45);
+    mk(0.058, 0.26, 0.058,  sg * 0.20, 0.98, -0.34,  0, 0, sg * 0.45);
+    // 중간 작은 가지
+    mk(0.062, 0.36, 0.062,  sg * 0.08, 0.48,  0.12,  0, 0, sg * 0.80);
+    return g;
+  }
+
+  // ── 기관차 크리스마스 장식 (전구·뿔·빨간코) ──
+  function _buildLocoDecor() {
+    const GAP    = 1.0, L_LOCO = 9.2;
+    const LOCO_CX = CAR.L / 2 + GAP + L_LOCO / 2; // 13.4 (월드 x)
+    const W      = CAR.W;
+    const baseY  = 0.44;
+    const cabL   = 3.4;
+    const cabX   = L_LOCO / 2 - cabL / 2; // 2.9 (기관차 로컬 x)
+
+    // 전면 볼록 최정점 (로컬 x)
+    const faceR     = 6.0, faceHalfZ = W / 2 + 0.08;
+    const facePeak  = L_LOCO / 2 - Math.sqrt(faceR * faceR - faceHalfZ * faceHalfZ) + faceR; // ≈ 5.23
+
+    const g = new THREE.Group();
+    g.position.x = LOCO_CX;
+    scene.add(g);
+    _locoDecorGroup = g;
+
+    // ── 외부 전구 (엔진룸+운전실 양쪽) ──
+    for (const sg of [-1, 1]) {
+      const zOut = sg * (W / 2 + 0.13);
+
+      // 전선
+      const wire = new THREE.Mesh(
+        new THREE.BoxGeometry(L_LOCO - 0.2, 0.009, 0.009),
+        new THREE.MeshBasicMaterial({ color: 0x0a0808 }),
+      );
+      wire.position.set(0, 0.87, zOut);
+      g.add(wire);
+
+      // 다색 전구 (1m 간격)
+      let ci = sg < 0 ? 2 : 4;
+      for (let lx = -(L_LOCO / 2 - 0.5); lx <= L_LOCO / 2 - 0.4; lx += 1.0) {
+        const col = COLORS[ci % COLORS.length]; ci++;
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.055, 6, 5),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        bulb.scale.set(1, 1.4, 1);
+        bulb.position.set(lx, 0.81, zOut);
+        bulb.userData = {
+          bright: new THREE.Color(col),
+          dim:    new THREE.Color(col).multiplyScalar(0.05),
+          phase:  ci * 0.4 + (sg < 0 ? 0 : Math.PI),
+          speed:  2.0 + (ci % 5) * 0.3,
+        };
+        g.add(bulb);
+        _bulbs.push(bulb);
+      }
+
+      // 운전실 창가 위 황금 전구
+      ci = sg < 0 ? 0 : 2;
+      for (let lx = cabX - cabL / 2 + 0.4; lx <= cabX + cabL / 2 - 0.3; lx += 0.9) {
+        const col = ci % 2 === 0 ? 0xffd700 : 0xffee44; ci++;
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.04, 6, 4),
+          new THREE.MeshBasicMaterial({ color: col }),
+        );
+        bulb.scale.set(1, 1.3, 1);
+        bulb.position.set(lx, 2.00, zOut);
+        bulb.userData = {
+          bright: new THREE.Color(col),
+          dim:    new THREE.Color(col).multiplyScalar(0.04),
+          phase:  ci * 0.35,
+          speed:  1.8 + (ci % 6) * 0.28,
+        };
+        g.add(bulb);
+        _bulbs.push(bulb);
+      }
+    }
+
+    // ── 루돌프 뿔 (운전실 꼭대기 양쪽) ──
+    for (const sg of [-1, 1]) {
+      const antler = _makeLocoAntler(sg);
+      antler.position.set(cabX, 4.05, sg * 1.2);
+      g.add(antler);
+    }
+
+    // ── 루돌프 빨간 코 (전면 최정점, 천천히 반짝) ──
+    const nose = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff1111 }),
+    );
+    nose.position.set(facePeak + 0.14, baseY + 1.28, 0);
+    nose.userData = {
+      bright: new THREE.Color(0xff2222),
+      dim:    new THREE.Color(0xaa0000),
+      phase:  0,
+      speed:  1.1,
+    };
+    g.add(nose);
+    _bulbs.push(nose);
+  }
+
   // ── 뒤 객차 외부 전구 (주 객차와 동일 패턴, scene 직접 등록) ──
   function _buildRearCarLights() {
     const GAP    = 1.0;
@@ -670,9 +854,10 @@ const ChristmasTheme = (() => {
       _signGroups[e] = sg;
     }
 
-    // 외부 장식 (주 객차 외벽 전구·리본, 뒤 객차 외벽 전구, 창밖 나무 전구)
+    // 외부 장식 (주 객차 외벽 전구·리본, 뒤 객차 외벽 전구, 기관차 장식, 창밖 나무 전구)
     _buildExteriorLights();
     _buildRearCarLights();
+    _buildLocoDecor();
     _buildTreeLights();
   }
 
@@ -751,6 +936,23 @@ const ChristmasTheme = (() => {
       }
     }
 
+    // 헤드셋 장식 정리
+    if (_hpDecorDone && typeof P !== 'undefined' && P && P.headphones) {
+      for (const m of _hpDecorMeshes) {
+        P.headphones.remove(m);
+        m.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+      }
+    }
+    _hpDecorMeshes.length = 0;
+    _hpDecorDone = false;
+
+    // 기관차 장식 정리
+    if (_locoDecorGroup) {
+      _locoDecorGroup.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+      scene.remove(_locoDecorGroup);
+      _locoDecorGroup = null;
+    }
+
     // 뒤 객차 외부 전구 정리
     for (const g of _rearCarLightGroups) {
       g.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
@@ -769,8 +971,13 @@ const ChristmasTheme = (() => {
     _xscMeshes.length = 0;
   }
 
-  // ── 매 프레임: 전구 반짝임 + 전광판 글자 순차 점등 ──
+  // ── 매 프레임: 전구 반짝임 + 전광판 + 헤드셋 장식 1회 적용 ──
   function tick(dt) {
+    // P.headphones 준비되면 1회 크리스마스 장식 추가
+    if (!_hpDecorDone && typeof P !== 'undefined' && P && P.headphones) {
+      _decorateHeadphones(P.headphones);
+    }
+
     for (const b of _bulbs) {
       const u = b.userData;
       u.phase += dt * u.speed;
