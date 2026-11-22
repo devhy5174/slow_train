@@ -19,7 +19,7 @@ const RANDOM_NAMES = [
 // 저장된 닉네임이 있으면 그걸로, 없으면 랜덤 닉네임을 입력칸에 미리 채움
 const _randomNick = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
 $('nick').value = _randomNick;
-Repo.loadProfile().then(p => { saved = p; if (p && p.nickname) $('nick').value = p.nickname; });
+Repo.loadProfile().then(p => { saved = p; });
 // 저장된 사운드 설정(음소거/볼륨) 불러오기
 Repo.loadSettings().then(v => { settings = v; });
 

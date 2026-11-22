@@ -8,6 +8,11 @@
 
 const Multi = (() => {
 
+  // 개발자 모드 여부 (?dev=1)
+  const _isDev = new URLSearchParams(location.search).get('dev') === '1';
+  const _log  = (...a) => { if (_isDev) console.info(...a); };
+  const _warn = (...a) => { if (_isDev) console.warn(...a); };
+
   // 원격 플레이어 맵: peerId → Actor 객체
   const peers = {};
   let _channel = null;
@@ -240,16 +245,15 @@ const Multi = (() => {
 
   // 입장 직후 1회 호출: Supabase 채널에 연결하고 Presence 등록
   async function connect(name, carId) {
-    // 환경변수 주입 여부 진단 로그 (브라우저 콘솔에서 확인 가능)
-    console.info('[Multi] SUPABASE_URL:', window.SUPABASE_URL ? '✅ 설정됨' : '❌ 없음');
-    console.info('[Multi] SUPABASE_KEY:', window.SUPABASE_KEY ? '✅ 설정됨' : '❌ 없음');
+    _log('[Multi] SUPABASE_URL:', window.SUPABASE_URL ? '✅ 설정됨' : '❌ 없음');
+    _log('[Multi] SUPABASE_KEY:', window.SUPABASE_KEY ? '✅ 설정됨' : '❌ 없음');
 
     if (!window.SUPABASE_URL || !window.SUPABASE_KEY) {
-      console.info('[Multi] Supabase 환경변수 없음 — 싱글플레이 모드');
+      _log('[Multi] Supabase 환경변수 없음 — 싱글플레이 모드');
       return;
     }
     if (typeof supabase === 'undefined') {
-      console.warn('[Multi] Supabase SDK 로드 실패 — CDN 차단 여부 확인 필요');
+      _warn('[Multi] Supabase SDK 로드 실패 — CDN 차단 여부 확인 필요');
       return;
     }
 
@@ -272,7 +276,7 @@ const Multi = (() => {
     // Presence sync: 채널 현재 상태 전체 갱신 (최초 연결 시 기존 접속자 처리)
     _channel.on('presence', { event: 'sync' }, () => {
       const state = _channel.presenceState();
-      console.info('[Multi] Presence sync — 현재 접속자 수:', Object.keys(state).length);
+      _log('[Multi] Presence sync — 현재 접속자 수:', Object.keys(state).length);
       for (const [id, presences] of Object.entries(state)) {
         if (id !== _myId && !peers[id]) _spawnPeer(id, presences[0]?.name);
       }
@@ -302,7 +306,7 @@ const Multi = (() => {
     // Presence join: 새 접속자 입장 — 내 현재 착석 상태도 즉시 전송
     _channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
       if (key === _myId) return;
-      console.info('[Multi] 접속자 입장:', newPresences[0]?.name || key);
+      _log('[Multi] 접속자 입장:', newPresences[0]?.name || key);
       _spawnPeer(key, newPresences[0]?.name);
       _updateHud();
       _sendFullState();
@@ -315,7 +319,7 @@ const Multi = (() => {
 
     // Presence leave: 접속 종료
     _channel.on('presence', { event: 'leave' }, ({ key }) => {
-      console.info('[Multi] 접속자 퇴장:', key);
+      _log('[Multi] 접속자 퇴장:', key);
       _removePeer(key);
     });
 
@@ -485,19 +489,18 @@ const Multi = (() => {
       }
     });
 
-    // 채널 구독 — 모든 상태 변화를 콘솔에 출력해 디버깅 가능하게 함
     _channel.subscribe((status, err) => {
-      console.info('[Multi] 채널 상태:', status, err ? err : '');
+      _log('[Multi] 채널 상태:', status, err ? err : '');
       if (status === 'SUBSCRIBED') {
         _enabled = true;
         _channel.track({ name, x: 0, z: 0, ry: 0, state: 'idle' });
-        console.info('[Multi] ✅ Realtime 연결 완료 — 같은 객차 접속자가 보입니다');
+        _log('[Multi] ✅ Realtime 연결 완료 — 같은 객차 접속자가 보입니다');
       } else if (status === 'CHANNEL_ERROR') {
         console.error('[Multi] ❌ 채널 오류 — Supabase 대시보드에서 Realtime 활성화 여부 확인:', err);
       } else if (status === 'TIMED_OUT') {
-        console.warn('[Multi] ⏱ 연결 시간 초과 — 네트워크 상태 확인 필요');
+        _warn('[Multi] ⏱ 연결 시간 초과 — 네트워크 상태 확인 필요');
       } else if (status === 'CLOSED') {
-        console.info('[Multi] 채널 닫힘');
+        _log('[Multi] 채널 닫힘');
       }
     });
   }

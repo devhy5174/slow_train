@@ -103,7 +103,6 @@ function update(dt) {
       a.bub.material.opacity = u.fi * Math.min(1, a.bubT / 0.4);
     }
   }
-  $("stand").hidden = P.state !== "sit" && P.state !== "squat"; // 앉거나 쭈그린 상태에 표시
   // 기차멍 버튼: 앉은 상태 + 헤드셋 착용 중일 때만 표시
   $("bTrainView").hidden = P.state !== "sit" || !EarphoneMusic.playing;
 }
@@ -362,7 +361,6 @@ function initInput() {
     )
       goFloor(P, p.x, p.z);
   });
-  $("stand").onclick = () => standUp(P);
   addEventListener("keydown", (e) => {
     keys[e.code] = !GameState.inspecting;
     /* 검표 중에는 이동 입력 무시 */ if (e.code.startsWith("Arrow"))
