@@ -13,16 +13,16 @@ const DayNight = (() => {
   // interiorInt: 객실 천장 PointLight 강도 (낮=0, 노을=0.3, 밤=1.0)
   const PRESETS = {
     day: {
-      bg:          0xcfe8f0,
-      hemiSky:     0xfff3dc,
-      hemiGnd:     0xb8895a,
-      hemiInt:     0.85,
-      sunColor:    0xffd9a0,
-      sunInt:      1.3,
-      fillColor:   0xfff6e8,
-      fillInt:     0.4,
-      groundColor: 0x8fbf6a,
-      interiorInt: 0,       // 낮: 객실 조명 꺼짐
+      bg:          0xb8d8ea,  // 하늘 살짝 어둡게
+      hemiSky:     0xddd0b8,  // 반구광 하늘색 낮춤
+      hemiGnd:     0x9a7a4a,  // 바닥 반구광 살짝 낮춤
+      hemiInt:     0.65,      // 0.85 → 0.65
+      sunColor:    0xffd090,
+      sunInt:      1.0,       // 1.3 → 1.0
+      fillColor:   0xfff0e0,
+      fillInt:     0.28,      // 0.4 → 0.28
+      groundColor: 0x7aaa58,  // 바닥 살짝 어둡게
+      interiorInt: 0,
     },
     sunset: {
       bg:          0xe05020,
