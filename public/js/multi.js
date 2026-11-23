@@ -366,18 +366,22 @@ const Multi = (() => {
     // vendor_state: 호스트가 전송하는 판매원 위치·상태 → 비호스트에서만 적용
     _channel.on('broadcast', { event: 'vendor_state' }, ({ payload }) => {
       if (_isHost() || !V) return; // 호스트는 자신이 직접 운영하므로 무시
+      const wasActive = V.active; // 이전 활성 상태 (freshAppear 판단용)
       V.active = payload.active;
       V.g.visible = !!payload.visible;
       if (payload.active) {
-        if (payload.x  != null) V.g.position.x = payload.x;
-        if (payload.z  != null) V.g.position.z = payload.z;
-        if (payload.ry != null) V.g.rotation.y = payload.ry;
+        // 첫 등장 또는 비활성→활성 전환 시 위치를 즉시 동기화 (보간 없이 순간 등장)
+        const freshAppear = !wasActive || V._tx == null;
+        if (payload.x  != null) { V._tx  = payload.x;  if (freshAppear) V.g.position.x = payload.x; }
+        if (payload.z  != null) { V._tz  = payload.z;  if (freshAppear) V.g.position.z = payload.z; }
+        if (payload.ry != null) { V._try = payload.ry; if (freshAppear) V.g.rotation.y = payload.ry; }
         _vMoving = !!payload.moving;
         // 말풍선: 텍스트가 새로 생겼을 때만 speak() 호출
         if (payload.bubText && (!V.bub || V.bubText !== payload.bubText))
           speak(V, payload.bubText, Math.max(0.5, payload.bubSec || 3));
       } else {
         _vMoving = false;
+        V._tx = null; // 비활성화 시 초기화 → 다음 등장 때 freshAppear = true
       }
     });
 
@@ -529,7 +533,7 @@ const Multi = (() => {
     // 원격 플레이어 위치 보간 + 걷기 애니메이션 갱신
     for (const a of Object.values(peers)) {
       if (a.state !== 'sit' && a.state !== 'hide' && a.state !== 'squat') {
-        const f = Math.min(1, dt * 15);
+        const f = Math.min(1, dt * 20);
         a.g.position.x += (a._tx - a.g.position.x) * f;
         a.g.position.z += (a._tz - a.g.position.z) * f;
         // 최단 경로로 회전 보간 (±π 경계 처리)
@@ -551,7 +555,18 @@ const Multi = (() => {
         _sendVendorState();
       }
     } else if (V.active) {
-      // 비호스트: vendorTick 미실행 → 카트 손잡이 자세·이동 애니메이션 직접 처리
+      // 비호스트: 위치 보간 + 카트 손잡이 자세·이동 애니메이션 직접 처리
+      if (V._tx != null) {
+        const f = Math.min(1, dt * 12);
+        V.g.position.x += (V._tx - V.g.position.x) * f;
+        V.g.position.z += (V._tz - V.g.position.z) * f;
+        let dRy = V._try - V.g.rotation.y;
+        if (dRy >  Math.PI) dRy -= Math.PI * 2;
+        if (dRy < -Math.PI) dRy += Math.PI * 2;
+        V.g.rotation.y += dRy * f;
+        // 목표와의 거리로 걷기 애니메이션 자동 판단 (도착하면 정지 포즈)
+        _vMoving = Math.hypot(V._tx - V.g.position.x, V._tz - V.g.position.z) > 0.05;
+      }
       const vu = V.g.userData;
       vu.aL.rotation.x = vu.aR.rotation.x = -1.2;
       animate(V, _vMoving, dt);
