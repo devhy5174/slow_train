@@ -457,6 +457,33 @@ body {
   width: 16px;
   height: 16px;
 }
+/* ── 헤드셋 버튼 반짝 (눌러보고 싶게) ── */
+#bEarphone {
+  animation: earphone-twinkle 2.4s ease-in-out infinite;
+}
+@keyframes earphone-twinkle {
+  0%, 80%, 100% {
+    color: #2a3a52;
+    transform: scale(1);
+    filter: none;
+  }
+  87%, 93% {
+    color: #4a88e0;
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 5px rgba(74, 136, 224, 0.75));
+  }
+}
+
+/* ── 테마 버튼 — 내부 색 순환 반짝 (크리스마스 느낌) ── */
+#bTheme {
+  animation: theme-bg-cycle 3.6s ease-in-out infinite;
+}
+@keyframes theme-bg-cycle {
+  0%, 100% { background: rgba(200, 38, 38, 0.22); color: #b82828; }
+  34%      { background: rgba(28, 128, 48, 0.22); color: #1a7830; }
+  67%      { background: rgba(190, 148, 10, 0.22); color: #9a7408; }
+}
+
 /* Lucide SVG 아이콘 공통 */
 svg.lucide {
   pointer-events: none;

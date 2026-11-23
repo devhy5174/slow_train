@@ -25,6 +25,234 @@ const headrestMeshes = {};
 // 등받이 서브그룹 참조 맵 — 번호 스티커 부착용, 키: `${benchId}:${0|1}`
 const seatBrgGroups = {};
 
+// ===== 등받이 그물망 수납 주머니 =====
+// 뒷좌석 승객이 앞좌석 등받이에서 사용하는 무궁화호 스타일 망 주머니
+
+let _pocketMeshMat = null;  // 그물 머티리얼 (공유)
+const _bookMats  = [];      // 넓은 책자 머티리얼 캐시 [0..3]
+const _pampMats  = [];      // 팜플랫 머티리얼 캐시 [0..3]
+let _pocketIdx   = 0;       // 생성 순서
+
+// 대각 마름모 그물 캔버스 (밝은 회색, 이미지 참조)
+function _ensurePocketMeshMat() {
+  if (_pocketMeshMat) return;
+  const W = 128, H = 96;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, W, H);          // 배경 투명 (뒤 오브젝트가 비침)
+  ctx.strokeStyle = '#7a7670';        // 짙은 회색 격자선
+  ctx.lineWidth = 1.8;
+  const sp = 13;                      // 대각선 간격
+  // +45° 방향 선
+  for (let d = -H; d <= W; d += sp) {
+    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke();
+  }
+  // -45° 방향 선
+  for (let d = 0; d <= W + H; d += sp) {
+    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d - H, H); ctx.stroke();
+  }
+  _pocketMeshMat = new THREE.MeshBasicMaterial({
+    map: new THREE.CanvasTexture(cv),
+    transparent: true, opacity: 0.92,
+    side: THREE.DoubleSide, depthWrite: false,
+  });
+}
+
+// ── 넓은 책자 표지 4종 (100×80, 그림 있는 풀컬러) ──────────────────
+function _getBookMat(ti) {
+  if (_bookMats[ti]) return _bookMats[ti];
+  const cv = document.createElement('canvas');
+  cv.width = 100; cv.height = 80;
+  const ctx = cv.getContext('2d');
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  if (ti === 0) {
+    // "느린 기차 여행" — 크림 배경, 상단 제목 + 하단 풍경
+    ctx.fillStyle = '#ede8d8'; ctx.fillRect(0, 0, 100, 80);
+    // 상단 제목 영역 (크림에 살짝 어두운 띠)
+    ctx.fillStyle = '#ddd4be'; ctx.fillRect(0, 0, 100, 36);
+    // 제목 — 상단에 크고 굵게
+    ctx.fillStyle = '#2a1808'; ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('느린', 50, 13);
+    ctx.fillText('기차 여행', 50, 28);
+    // 얇은 구분선
+    ctx.strokeStyle = '#a08860'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(6, 36); ctx.lineTo(94, 36); ctx.stroke();
+    // 하단 풍경 — 하늘
+    ctx.fillStyle = '#9ccee8'; ctx.fillRect(0, 36, 100, 22);
+    // 녹색 언덕
+    ctx.fillStyle = '#6aaa50';
+    ctx.beginPath(); ctx.ellipse(50, 80, 55, 22, 0, 0, Math.PI); ctx.fill();
+    // 철로
+    ctx.strokeStyle = '#8a6038'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(32, 78); ctx.lineTo(52, 44); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(40, 78); ctx.lineTo(60, 44); ctx.stroke();
+    for (let ty = 46; ty < 78; ty += 7) {
+      const frac = (ty - 44) / 34;
+      ctx.beginPath(); ctx.moveTo(32 + frac * 8 - 3, ty); ctx.lineTo(32 + frac * 8 + 11, ty); ctx.stroke();
+    }
+
+  } else if (ti === 1) {
+    // "무궁화호 타고" — 하늘색, 벚꽃, 기차
+    ctx.fillStyle = '#5898cc'; ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = '#78b8e0'; ctx.fillRect(0, 0, 100, 30);     // 연한 하늘
+    const blossoms = [[15,10],[28,6],[42,14],[60,8],[75,13],[85,20],[20,22],[65,22]];
+    const sizes    = [4, 3, 4.5, 3.5, 4, 3, 3.5, 4];
+    ctx.fillStyle = '#f8c0d0';
+    blossoms.forEach(([bx, by], i) => {
+      ctx.beginPath(); ctx.arc(bx, by, sizes[i], 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle = '#c03028'; ctx.fillRect(18, 54, 56, 14);    // 기차 차체
+    ctx.fillStyle = '#e04840'; ctx.fillRect(18, 50, 56, 7);     // 상단 띠
+    ctx.fillStyle = '#90c8e8';
+    [24, 36, 48, 58].forEach(wx => ctx.fillRect(wx, 55, 8, 7));  // 창문
+    ctx.fillStyle = '#282828';
+    [26, 46, 64].forEach(wx => { ctx.beginPath(); ctx.arc(wx, 68, 4, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('무궁화호', 50, 33); ctx.fillText('타고', 50, 47);
+
+  } else if (ti === 2) {
+    // "창밖 풍경집" — 황혼빛 주황, 실루엣
+    ctx.fillStyle = '#d87838'; ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = '#e8a050'; ctx.fillRect(0, 0, 100, 36);     // 하늘 그라데이션 느낌
+    ctx.fillStyle = '#f8c870';                                   // 태양
+    ctx.beginPath(); ctx.arc(72, 24, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a3010';                                   // 나무 실루엣
+    [[10,55],[22,50],[85,52],[92,56]].forEach(([tx, ty]) => {
+      ctx.fillRect(tx - 2, ty, 5, 25); ctx.beginPath(); ctx.arc(tx + 1, ty, 7, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('창밖', 50, 36); ctx.fillText('풍경집', 50, 50);
+
+  } else {
+    // "철도 맛집 가이드" — 따뜻한 황토, 음식 느낌
+    ctx.fillStyle = '#c87828'; ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = '#e8a040'; ctx.fillRect(0, 0, 100, 28);     // 상단 밝은 띠
+    ctx.fillStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(50, 55, 14, 0, Math.PI * 2); ctx.stroke(); // 접시
+    ctx.beginPath(); ctx.arc(50, 55, 8, 0, Math.PI * 2); ctx.fill();    // 음식
+    ctx.fillStyle = '#604010'; ctx.fillRect(46, 36, 8, 18);              // 젓가락
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('철도 맛집', 50, 15); ctx.fillText('가이드', 50, 29);
+  }
+
+  // 얇은 흰 테두리 (공통)
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(2, 2, 96, 76);
+  _bookMats[ti] = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.DoubleSide });
+  return _bookMats[ti];
+}
+
+// ── 팜플랫 표지 4종 (52×80, 안내 브로셔 스타일) ───────────────────
+function _getPampMat(ti) {
+  if (_pampMats[ti]) return _pampMats[ti];
+  const cv = document.createElement('canvas');
+  cv.width = 52; cv.height = 80;
+  const ctx = cv.getContext('2d');
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  if (ti === 0) {
+    // "여행 안내서" — 베이지, 기차 아이콘
+    ctx.fillStyle = '#e0d4b8'; ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = '#6a4820'; ctx.fillRect(0, 0, 52, 22);       // 갈색 헤더
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
+    ctx.fillText('여행 안내서', 26, 11);
+    ctx.fillStyle = '#604830'; ctx.fillRect(12, 36, 28, 10);      // 기차 차체
+    ctx.fillStyle = '#8ab8d8'; [15,21,27,33].forEach(wx => ctx.fillRect(wx, 37, 5, 6));
+    ctx.fillStyle = '#282828';
+    [15, 29].forEach(wx => { ctx.beginPath(); ctx.arc(wx+2, 46, 3, 0, Math.PI*2); ctx.fill(); });
+    ctx.strokeStyle = '#808878'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(5,48); ctx.lineTo(47,48); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5,50); ctx.lineTo(47,50); ctx.stroke();
+    ctx.fillStyle = '#3a2808'; ctx.font = '7px sans-serif';
+    ['출발 안내', '도착 정보', '환승 경로'].forEach((t, i) => ctx.fillText(t, 26, 60 + i * 8));
+
+  } else if (ti === 1) {
+    // "이용 시간표" — 연두, 시계
+    ctx.fillStyle = '#c8d888'; ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = '#3a6020'; ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
+    ctx.fillText('이용 시간표', 26, 10);
+    ctx.strokeStyle = '#3a6020'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(26, 44, 14, 0, Math.PI * 2); ctx.stroke(); // 시계
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(26, 44); ctx.lineTo(26, 32); ctx.stroke(); // 12시
+    ctx.beginPath(); ctx.moveTo(26, 44); ctx.lineTo(35, 44); ctx.stroke(); // 3시
+    ctx.fillStyle = '#3a6020'; ctx.font = '6px sans-serif';
+    ['6:00','12:00','18:00'].forEach((t, i) => ctx.fillText(t, 26, 64 + i * 7));
+
+  } else if (ti === 2) {
+    // "역 안내도" — 연파랑, 노선도 느낌
+    ctx.fillStyle = '#b8d0e8'; ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = '#1a4878'; ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
+    ctx.fillText('역 안내도', 26, 10);
+    ctx.strokeStyle = '#1a5890'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(10, 36); ctx.lineTo(42, 36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(26, 30); ctx.lineTo(26, 60); ctx.stroke();
+    [[10,36],[26,36],[42,36],[26,50]].forEach(([ex,ey]) => {
+      ctx.fillStyle = '#1a5890'; ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#1a3858'; ctx.font = '6px sans-serif';
+    ctx.fillText('느린역', 26, 68); ctx.fillText('기차여행역', 26, 75);
+
+  } else {
+    // "간식 가이드" — 따뜻한 노랑
+    ctx.fillStyle = '#e8c860'; ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = '#8a4a10'; ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
+    ctx.fillText('간식 가이드', 26, 10);
+    ctx.strokeStyle = '#8a4a10'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(26, 42, 12, Math.PI, Math.PI * 2); ctx.stroke();  // 컵 위
+    ctx.beginPath(); ctx.moveTo(14, 42); ctx.lineTo(14, 54); ctx.stroke();     // 컵 옆
+    ctx.beginPath(); ctx.moveTo(38, 42); ctx.lineTo(38, 54); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(12, 54); ctx.lineTo(40, 54); ctx.stroke();     // 컵 바닥
+    ctx.beginPath(); ctx.moveTo(26, 30); ctx.lineTo(26, 36); ctx.stroke();     // 김
+    ctx.fillStyle = '#8a4a10'; ctx.font = '6px sans-serif';
+    ['도시락','커피','과자'].forEach((t, i) => ctx.fillText(t, 26, 64 + i * 7));
+  }
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.20)'; ctx.lineWidth = 1;
+  ctx.strokeRect(1, 1, 50, 78);
+  _pampMats[ti] = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.DoubleSide });
+  return _pampMats[ti];
+}
+
+// 등받이 1개에 그물망 주머니 + 겹쳐 꽂힌 책자·팜플랫 부착
+function _makeSeatPocket(brg) {
+  _ensurePocketMeshMat();
+  const idx   = _pocketIdx++;
+  const FRAME = 0xbcb8b0;   // 크림-회색 프레임 (이미지 참조)
+  const px    = -0.082;
+  const py    = -0.15;      // 망 y 중심 (등받이 하단쪽으로 내림)
+  const PW    = 0.60;       // 망 너비 (z)
+  const PH    = 0.30;       // 망 높이 (y)
+  const fT    = 0.013;
+
+  // 대각 마름모 그물 패널
+  const meshPlane = new THREE.Mesh(new THREE.PlaneGeometry(PW - 0.02, PH - 0.02), _pocketMeshMat);
+  meshPlane.rotation.y = -Math.PI / 2;
+  meshPlane.position.set(px, py, 0);
+  brg.add(meshPlane);
+
+  // ── 겹쳐 꽂힌 책자 + 팜플랫 ──────────────────────────
+  // 망 하단부터 위로 0.14 돌출 (참조 이미지처럼 크게 튀어나옴)
+  const itmH  = PH + 0.14;                      // 0.44
+  const itmCY = (py - PH / 2) + itmH / 2;       // 망 하단 기준 중심
+  const ti = idx % 4;
+
+  // 그물(px=-0.082) 뒤쪽에 꽂힘 — x가 클수록 그물 안쪽(뷰어에서 멀어짐)
+  const book = new THREE.Mesh(new THREE.BoxGeometry(0.015, itmH, 0.36), _getBookMat(ti));
+  book.position.set(-0.066, itmCY, -0.03);
+  brg.add(book);
+
+  const pamp = new THREE.Mesh(new THREE.BoxGeometry(0.010, itmH, 0.24), _getPampMat(ti));
+  pamp.position.set(-0.070, itmCY, 0.10);
+  brg.add(pamp);
+}
+
 // 2인용 파란 좌석(벤치) 1개 생성 — BENCHES 데이터 기준으로 배치
 function bench(b) {
   const g = new THREE.Group();
@@ -59,6 +287,9 @@ function bench(b) {
     tc.position.set(0.03, 0.38, 0);
     tc.castShadow = true;
     brg.add(tc);
+
+    // 등받이 뒷면에 그물망 수납 주머니 부착 (뒷좌석 승객이 사용하는 방향)
+    _makeSeatPocket(brg);
 
     // 번호 스티커 부착용으로 등받이 그룹 저장
     seatBrgGroups[`${b.id}:${z > 0 ? 1 : 0}`] = brg;

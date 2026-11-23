@@ -86,6 +86,7 @@ function update(dt) {
   Theme.tick(dt); // 테마 애니메이션
   DayNight.tick(dt); // 낮·노을·밤 조명 전환
   Multi.tick(dt); // 멀티플레이 위치 동기화
+  BgCar.tick(dt); // 배경 객차 보행 NPC 애니메이션
   separate();
   // 말풍선 페이드 인(처음 0.3초) · 페이드 아웃(마지막 0.4초) · 수명 종료 시 제거
   // 원격 플레이어(피어) 말풍선도 포함해야 상대방 화면에서 보임
@@ -169,6 +170,7 @@ function buildWorld() {
   buildBogies();
   buildTrack();
   buildAdjacentCars(); // 앞(기관차)·뒤(일반객차) 배경 차량 생성
+  BgCar.init();        // 뒤 객차 인테리어 + 장식 손님
   BENCHES.forEach(bench);
   [-1, 1].forEach((s) => table(s * 1.6));
   // 좌석마다 보이지 않는 터치 영역(마우스를 올리면 노랗게 표시)
@@ -336,7 +338,11 @@ function initInput() {
     if (nk && (!h || nk.distance < h.distance))
       return void askNook(nk.object.userData);
     const ch = ray.intersectObjects(curtainHits)[0]; // 창문 커튼 클릭
-    if (ch && (!h || ch.distance < h.distance)) return toggleCurtain(ch.object.userData.curtainIdx);
+    if (ch && (!h || ch.distance < h.distance)) {
+      // 해당 커튼이 속한 벽이 숨겨진 상태면 클릭 무시 (카메라가 측면 가까이 있을 때)
+      const side = ch.object.getWorldPosition(new THREE.Vector3()).z > 0 ? 1 : -1;
+      if (walls[side].visible) return toggleCurtain(ch.object.userData.curtainIdx);
+    }
     const ad = ray.intersectObjects(adHits)[0]; // 광고 이미지 패널 클릭
     if (ad) return showImageModal(ad.object.userData.imgSrc);
     const wb = ray.intersectObjects(whiteboardHits)[0]; // 화이트보드 클릭
