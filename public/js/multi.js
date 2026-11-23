@@ -89,6 +89,9 @@ const Multi = (() => {
     a.headphones = buildHeadphones(a.g); // 헤드폰 토글 동기화용
     a.g.position.set(0, 0, 0);
     a._moving = false;
+    a._tx  = 0;  // 보간 목표 X
+    a._tz  = 0;  // 보간 목표 Z
+    a._try = 0;  // 보간 목표 Y 회전
     peers[peerId] = a;
     _syncNpcCount();
   }
@@ -384,7 +387,12 @@ const Multi = (() => {
       if (!_npcSynced) {
         // 첫 수신 시 로컬 NPC 초기 배치 초기화 → 호스트 상태로 덮어씀
         _npcSynced = true;
-        NPCS.forEach(n => { if (n.state === 'sit') standUp(n); });
+        NPCS.forEach(n => {
+          if (n.state === 'sit') standUp(n);
+          n._tx  = n.g.position.x; // 보간 목표 초기값 = 현재 위치 (첫 lerp 시 텔레포트 방지)
+          n._tz  = n.g.position.z;
+          n._try = n.g.rotation.y;
+        });
       }
       for (const snap of payload.npcs) {
         const n = NPCS[snap.idx];
@@ -402,10 +410,12 @@ const Multi = (() => {
         if (snap.state === 'sit' && snap.seatId) {
           _applyNpcSit(n, snap.seatId);
         } else {
-          if (n.state === 'sit') standUp(n);
-          n.g.position.x = snap.x;
-          n.g.position.z = snap.z;
-          n.g.rotation.y = snap.ry;
+          // 착석에서 일어날 때 보간 목표를 현재 위치로 초기화해 텔레포트 방지
+          if (n.state === 'sit') { standUp(n); n._tx = n.g.position.x; n._tz = n.g.position.z; }
+          // 위치·방향을 즉시 덮어쓰지 않고 보간 목표값으로만 저장 (tick에서 lerp 처리)
+          n._tx  = snap.x;
+          n._tz  = snap.z;
+          n._try = snap.ry;
         }
         // NPC 말풍선 동기화
         if (snap.bubText && (!n.bub || n.bubText !== snap.bubText))
@@ -471,12 +481,14 @@ const Multi = (() => {
         }
       } else {
         // 이동 중 / 서 있는 상태: 이전 상태에서 먼저 빠져나옴
-        if (a.state === 'sit') standUp(a);
-        if (a.state === 'hide') exitNook(a);
-        if (a.state === 'squat') { a.g.scale.set(1,1,1); a.state = 'idle'; a.sqPos = null; }
-        a.g.position.x = payload.x ?? a.g.position.x;
-        a.g.position.z = payload.z ?? a.g.position.z;
-        if (payload.ry != null) a.g.rotation.y = payload.ry;
+        // 상태 전환 직후 보간 목표를 현재 위치로 초기화해 텔레포트 방지
+        if (a.state === 'sit')   { standUp(a);   a._tx = a.g.position.x; a._tz = a.g.position.z; }
+        if (a.state === 'hide')  { exitNook(a);  a._tx = a.g.position.x; a._tz = a.g.position.z; }
+        if (a.state === 'squat') { a.g.scale.set(1,1,1); a.state = 'idle'; a.sqPos = null; a._tx = a.g.position.x; a._tz = a.g.position.z; }
+        // 위치·방향을 즉시 덮어쓰지 않고 보간 목표값으로만 저장 (tick에서 lerp 처리)
+        if (payload.x  != null) a._tx  = payload.x;
+        if (payload.z  != null) a._tz  = payload.z;
+        if (payload.ry != null) a._try = payload.ry;
       }
       a._moving = !!payload.moving;
       // 간식 동기화: heldName 변경 시 setHeld 또는 제거
@@ -514,8 +526,18 @@ const Multi = (() => {
     // 강제 퇴장 시 연결 종료 (1회)
     if (GameState.ended) { disconnect(); return; }
 
-    // 원격 플레이어 걷기 애니메이션 갱신
+    // 원격 플레이어 위치 보간 + 걷기 애니메이션 갱신
     for (const a of Object.values(peers)) {
+      if (a.state !== 'sit' && a.state !== 'hide' && a.state !== 'squat') {
+        const f = Math.min(1, dt * 15);
+        a.g.position.x += (a._tx - a.g.position.x) * f;
+        a.g.position.z += (a._tz - a.g.position.z) * f;
+        // 최단 경로로 회전 보간 (±π 경계 처리)
+        let dRy = a._try - a.g.rotation.y;
+        if (dRy >  Math.PI) dRy -= Math.PI * 2;
+        if (dRy < -Math.PI) dRy += Math.PI * 2;
+        a.g.rotation.y += dRy * f;
+      }
       if (a.state !== 'sit' && a.state !== 'hide') animate(a, a._moving, dt);
     }
 
@@ -549,6 +571,20 @@ const Multi = (() => {
       if (_npcSendTimer >= 0.2) {
         _npcSendTimer = 0;
         if (_npcChanged()) _sendNpcStates();
+      }
+    } else {
+      // 비호스트: 수신한 NPC 목표 위치를 부드럽게 보간 (200ms 텔레포트 → 프레임 단위 이동)
+      for (const n of NPCS) {
+        if (!n.g.visible || n.state === 'sit' || n._tx == null) continue;
+        const f = Math.min(1, dt * 10);
+        n.g.position.x += (n._tx - n.g.position.x) * f;
+        n.g.position.z += (n._tz - n.g.position.z) * f;
+        let dRy = n._try - n.g.rotation.y;
+        if (dRy >  Math.PI) dRy -= Math.PI * 2;
+        if (dRy < -Math.PI) dRy += Math.PI * 2;
+        n.g.rotation.y += dRy * f;
+        // 목표와의 거리가 충분하면 걷기 포즈 유지, 도착하면 정지 포즈로 전환
+        n._npcMoving = Math.hypot(n._tx - n.g.position.x, n._tz - n.g.position.z) > 0.05;
       }
     }
 
