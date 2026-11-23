@@ -1,3 +1,33 @@
+## 2026-11-23 — 크리스마스 테마·매점·인테리어 대규모 업데이트
+
+### 변경 파일
+- `public/js/themes/christmas.js` — 산타 썰매, 지붕 전구, 반짝이 파티클
+- `public/js/features/vendor.js` — 매점카트 3단 철망 선반 + 메뉴 미니어처
+- `public/js/features/snack.js` — 간식 모델 개선 (8종), 이모티콘 라벨
+- `public/js/features/whiteboard.js` — 직접 입력 + 욕설 필터
+- `public/js/features/bgcar.js` — 뒷 객차 조명 DayNight 연동
+- `public/js/features/daynight.js` — addInteriorLight API 추가
+- `public/js/world/scene.js` — 뒷 객차 커튼·짐선반, 액자 캡션
+- `public/js/multi.js` — 접속 시 NPC 동기화 버그 수정 (request_sync)
+- `public/js/characters/npc.js` — NPC 앉는 시간 증가
+- `public/js/features/trainview.js` — 기차멍 카메라 클램프
+- `public/css/style.css` — 간식 메뉴 2열 그리드
+- `public/js/ui/ui.js` — 메뉴 UI 카드형
+
+### 주요 변경
+- **크리스마스 산타**: 기차 앞에서 반대 방향으로 지붕 위 저공비행, 3개 경로(지붕/좌/우창), 반짝이 파티클 트레일
+- **크리스마스 지붕 전구**: 주·뒤 객차 아치 전면 다색 전구 바글바글 (trainRoof 연동)
+- **매점카트**: 검정 3단 철망 선반, 맨 위 메뉴 미니어처 2배 크기 (결정론적 배치)
+- **간식 8종**: 쫀드기·말린오징어(🦑)·소시지·과자(🍪)·도시락(느린기차 라벨) 추가·개선
+- **화이트보드**: 직접 입력 20자 제한 + 욕설 필터
+- **뒷 객차**: 커튼·짐선반·조명 추가, 메인 객차와 동일 디자인
+- **멀티 버그**: 접속 시 NPC·판매원·승무원 얼어있는 현상 수정
+- **기차멍**: 맨앞자리 기관차 가림 현상 카메라 클램프로 해결
+
+### 다음 할 일
+- 산타 등장 간격 최종 조정 (현재 테스트용 5초)
+- 크리스마스 외 시즌 콘텐츠 검토
+
 ## 2026-11-23 — 멀티플레이 캐릭터·NPC 이동 보간 적용
 
 ### 변경 파일

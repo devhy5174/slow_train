@@ -28,7 +28,19 @@ const ChristmasTheme = (() => {
   // ── 외부 장식 추가 상태 ──
   const _extLightGroups = {};   // 주 객차 외부 전구 (walls[sg] 자식)
   const _rearCarLightGroups = []; // 뒤 객차 외부 전구 그룹 (scene 직접)
+  const _roofLightGroups = [];    // 지붕 전구 그룹 (scene 직접)
   let _locoDecorGroup = null;     // 기관차 크리스마스 장식 그룹 (scene 직접)
+  // 산타 썰매
+  let _santa = null;        // 산타 그룹
+  let _santaOn = false;     // 현재 비행 중 여부
+  let _santaTimer = 5;      // 첫 등장까지 대기 시간(초)
+  let _santaDir = 1;        // 이동 방향 (+1 오른쪽, -1 왼쪽)
+  let _santaBaseY = 4.0;    // 기준 고도 (지붕 바로 위)
+  let _santaElapsed = 0;    // 등장 후 경과 시간 (보빙용)
+  // 반짝이 파티클
+  const _sparkles = [];
+  const _SPKCOLS = [0xffd700, 0xfffde8, 0xff6600, 0xffee00, 0xffffff, 0xff8888, 0x88ff88];
+  let _spkTimer = 0;
   const _hpDecorMeshes = [];      // 헤드셋 장식 메쉬 (P.headphones 자식)
   let _hpDecorDone = false;       // 헤드셋 장식 1회 적용 여부
   const _xscMeshes = [];          // SCN 에 추가한 나무 전구 메쉬 (해제 시 제거용)
@@ -729,6 +741,205 @@ const ChristmasTheme = (() => {
     }
   }
 
+  // ── 지붕 전구 (바글바글 덮기) ──
+  function _buildRoofLights() {
+    // 아치 지붕 y 위치 계산
+    const archR = 10;
+    const arcHalf = Math.asin((CAR.W / 2 + 0.22) / archR);
+    const cylCY = 2.55 - archR * Math.cos(arcHalf);
+    const roofY = (z) => cylCY + Math.sqrt(Math.max(0, archR * archR - z * z)) + 0.04;
+
+    const _fill = (cx, carLen) => {
+      const grp = new THREE.Group();
+      grp.position.x = cx;
+      let ci = Math.round(Math.abs(cx)) % COLORS.length;
+      for (let lx = -(carLen / 2 - 0.3); lx <= carLen / 2 - 0.3; lx += 0.44) {
+        for (let lz = -(CAR.W / 2 - 0.3); lz <= CAR.W / 2 - 0.3; lz += 0.44) {
+          const col = COLORS[ci % COLORS.length]; ci++;
+          const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.030, 5, 4),
+            new THREE.MeshBasicMaterial({ color: col }),
+          );
+          bulb.position.set(lx, roofY(lz), lz);
+          bulb.userData = {
+            bright: new THREE.Color(col),
+            dim:    new THREE.Color(col).multiplyScalar(0.04),
+            phase:  ci * 0.41,
+            speed:  1.6 + (ci % 9) * 0.22,
+          };
+          grp.add(bulb);
+          _bulbs.push(bulb);
+        }
+      }
+      scene.add(grp);
+      _roofLightGroups.push(grp);
+    };
+
+    _fill(0, CAR.L); // 주 객차
+    _fill(-(CAR.L / 2 + 1.0 + 15.6 / 2), 15.6); // 뒤 객차
+  }
+
+  // ── 산타 썰매 3D 모델 생성 ──
+  function _buildSantaGroup() {
+    const g = new THREE.Group();
+    const bm  = (col) => new THREE.MeshBasicMaterial({ color: col });
+
+    // 썰매 본체 (빨강)
+    const sledge = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.28, 0.55), bm(0xcc1111));
+    sledge.position.set(-0.1, 0.14, 0); g.add(sledge);
+    // 썰매 등받이
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.55), bm(0xee2222));
+    back.position.set(-0.55, 0.37, 0); g.add(back);
+    // 황금 러너 2개
+    for (const sz of [-0.30, 0.30]) {
+      const r = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.055, 0.05), bm(0xd4a017));
+      r.position.set(0, -0.02, sz); g.add(r);
+    }
+
+    // 산타 (썰매 안)
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.44, 0.32), bm(0xdd1111));
+    body.position.set(-0.22, 0.42, 0); g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 7), bm(0xf5c89a));
+    head.position.set(-0.22, 0.75, 0); g.add(head);
+    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.055, 8), bm(0xffffff));
+    hatBrim.position.set(-0.22, 0.87, 0); g.add(hatBrim);
+    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.18, 0.26, 8), bm(0xdd1111));
+    hat.position.set(-0.22, 1.03, 0); g.add(hat);
+    const beard = new THREE.Mesh(new THREE.SphereGeometry(0.12, 7, 6), bm(0xffffff));
+    beard.scale.set(1, 0.55, 0.9); beard.position.set(-0.14, 0.67, 0.08); g.add(beard);
+
+    // 순록 3마리 (루돌프 맨 앞)
+    [1.5, 2.65, 3.8].forEach((rx, ri) => {
+      const dg = new THREE.Group();
+      dg.position.set(rx, 0.1, 0);
+      const brownCol = ri === 0 ? 0x7a3c10 : 0x8b4513;
+      // 몸
+      const db = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.28, 0.22), bm(brownCol));
+      db.position.y = 0.28; dg.add(db);
+      // 머리
+      const dh = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.17, 0.17), bm(brownCol));
+      dh.position.set(0.33, 0.40, 0); dg.add(dh);
+      // 코 (루돌프: 빨간 반짝이)
+      const noseCol = ri === 0 ? 0xff2222 : 0x5a3010;
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.050, 6, 5), bm(noseCol));
+      nose.position.set(0.44, 0.39, 0); dg.add(nose);
+      if (ri === 0) {
+        nose.userData = { bright: new THREE.Color(0xff2222), dim: new THREE.Color(0x880000), phase: 0, speed: 1.8 };
+        _bulbs.push(nose);
+      }
+      // 뿔 2개
+      for (const az of [-0.07, 0.07]) {
+        const ant = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.035), bm(0x6b3a1f));
+        ant.position.set(0.26, 0.54, az); ant.rotation.z = az > 0 ? -0.35 : 0.35; dg.add(ant);
+      }
+      // 다리 4개
+      [[-0.15,-0.07],[-0.15,0.07],[0.15,-0.07],[0.15,0.07]].forEach(([lx,lz]) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.20, 0.055), bm(brownCol));
+        leg.position.set(lx, 0.08, lz); dg.add(leg);
+      });
+      // 고삐
+      const reinLen = ri === 0 ? 1.4 : 1.1;
+      const rein = new THREE.Mesh(new THREE.BoxGeometry(reinLen, 0.018, 0.018), bm(0x4a2a0a));
+      rein.position.set(rx - reinLen / 2 - 0.5, 0.28, 0); g.add(rein);
+      g.add(dg);
+    });
+
+    g.visible = false;
+    scene.add(g);
+    return g;
+  }
+
+  // ── 산타 매 프레임 업데이트 ──
+  // 경로: 기차 바로 위(z=0, y≈4) 천천히 직선 → 기차 끝 지나면 달 방향으로 솟아 사라짐
+  let _santaPhase = 'fly';
+
+  function _tickSanta(dt) {
+    _santaTimer -= dt;
+    if (!_santaOn) {
+      if (_santaTimer > 0) return;
+      _santaOn = true;
+      _santaElapsed = 0;
+      _santaPhase = 'fly';
+      _santaDir = -1; // 항상 기차 반대 방향 (-x)
+      // 경로 1: 지붕 위 / 2: 오른쪽 창문 옆 / 3: 왼쪽 창문 옆
+      const route = Math.floor(Math.random() * 3);
+      if (route === 0) {
+        _santaBaseY = 5.5 + Math.random() * 0.8;
+        _santa.position.set(CAR.L / 2 + 45, _santaBaseY, 0);
+      } else if (route === 1) {
+        _santaBaseY = 1.4 + Math.random() * 0.2;
+        _santa.position.set(CAR.L / 2 + 45, _santaBaseY, CAR.W / 2 + 1.6);
+      } else {
+        _santaBaseY = 1.4 + Math.random() * 0.2;
+        _santa.position.set(CAR.L / 2 + 45, _santaBaseY, -(CAR.W / 2 + 1.6));
+      }
+      _santa.rotation.y = Math.PI;
+      _santa.visible = true;
+      _santaTimer = 5;
+      _spkTimer = 0;
+      return;
+    }
+    _santaElapsed += dt;
+
+    if (_santaPhase === 'fly') {
+      // 기차 위 천천히 직선 비행 + 가벼운 보빙
+      _santa.position.x += _santaDir * 4.5 * dt;
+      // 큰 물결 + 작은 떨림 조합으로 자연스러운 볼록볼록
+      _santa.position.y = _santaBaseY
+        + Math.sin(_santaElapsed * 0.85) * 0.65
+        + Math.sin(_santaElapsed * 2.1)  * 0.18;
+      // y 속도 비례 살짝 앞뒤 기울기 (내려갈 때 앞으로, 올라갈 때 뒤로)
+      const yVel = Math.cos(_santaElapsed * 0.85) * 0.65 * 0.85;
+      _santa.rotation.x = yVel * 0.12;
+      // 반짝이 파티클 뿌리기
+      _spkTimer -= dt;
+      if (_spkTimer <= 0) {
+        _spkTimer = 0.07;
+        for (let i = 0; i < 3; i++) _spawnSparkle();
+      }
+      // 기차 끝 지나면 달 방향으로 전환
+      // 화면 밖으로 나가면 산타 + 남은 반짝이 모두 제거
+      if (_santa.position.x < -(CAR.L / 2 + 50)) {
+        _santaOn = false; _santa.visible = false;
+        for (let i = _sparkles.length - 1; i >= 0; i--) {
+          const s = _sparkles[i];
+          scene.remove(s); s.geometry.dispose(); s.material.dispose();
+        }
+        _sparkles.length = 0;
+      }
+    }
+
+    // 반짝이 파티클 갱신
+    for (let i = _sparkles.length - 1; i >= 0; i--) {
+      const s = _sparkles[i];
+      s.userData.life -= dt;
+      s.position.y += s.userData.vy * dt;
+      if (s.userData.life <= 0) {
+        scene.remove(s); s.geometry.dispose(); s.material.dispose();
+        _sparkles.splice(i, 1);
+      } else {
+        s.material.color.copy(s.userData.bright).multiplyScalar(Math.max(0, s.userData.life / s.userData.maxLife));
+      }
+    }
+  }
+
+  function _spawnSparkle() {
+    const col = _SPKCOLS[Math.floor(Math.random() * _SPKCOLS.length)];
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.055 + Math.random() * 0.065, 4, 3),
+      new THREE.MeshBasicMaterial({ color: col }),
+    );
+    m.position.set(
+      _santa.position.x + (Math.random() - 0.5) * 2.0,
+      _santa.position.y + (Math.random() - 0.5) * 1.0,
+      _santa.position.z + (Math.random() - 0.5) * 1.2,
+    );
+    const life = 1.5 + Math.random() * 1.5;
+    m.userData = { vy: -0.4 - Math.random() * 0.5, life, maxLife: life, bright: new THREE.Color(col) };
+    scene.add(m);
+    _sparkles.push(m);
+  }
+
   // ── 빌드 ──
   function build() {
     if (_group) dispose();
@@ -859,6 +1070,8 @@ const ChristmasTheme = (() => {
     _buildRearCarLights();
     _buildLocoDecor();
     _buildTreeLights();
+    _buildRoofLights();
+    _santa = _buildSantaGroup();
   }
 
   // ── 테마 해제 ──
@@ -960,6 +1173,22 @@ const ChristmasTheme = (() => {
     }
     _rearCarLightGroups.length = 0;
 
+    // 산타 썰매 + 반짝이 정리
+    if (_santa) {
+      _santa.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+      scene.remove(_santa);
+      _santa = null; _santaOn = false; _santaTimer = 20;
+    }
+    for (const s of _sparkles) { scene.remove(s); s.geometry.dispose(); s.material.dispose(); }
+    _sparkles.length = 0;
+
+    // 지붕 전구 정리
+    for (const g of _roofLightGroups) {
+      g.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+      scene.remove(g);
+    }
+    _roofLightGroups.length = 0;
+
     // 나무 전구 메쉬 — scene 과 SCN 에서 모두 제거
     for (const m of _xscMeshes) {
       scene.remove(m);
@@ -976,6 +1205,15 @@ const ChristmasTheme = (() => {
     // P.headphones 준비되면 1회 크리스마스 장식 추가
     if (!_hpDecorDone && typeof P !== 'undefined' && P && P.headphones) {
       _decorateHeadphones(P.headphones);
+    }
+
+    // 산타 썰매 업데이트
+    if (_santa) _tickSanta(dt);
+
+    // 지붕 전구 — trainRoof 가시성과 동기화 (실내에서 카메라가 지붕 안보일 때 같이 숨김)
+    if (typeof trainRoof !== 'undefined' && _roofLightGroups.length) {
+      const roofVis = trainRoof.visible;
+      for (const g of _roofLightGroups) g.visible = roofVis;
     }
 
     for (const b of _bulbs) {
