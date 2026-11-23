@@ -875,7 +875,7 @@ const ChristmasTheme = (() => {
       }
       _santa.rotation.y = Math.PI;
       _santa.visible = true;
-      _santaTimer = 5;
+      _santaTimer = 60;
       _spkTimer = 0;
       return;
     }
