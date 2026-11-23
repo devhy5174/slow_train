@@ -22,8 +22,10 @@ function enterTrainView() {
   // 현재 카메라 위치 저장 (복원용)
   TrainView.savedPos = cam.position.clone();
 
-  // 목표: 캐릭터가 화면 중심에 오도록 — 카메라를 캐릭터 앞쪽에서 직접 바라보는 구도
-  TrainView.targetPos  = new THREE.Vector3(px + 1.2, 1.5, -side * 0.2);
+  // 카메라 x: 앞자리에서 기관차에 가리지 않도록 XMAX 안쪽으로 클램프
+  // 뒷자리도 대칭 처리 (-XMAX 쪽 벽에 묻히지 않게)
+  const camX = Math.max(-XMAX + 0.9, Math.min(XMAX - 0.9, px + 1.2));
+  TrainView.targetPos  = new THREE.Vector3(camX, 1.5, -side * 0.2);
   TrainView.targetLook = new THREE.Vector3(px + 0.3, 0.9,  pz);
 
   TrainView.active = true;

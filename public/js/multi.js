@@ -40,6 +40,7 @@ const Multi = (() => {
   let _npcSynced    = false; // 비호스트: 최초 수신 여부 (초기 배치 초기화 1회용)
   let _npcLastSnaps = null;  // 마지막 전송 스냅샷 (변화 없으면 전송 생략)
   let _wasHost      = false; // 호스트 전환 감지용
+  let _syncRequested = false; // 비호스트 첫 틱에서 request_sync 1회 발송 여부
 
   // 역무원 동기화용 상태
   let _cMoving     = false;
@@ -312,9 +313,11 @@ const Multi = (() => {
       _updateHud();
       _sendFullState();
       if (_isHost()) {
-        _sendVendorState();    // 판매원 현재 위치
-        _sendNpcStates();      // 베타 NPC 현재 위치·착석
-        _sendConductorState(); // 역무원 현재 위치
+        _sendVendorState();
+        _sendNpcStates();
+        _sendConductorState();
+        // 새 접속자 핸들러가 준비되기 전에 도착할 수 있어 600ms 후 재전송
+        setTimeout(() => { if (_isHost()) { _sendNpcStates(); _sendVendorState(); _sendConductorState(); } }, 600);
       }
     });
 
@@ -322,6 +325,12 @@ const Multi = (() => {
     _channel.on('presence', { event: 'leave' }, ({ key }) => {
       _log('[Multi] 접속자 퇴장:', key);
       _removePeer(key);
+    });
+
+    // request_sync: 비호스트가 접속 직후 상태 수신을 놓쳤을 때 호스트에게 재전송 요청
+    _channel.on('broadcast', { event: 'request_sync' }, () => {
+      if (!_isHost()) return;
+      setTimeout(() => { _sendNpcStates(); _sendVendorState(); _sendConductorState(); }, 100);
     });
 
     // seat_yield: 내 지정석 자리를 비워달라는 요청 수신 → NPC와 동일한 흐름으로 자동 처리
@@ -573,6 +582,12 @@ const Multi = (() => {
       // 호스트로 새로 전환: NPC 타이머를 분산해 동시 행동 방지
       NPCS.forEach(n => { n.timer = rnd(1, 6); n.say = rnd(4, 12); });
       _npcLastSnaps = null; // 스냅샷 초기화 → 즉시 전송
+      _syncRequested = false; // 호스트 전환 시 리셋
+    }
+    if (!nowHost && !_syncRequested) {
+      // 비호스트 첫 틱: 호스트에게 현재 상태 재전송 요청 (join 타이밍 미스 대비)
+      _syncRequested = true;
+      _channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
     }
     _wasHost = nowHost;
     if (nowHost) {

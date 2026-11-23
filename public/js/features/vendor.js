@@ -11,7 +11,7 @@ const MENU = [['삶은 계란', 1500, '🥚'], ['사이다', 1500, '🥤'], ['�
 // 간식 판매원과 카트(바퀴 포함) 생성. 처음엔 숨겨 두고 vendorTick이 등장시킴
 function makeVendor() {
   V = mkActor('vendor', '판매원', { npc: true, label: '간식 판매원', shirt: 0x1a1a2e, hair: 0x2a1a0e, skin: 0xf1c79e, pants: 0x1a1a2e, avatarType: 'vendor' });
-  const c = new THREE.Group(); c.position.set(0, 0, 0.8); V.wheels = [];
+  const c = new THREE.Group(); c.position.set(0, 0, 0.92); V.wheels = []; // 얼굴 겹침 방지: 0.8→0.92
 
   const FR = 0x151515; // 프레임 색(거의 검정)
   const W = 0.70, D = 1.16, TH = 0.022; // 카트 폭·깊이·프레임 두께 (깊이를 앞으로 길게)
@@ -39,8 +39,11 @@ function makeVendor() {
     }
   });
 
-  // 손잡이 (상단 뒷면)
-  box(c, W*0.85, TH*1.5, TH*1.5, FR, 0, 1.01, -(D/2-TH));
+  // 손잡이: 카트 뒷면에서 판매원 쪽으로 뻗어 나오는 U자형
+  const HZ = -(D/2 + 0.08); // 카트 뒷면 너머 판매원 방향으로 돌출
+  for (const sx of [-(W/2*0.70), W/2*0.70])
+    box(c, TH*1.5, 0.20, TH*1.5, FR, sx, 0.72, HZ); // 세로 기둥 2개
+  box(c, W*0.70, TH*1.8, TH*1.8, FR, 0, 0.82, HZ);  // 가로 그립 바
 
   // 바퀴 4개 (이동 중 회전)
   for (const [sx, sz] of [[-1,1],[1,1],[-1,-1],[1,-1]]) {
@@ -63,10 +66,28 @@ function makeVendor() {
   const midH = [0.21,0.22,0.21, 0.21,0.21,0.22, 0.22,0.21,0.22, 0.21,0.22,0.21, 0.22,0.21,0.22];
   IX.forEach((x,xi) => IZ.forEach((z,zi) => { const i=zi*3+xi; box(c,0.13,midH[i],0.13,midC[i],x,SY[1]+TH+midH[i]/2,z); }));
 
-  // 맨 위 선반: 갈색·크림 계열 (삶은 계란·컵라면 등) — 3×5=15개
-  const topC = [0x8d6e63,0xf5deb3,0xd32f2f, 0xa1887f,0xffe0b2,0xf9a825, 0xef9a9a,0xffcc02,0xbcaaa4, 0x8d6e63,0xf5deb3,0xe57373, 0xd7ccc8,0xffcc80,0xa5d6a7];
-  const topH = [0.16,0.18,0.16, 0.16,0.18,0.18, 0.16,0.18,0.16, 0.18,0.16,0.18, 0.16,0.18,0.16];
-  IX.forEach((x,xi) => IZ.forEach((z,zi) => { const i=zi*3+xi; box(c,0.12,topH[i],0.12,topC[i],x,SY[2]+TH+topH[i]/2,z); }));
+  // 맨 위 선반: 메뉴 미니어처 8종 랜덤으로 5열×7행=35개 빼곡히
+  const TY = SY[2] + TH;
+  const msph = (r,col,x,y,z,sx=1,sy=1) => { const m=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),mat(col)); m.scale.set(sx,sy,sx); m.position.set(x,y,z); c.add(m); };
+  const mcyl = (r,h,col,x,y,z) => { const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,8),mat(col)); m.position.set(x,y,z); c.add(m); };
+  const MI = [
+    (x,y,z)=>{ msph(0.095,0xfdf7ea,x,y+0.108,z,0.82,1.1); msph(0.026,0xf5c030,x,y+0.185,z+0.062); }, // 삶은 계란
+    (x,y,z)=>{ mcyl(0.065,0.270,0x3cb96a,x,y+0.144,z); mcyl(0.068,0.096,0xffffff,x,y+0.144,z); mcyl(0.063,0.022,0xc8d4d8,x,y+0.267,z); }, // 사이다
+    (x,y,z)=>{ box(c,0.174,0.274,0.068,0xf2b632,x,y+0.153,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.274,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.028,z); }, // 과자
+    (x,y,z)=>{ mcyl(0.063,0.158,0xf4efe3,x,y+0.087,z); mcyl(0.067,0.070,0x8b5e3c,x,y+0.061,z); mcyl(0.065,0.020,0x1c1c1c,x,y+0.163,z); }, // 커피
+    (x,y,z)=>{ box(c,0.190,0.095,0.128,0xe8553d,x,y+0.051,z); box(c,0.174,0.028,0.112,0xf4efe3,x,y+0.093,z); }, // 도시락
+    (x,y,z)=>{ box(c,0.088,0.282,0.026,0xf47c20,x,y+0.151,z); box(c,0.088,0.038,0.030,0xd45a08,x,y+0.282,z); box(c,0.088,0.038,0.030,0xd45a08,x,y+0.020,z); }, // 쫀드기
+    (x,y,z)=>{ const bm=new THREE.MeshLambertMaterial({color:0xc8dff0,transparent:true,opacity:0.30}); const bg=new THREE.Mesh(new THREE.BoxGeometry(0.168,0.248,0.028),bm); bg.position.set(x,y+0.133,z); c.add(bg); box(c,0.128,0.108,0.018,0xd4a373,x,y+0.115,z); }, // 말린오징어
+    (x,y,z)=>{ mcyl(0.013,0.228,0xc8a060,x,y+0.098,z); mcyl(0.067,0.142,0xe02828,x,y+0.157,z); }, // 소시지
+  ];
+  // 4열(0.17 간격) × 5행(0.19 간격) — 위치 기반 결정론적 배치 (모든 클라이언트 동일)
+  const TX5 = [-0.255,-0.085,0.085,0.255];
+  const TZ7 = [0.40,0.21,0.02,-0.17,-0.36];
+  const Y_OFFS = [0,0.015,0.008,0.022,0.005,0.018,0.011,0.003,0.020,0.013,0.025,0.007,0.016,0.002,0.019,0.010,0.023,0.006,0.014,0.021];
+  TX5.forEach((x,xi) => TZ7.forEach((z,zi) => {
+    const i = xi*5+zi;
+    MI[(xi*7+zi*3) % MI.length](x, TY+Y_OFFS[i], z);
+  }));
 
   V.g.add(c); V.g.visible = false; V.active = false; V.timer = 6; V.dir = 1; V.speed = 0.8;
 }
