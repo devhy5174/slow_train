@@ -28,228 +28,397 @@ const seatBrgGroups = {};
 // ===== 등받이 그물망 수납 주머니 =====
 // 뒷좌석 승객이 앞좌석 등받이에서 사용하는 무궁화호 스타일 망 주머니
 
-let _pocketMeshMat = null;  // 그물 머티리얼 (공유)
-const _bookMats  = [];      // 넓은 책자 머티리얼 캐시 [0..3]
-const _pampMats  = [];      // 팜플랫 머티리얼 캐시 [0..3]
-let _pocketIdx   = 0;       // 생성 순서
+let _pocketMeshMat = null; // 그물 머티리얼 (공유)
+const _bookMats = []; // 넓은 책자 머티리얼 캐시 [0..3]
+const _pampMats = []; // 팜플랫 머티리얼 캐시 [0..3]
+let _pocketIdx = 0; // 생성 순서
 
 // 대각 마름모 그물 캔버스 (밝은 회색, 이미지 참조)
 function _ensurePocketMeshMat() {
   if (_pocketMeshMat) return;
-  const W = 128, H = 96;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  ctx.clearRect(0, 0, W, H);          // 배경 투명 (뒤 오브젝트가 비침)
-  ctx.strokeStyle = '#7a7670';        // 짙은 회색 격자선
+  const W = 128,
+    H = 96;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, W, H); // 배경 투명 (뒤 오브젝트가 비침)
+  ctx.strokeStyle = "#7a7670"; // 짙은 회색 격자선
   ctx.lineWidth = 1.8;
-  const sp = 13;                      // 대각선 간격
+  const sp = 13; // 대각선 간격
   // +45° 방향 선
   for (let d = -H; d <= W; d += sp) {
-    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(d, 0);
+    ctx.lineTo(d + H, H);
+    ctx.stroke();
   }
   // -45° 방향 선
   for (let d = 0; d <= W + H; d += sp) {
-    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d - H, H); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(d, 0);
+    ctx.lineTo(d - H, H);
+    ctx.stroke();
   }
   _pocketMeshMat = new THREE.MeshBasicMaterial({
     map: new THREE.CanvasTexture(cv),
-    transparent: true, opacity: 0.92,
-    side: THREE.DoubleSide, depthWrite: false,
+    transparent: true,
+    opacity: 0.92,
+    side: THREE.DoubleSide,
+    depthWrite: false,
   });
 }
 
 // ── 넓은 책자 표지 4종 (100×80, 그림 있는 풀컬러) ──────────────────
 function _getBookMat(ti) {
   if (_bookMats[ti]) return _bookMats[ti];
-  const cv = document.createElement('canvas');
-  cv.width = 100; cv.height = 80;
-  const ctx = cv.getContext('2d');
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const cv = document.createElement("canvas");
+  cv.width = 100;
+  cv.height = 80;
+  const ctx = cv.getContext("2d");
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
   if (ti === 0) {
     // "느린 기차 여행" — 크림 배경, 상단 제목 + 하단 풍경
-    ctx.fillStyle = '#ede8d8'; ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = "#ede8d8";
+    ctx.fillRect(0, 0, 100, 80);
     // 상단 제목 영역 (크림에 살짝 어두운 띠)
-    ctx.fillStyle = '#ddd4be'; ctx.fillRect(0, 0, 100, 36);
+    ctx.fillStyle = "#ddd4be";
+    ctx.fillRect(0, 0, 100, 36);
     // 제목 — 상단에 크고 굵게
-    ctx.fillStyle = '#2a1808'; ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('느린', 50, 13);
-    ctx.fillText('기차 여행', 50, 28);
+    ctx.fillStyle = "#2a1808";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("느린", 50, 13);
+    ctx.fillText("기차 여행", 50, 28);
     // 얇은 구분선
-    ctx.strokeStyle = '#a08860'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(6, 36); ctx.lineTo(94, 36); ctx.stroke();
+    ctx.strokeStyle = "#a08860";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(6, 36);
+    ctx.lineTo(94, 36);
+    ctx.stroke();
     // 하단 풍경 — 하늘
-    ctx.fillStyle = '#9ccee8'; ctx.fillRect(0, 36, 100, 22);
+    ctx.fillStyle = "#9ccee8";
+    ctx.fillRect(0, 36, 100, 22);
     // 녹색 언덕
-    ctx.fillStyle = '#6aaa50';
-    ctx.beginPath(); ctx.ellipse(50, 80, 55, 22, 0, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = "#6aaa50";
+    ctx.beginPath();
+    ctx.ellipse(50, 80, 55, 22, 0, 0, Math.PI);
+    ctx.fill();
     // 철로
-    ctx.strokeStyle = '#8a6038'; ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(32, 78); ctx.lineTo(52, 44); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(40, 78); ctx.lineTo(60, 44); ctx.stroke();
+    ctx.strokeStyle = "#8a6038";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(32, 78);
+    ctx.lineTo(52, 44);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(40, 78);
+    ctx.lineTo(60, 44);
+    ctx.stroke();
     for (let ty = 46; ty < 78; ty += 7) {
       const frac = (ty - 44) / 34;
-      ctx.beginPath(); ctx.moveTo(32 + frac * 8 - 3, ty); ctx.lineTo(32 + frac * 8 + 11, ty); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(32 + frac * 8 - 3, ty);
+      ctx.lineTo(32 + frac * 8 + 11, ty);
+      ctx.stroke();
     }
-
   } else if (ti === 1) {
     // "무궁화호 타고" — 하늘색, 벚꽃, 기차
-    ctx.fillStyle = '#5898cc'; ctx.fillRect(0, 0, 100, 80);
-    ctx.fillStyle = '#78b8e0'; ctx.fillRect(0, 0, 100, 30);     // 연한 하늘
-    const blossoms = [[15,10],[28,6],[42,14],[60,8],[75,13],[85,20],[20,22],[65,22]];
-    const sizes    = [4, 3, 4.5, 3.5, 4, 3, 3.5, 4];
-    ctx.fillStyle = '#f8c0d0';
+    ctx.fillStyle = "#5898cc";
+    ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = "#78b8e0";
+    ctx.fillRect(0, 0, 100, 30); // 연한 하늘
+    const blossoms = [
+      [15, 10],
+      [28, 6],
+      [42, 14],
+      [60, 8],
+      [75, 13],
+      [85, 20],
+      [20, 22],
+      [65, 22],
+    ];
+    const sizes = [4, 3, 4.5, 3.5, 4, 3, 3.5, 4];
+    ctx.fillStyle = "#f8c0d0";
     blossoms.forEach(([bx, by], i) => {
-      ctx.beginPath(); ctx.arc(bx, by, sizes[i], 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bx, by, sizes[i], 0, Math.PI * 2);
+      ctx.fill();
     });
-    ctx.fillStyle = '#c03028'; ctx.fillRect(18, 54, 56, 14);    // 기차 차체
-    ctx.fillStyle = '#e04840'; ctx.fillRect(18, 50, 56, 7);     // 상단 띠
-    ctx.fillStyle = '#90c8e8';
-    [24, 36, 48, 58].forEach(wx => ctx.fillRect(wx, 55, 8, 7));  // 창문
-    ctx.fillStyle = '#282828';
-    [26, 46, 64].forEach(wx => { ctx.beginPath(); ctx.arc(wx, 68, 4, 0, Math.PI * 2); ctx.fill(); });
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('무궁화호', 50, 33); ctx.fillText('타고', 50, 47);
-
+    ctx.fillStyle = "#c03028";
+    ctx.fillRect(18, 54, 56, 14); // 기차 차체
+    ctx.fillStyle = "#e04840";
+    ctx.fillRect(18, 50, 56, 7); // 상단 띠
+    ctx.fillStyle = "#90c8e8";
+    [24, 36, 48, 58].forEach((wx) => ctx.fillRect(wx, 55, 8, 7)); // 창문
+    ctx.fillStyle = "#282828";
+    [26, 46, 64].forEach((wx) => {
+      ctx.beginPath();
+      ctx.arc(wx, 68, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("무궁화호", 50, 33);
+    ctx.fillText("타고", 50, 47);
   } else if (ti === 2) {
     // "창밖 풍경집" — 황혼빛 주황, 실루엣
-    ctx.fillStyle = '#d87838'; ctx.fillRect(0, 0, 100, 80);
-    ctx.fillStyle = '#e8a050'; ctx.fillRect(0, 0, 100, 36);     // 하늘 그라데이션 느낌
-    ctx.fillStyle = '#f8c870';                                   // 태양
-    ctx.beginPath(); ctx.arc(72, 24, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#1a3010';                                   // 나무 실루엣
-    [[10,55],[22,50],[85,52],[92,56]].forEach(([tx, ty]) => {
-      ctx.fillRect(tx - 2, ty, 5, 25); ctx.beginPath(); ctx.arc(tx + 1, ty, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#d87838";
+    ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = "#e8a050";
+    ctx.fillRect(0, 0, 100, 36); // 하늘 그라데이션 느낌
+    ctx.fillStyle = "#f8c870"; // 태양
+    ctx.beginPath();
+    ctx.arc(72, 24, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1a3010"; // 나무 실루엣
+    [
+      [10, 55],
+      [22, 50],
+      [85, 52],
+      [92, 56],
+    ].forEach(([tx, ty]) => {
+      ctx.fillRect(tx - 2, ty, 5, 25);
+      ctx.beginPath();
+      ctx.arc(tx + 1, ty, 7, 0, Math.PI * 2);
+      ctx.fill();
     });
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('창밖', 50, 36); ctx.fillText('풍경집', 50, 50);
-
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("창밖", 50, 36);
+    ctx.fillText("풍경집", 50, 50);
   } else {
     // "철도 맛집 가이드" — 따뜻한 황토, 음식 느낌
-    ctx.fillStyle = '#c87828'; ctx.fillRect(0, 0, 100, 80);
-    ctx.fillStyle = '#e8a040'; ctx.fillRect(0, 0, 100, 28);     // 상단 밝은 띠
-    ctx.fillStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(50, 55, 14, 0, Math.PI * 2); ctx.stroke(); // 접시
-    ctx.beginPath(); ctx.arc(50, 55, 8, 0, Math.PI * 2); ctx.fill();    // 음식
-    ctx.fillStyle = '#604010'; ctx.fillRect(46, 36, 8, 18);              // 젓가락
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('철도 맛집', 50, 15); ctx.fillText('가이드', 50, 29);
+    ctx.fillStyle = "#c87828";
+    ctx.fillRect(0, 0, 100, 80);
+    ctx.fillStyle = "#e8a040";
+    ctx.fillRect(0, 0, 100, 28); // 상단 밝은 띠
+    ctx.fillStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(50, 55, 14, 0, Math.PI * 2);
+    ctx.stroke(); // 접시
+    ctx.beginPath();
+    ctx.arc(50, 55, 8, 0, Math.PI * 2);
+    ctx.fill(); // 음식
+    ctx.fillStyle = "#604010";
+    ctx.fillRect(46, 36, 8, 18); // 젓가락
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("철도 맛집", 50, 15);
+    ctx.fillText("가이드", 50, 29);
   }
 
   // 얇은 흰 테두리 (공통)
-  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 1.5;
   ctx.strokeRect(2, 2, 96, 76);
-  _bookMats[ti] = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.DoubleSide });
+  _bookMats[ti] = new THREE.MeshBasicMaterial({
+    map: new THREE.CanvasTexture(cv),
+    side: THREE.DoubleSide,
+  });
   return _bookMats[ti];
 }
 
 // ── 팜플랫 표지 4종 (52×80, 안내 브로셔 스타일) ───────────────────
 function _getPampMat(ti) {
   if (_pampMats[ti]) return _pampMats[ti];
-  const cv = document.createElement('canvas');
-  cv.width = 52; cv.height = 80;
-  const ctx = cv.getContext('2d');
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const cv = document.createElement("canvas");
+  cv.width = 52;
+  cv.height = 80;
+  const ctx = cv.getContext("2d");
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
   if (ti === 0) {
     // "여행 안내서" — 베이지, 기차 아이콘
-    ctx.fillStyle = '#e0d4b8'; ctx.fillRect(0, 0, 52, 80);
-    ctx.fillStyle = '#6a4820'; ctx.fillRect(0, 0, 52, 22);       // 갈색 헤더
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
-    ctx.fillText('여행 안내서', 26, 11);
-    ctx.fillStyle = '#604830'; ctx.fillRect(12, 36, 28, 10);      // 기차 차체
-    ctx.fillStyle = '#8ab8d8'; [15,21,27,33].forEach(wx => ctx.fillRect(wx, 37, 5, 6));
-    ctx.fillStyle = '#282828';
-    [15, 29].forEach(wx => { ctx.beginPath(); ctx.arc(wx+2, 46, 3, 0, Math.PI*2); ctx.fill(); });
-    ctx.strokeStyle = '#808878'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(5,48); ctx.lineTo(47,48); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(5,50); ctx.lineTo(47,50); ctx.stroke();
-    ctx.fillStyle = '#3a2808'; ctx.font = '7px sans-serif';
-    ['출발 안내', '도착 정보', '환승 경로'].forEach((t, i) => ctx.fillText(t, 26, 60 + i * 8));
-
+    ctx.fillStyle = "#e0d4b8";
+    ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = "#6a4820";
+    ctx.fillRect(0, 0, 52, 22); // 갈색 헤더
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 8px sans-serif";
+    ctx.fillText("여행 안내서", 26, 11);
+    ctx.fillStyle = "#604830";
+    ctx.fillRect(12, 36, 28, 10); // 기차 차체
+    ctx.fillStyle = "#8ab8d8";
+    [15, 21, 27, 33].forEach((wx) => ctx.fillRect(wx, 37, 5, 6));
+    ctx.fillStyle = "#282828";
+    [15, 29].forEach((wx) => {
+      ctx.beginPath();
+      ctx.arc(wx + 2, 46, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.strokeStyle = "#808878";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(5, 48);
+    ctx.lineTo(47, 48);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(5, 50);
+    ctx.lineTo(47, 50);
+    ctx.stroke();
+    ctx.fillStyle = "#3a2808";
+    ctx.font = "7px sans-serif";
+    ["출발 안내", "도착 정보", "환승 경로"].forEach((t, i) =>
+      ctx.fillText(t, 26, 60 + i * 8),
+    );
   } else if (ti === 1) {
     // "이용 시간표" — 연두, 시계
-    ctx.fillStyle = '#c8d888'; ctx.fillRect(0, 0, 52, 80);
-    ctx.fillStyle = '#3a6020'; ctx.fillRect(0, 0, 52, 20);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
-    ctx.fillText('이용 시간표', 26, 10);
-    ctx.strokeStyle = '#3a6020'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(26, 44, 14, 0, Math.PI * 2); ctx.stroke(); // 시계
+    ctx.fillStyle = "#c8d888";
+    ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = "#3a6020";
+    ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 8px sans-serif";
+    ctx.fillText("이용 시간표", 26, 10);
+    ctx.strokeStyle = "#3a6020";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(26, 44, 14, 0, Math.PI * 2);
+    ctx.stroke(); // 시계
     ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.moveTo(26, 44); ctx.lineTo(26, 32); ctx.stroke(); // 12시
-    ctx.beginPath(); ctx.moveTo(26, 44); ctx.lineTo(35, 44); ctx.stroke(); // 3시
-    ctx.fillStyle = '#3a6020'; ctx.font = '6px sans-serif';
-    ['6:00','12:00','18:00'].forEach((t, i) => ctx.fillText(t, 26, 64 + i * 7));
-
+    ctx.beginPath();
+    ctx.moveTo(26, 44);
+    ctx.lineTo(26, 32);
+    ctx.stroke(); // 12시
+    ctx.beginPath();
+    ctx.moveTo(26, 44);
+    ctx.lineTo(35, 44);
+    ctx.stroke(); // 3시
+    ctx.fillStyle = "#3a6020";
+    ctx.font = "6px sans-serif";
+    ["6:00", "12:00", "18:00"].forEach((t, i) =>
+      ctx.fillText(t, 26, 64 + i * 7),
+    );
   } else if (ti === 2) {
     // "역 안내도" — 연파랑, 노선도 느낌
-    ctx.fillStyle = '#b8d0e8'; ctx.fillRect(0, 0, 52, 80);
-    ctx.fillStyle = '#1a4878'; ctx.fillRect(0, 0, 52, 20);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
-    ctx.fillText('역 안내도', 26, 10);
-    ctx.strokeStyle = '#1a5890'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(10, 36); ctx.lineTo(42, 36); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(26, 30); ctx.lineTo(26, 60); ctx.stroke();
-    [[10,36],[26,36],[42,36],[26,50]].forEach(([ex,ey]) => {
-      ctx.fillStyle = '#1a5890'; ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#b8d0e8";
+    ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = "#1a4878";
+    ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 8px sans-serif";
+    ctx.fillText("역 안내도", 26, 10);
+    ctx.strokeStyle = "#1a5890";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(10, 36);
+    ctx.lineTo(42, 36);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(26, 30);
+    ctx.lineTo(26, 60);
+    ctx.stroke();
+    [
+      [10, 36],
+      [26, 36],
+      [42, 36],
+      [26, 50],
+    ].forEach(([ex, ey]) => {
+      ctx.fillStyle = "#1a5890";
+      ctx.beginPath();
+      ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2, 0, Math.PI * 2);
+      ctx.fill();
     });
-    ctx.fillStyle = '#1a3858'; ctx.font = '6px sans-serif';
-    ctx.fillText('느린역', 26, 68); ctx.fillText('기차여행역', 26, 75);
-
+    ctx.fillStyle = "#1a3858";
+    ctx.font = "6px sans-serif";
+    ctx.fillText("느린역", 26, 68);
+    ctx.fillText("기차여행역", 26, 75);
   } else {
     // "간식 가이드" — 따뜻한 노랑
-    ctx.fillStyle = '#e8c860'; ctx.fillRect(0, 0, 52, 80);
-    ctx.fillStyle = '#8a4a10'; ctx.fillRect(0, 0, 52, 20);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif';
-    ctx.fillText('간식 가이드', 26, 10);
-    ctx.strokeStyle = '#8a4a10'; ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.arc(26, 42, 12, Math.PI, Math.PI * 2); ctx.stroke();  // 컵 위
-    ctx.beginPath(); ctx.moveTo(14, 42); ctx.lineTo(14, 54); ctx.stroke();     // 컵 옆
-    ctx.beginPath(); ctx.moveTo(38, 42); ctx.lineTo(38, 54); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(12, 54); ctx.lineTo(40, 54); ctx.stroke();     // 컵 바닥
-    ctx.beginPath(); ctx.moveTo(26, 30); ctx.lineTo(26, 36); ctx.stroke();     // 김
-    ctx.fillStyle = '#8a4a10'; ctx.font = '6px sans-serif';
-    ['도시락','커피','과자'].forEach((t, i) => ctx.fillText(t, 26, 64 + i * 7));
+    ctx.fillStyle = "#e8c860";
+    ctx.fillRect(0, 0, 52, 80);
+    ctx.fillStyle = "#8a4a10";
+    ctx.fillRect(0, 0, 52, 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 8px sans-serif";
+    ctx.fillText("간식 가이드", 26, 10);
+    ctx.strokeStyle = "#8a4a10";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(26, 42, 12, Math.PI, Math.PI * 2);
+    ctx.stroke(); // 컵 위
+    ctx.beginPath();
+    ctx.moveTo(14, 42);
+    ctx.lineTo(14, 54);
+    ctx.stroke(); // 컵 옆
+    ctx.beginPath();
+    ctx.moveTo(38, 42);
+    ctx.lineTo(38, 54);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(12, 54);
+    ctx.lineTo(40, 54);
+    ctx.stroke(); // 컵 바닥
+    ctx.beginPath();
+    ctx.moveTo(26, 30);
+    ctx.lineTo(26, 36);
+    ctx.stroke(); // 김
+    ctx.fillStyle = "#8a4a10";
+    ctx.font = "6px sans-serif";
+    ["도시락", "커피", "과자"].forEach((t, i) =>
+      ctx.fillText(t, 26, 64 + i * 7),
+    );
   }
 
-  ctx.strokeStyle = 'rgba(0,0,0,0.20)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0,0,0,0.20)";
+  ctx.lineWidth = 1;
   ctx.strokeRect(1, 1, 50, 78);
-  _pampMats[ti] = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.DoubleSide });
+  _pampMats[ti] = new THREE.MeshBasicMaterial({
+    map: new THREE.CanvasTexture(cv),
+    side: THREE.DoubleSide,
+  });
   return _pampMats[ti];
 }
 
 // 등받이 1개에 그물망 주머니 + 겹쳐 꽂힌 책자·팜플랫 부착
 function _makeSeatPocket(brg) {
   _ensurePocketMeshMat();
-  const idx   = _pocketIdx++;
-  const FRAME = 0xbcb8b0;   // 크림-회색 프레임 (이미지 참조)
-  const px    = -0.082;
-  const py    = -0.15;      // 망 y 중심 (등받이 하단쪽으로 내림)
-  const PW    = 0.60;       // 망 너비 (z)
-  const PH    = 0.30;       // 망 높이 (y)
-  const fT    = 0.013;
+  const idx = _pocketIdx++;
+  const FRAME = 0xbcb8b0; // 크림-회색 프레임 (이미지 참조)
+  const px = -0.082;
+  const py = -0.15; // 망 y 중심 (등받이 하단쪽으로 내림)
+  const PW = 0.6; // 망 너비 (z)
+  const PH = 0.3; // 망 높이 (y)
+  const fT = 0.013;
 
   // 대각 마름모 그물 패널
-  const meshPlane = new THREE.Mesh(new THREE.PlaneGeometry(PW - 0.02, PH - 0.02), _pocketMeshMat);
+  const meshPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(PW - 0.02, PH - 0.02),
+    _pocketMeshMat,
+  );
   meshPlane.rotation.y = -Math.PI / 2;
   meshPlane.position.set(px, py, 0);
   brg.add(meshPlane);
 
   // ── 겹쳐 꽂힌 책자 + 팜플랫 ──────────────────────────
   // 망 하단부터 위로 0.14 돌출 (참조 이미지처럼 크게 튀어나옴)
-  const itmH  = PH + 0.14;                      // 0.44
-  const itmCY = (py - PH / 2) + itmH / 2;       // 망 하단 기준 중심
+  const itmH = PH + 0.14; // 0.44
+  const itmCY = py - PH / 2 + itmH / 2; // 망 하단 기준 중심
   const ti = idx % 4;
 
   // 그물(px=-0.082) 뒤쪽에 꽂힘 — x가 클수록 그물 안쪽(뷰어에서 멀어짐)
-  const book = new THREE.Mesh(new THREE.BoxGeometry(0.015, itmH, 0.36), _getBookMat(ti));
+  const book = new THREE.Mesh(
+    new THREE.BoxGeometry(0.015, itmH, 0.36),
+    _getBookMat(ti),
+  );
   book.position.set(-0.066, itmCY, -0.03);
   brg.add(book);
 
-  const pamp = new THREE.Mesh(new THREE.BoxGeometry(0.010, itmH, 0.24), _getPampMat(ti));
-  pamp.position.set(-0.070, itmCY, 0.10);
+  const pamp = new THREE.Mesh(
+    new THREE.BoxGeometry(0.01, itmH, 0.24),
+    _getPampMat(ti),
+  );
+  pamp.position.set(-0.07, itmCY, 0.1);
   brg.add(pamp);
 }
 
@@ -440,14 +609,14 @@ function wallSide(sg) {
   }
 
   // ── 짐칸 선반 (창문 위, 벽면 따라) ──
-  const SY  = 2.08;                          // 선반 y
-  const SD  = 0.195;                         // 선반 깊이 — 뒷면이 벽 안쪽 면에 딱 맞게 단축 (벽 뚫림 방지)
-  const szc = zw - sg * (0.075 + SD / 2);   // 선반 판 중심 z (뒷 끝 = 벽 안쪽 면)
-  const frz = zw - sg * 0.257;              // 앞 레일 z (기존 위치 유지)
+  const SY = 2.08; // 선반 y
+  const SD = 0.195; // 선반 깊이 — 뒷면이 벽 안쪽 면에 딱 맞게 단축 (벽 뚫림 방지)
+  const szc = zw - sg * (0.075 + SD / 2); // 선반 판 중심 z (뒷 끝 = 벽 안쪽 면)
+  const frz = zw - sg * 0.257; // 앞 레일 z (기존 위치 유지)
 
-  box(g, L - 0.3, 0.024, SD, 0xb89060, 0, SY, szc);                   // 선반 판
-  box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.13, frz);        // 앞 안전봉
-  box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.06, frz);        // 보조 가로봉
+  box(g, L - 0.3, 0.024, SD, 0xb89060, 0, SY, szc); // 선반 판
+  box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.13, frz); // 앞 안전봉
+  box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.06, frz); // 보조 가로봉
 
   // 지지 브라켓 — 창문 기둥 위치마다
   for (let i = 0; i < 8; i++) {
@@ -458,48 +627,73 @@ function wallSide(sg) {
   // 선반 위 짐 소품 — 빼곡하게
   const BAGS = [
     // 왼쪽 구역
-    { x: -7.0, w: 0.34, h: 0.22, d: 0.20, c: 0x8a4a2a },  // 갈색 여행가방
-    { x: -6.3, w: 0.16, h: 0.14, d: 0.14, c: 0xf0d080 },  // 노란 파우치
-    { x: -5.7, w: 0.26, h: 0.20, d: 0.19, c: 0x3a6a3a },  // 초록 가방
-    { x: -4.9, w: 0.18, h: 0.25, d: 0.16, c: 0xe05030 },  // 빨간 세로형
-    { x: -4.1, w: 0.32, h: 0.26, d: 0.22, c: 0x2a4a7a },  // 파란 큰 가방
-    { x: -3.3, w: 0.20, h: 0.16, d: 0.17, c: 0xd4a060 },  // 카키 작은백
-    { x: -2.6, w: 0.28, h: 0.20, d: 0.20, c: 0x6a3a6a },  // 보라 가방
-    { x: -1.8, w: 0.14, h: 0.17, d: 0.13, c: 0xf0c0a0 },  // 살구 파우치
+    { x: -7.0, w: 0.34, h: 0.22, d: 0.2, c: 0x8a4a2a }, // 갈색 여행가방
+    { x: -6.3, w: 0.16, h: 0.14, d: 0.14, c: 0xf0d080 }, // 노란 파우치
+    { x: -5.7, w: 0.26, h: 0.2, d: 0.19, c: 0x3a6a3a }, // 초록 가방
+    { x: -4.9, w: 0.18, h: 0.25, d: 0.16, c: 0xe05030 }, // 빨간 세로형
+    { x: -4.1, w: 0.32, h: 0.26, d: 0.22, c: 0x2a4a7a }, // 파란 큰 가방
+    { x: -3.3, w: 0.2, h: 0.16, d: 0.17, c: 0xd4a060 }, // 카키 작은백
+    { x: -2.6, w: 0.28, h: 0.2, d: 0.2, c: 0x6a3a6a }, // 보라 가방
+    { x: -1.8, w: 0.14, h: 0.17, d: 0.13, c: 0xf0c0a0 }, // 살구 파우치
     // 중앙 구역
-    { x: -1.1, w: 0.44, h: 0.24, d: 0.21, c: 0x484848 },  // 회색 캐리어
-    { x: -0.2, w: 0.22, h: 0.19, d: 0.18, c: 0x2a6a2a },  // 진초록 가방
-    { x:  0.5, w: 0.16, h: 0.14, d: 0.15, c: 0xd090c0 },  // 핑크 미니
-    { x:  1.1, w: 0.38, h: 0.21, d: 0.20, c: 0x7a6a4a },  // 베이지 캐리어
-    { x:  1.9, w: 0.18, h: 0.17, d: 0.16, c: 0xe8a030 },  // 주황 보조백
-    { x:  2.5, w: 0.24, h: 0.20, d: 0.19, c: 0x222222 },  // 검정 가방
+    { x: -1.1, w: 0.44, h: 0.24, d: 0.21, c: 0x484848 }, // 회색 캐리어
+    { x: -0.2, w: 0.22, h: 0.19, d: 0.18, c: 0x2a6a2a }, // 진초록 가방
+    { x: 0.5, w: 0.16, h: 0.14, d: 0.15, c: 0xd090c0 }, // 핑크 미니
+    { x: 1.1, w: 0.38, h: 0.21, d: 0.2, c: 0x7a6a4a }, // 베이지 캐리어
+    { x: 1.9, w: 0.18, h: 0.17, d: 0.16, c: 0xe8a030 }, // 주황 보조백
+    { x: 2.5, w: 0.24, h: 0.2, d: 0.19, c: 0x222222 }, // 검정 가방
     // 오른쪽 구역
-    { x:  3.2, w: 0.16, h: 0.23, d: 0.14, c: 0x8030a0 },  // 보라 세로형
-    { x:  3.8, w: 0.30, h: 0.20, d: 0.20, c: 0x7a3030 },  // 와인 가방
-    { x:  4.6, w: 0.20, h: 0.16, d: 0.17, c: 0x506090 },  // 연파란 파우치
-    { x:  5.2, w: 0.28, h: 0.22, d: 0.19, c: 0x5a3a1a },  // 짙은갈 가방
-    { x:  5.9, w: 0.16, h: 0.14, d: 0.14, c: 0xf05060 },  // 분홍 미니백
-    { x:  6.5, w: 0.34, h: 0.19, d: 0.21, c: 0x303860 },  // 네이비 가방
-    { x:  7.1, w: 0.18, h: 0.16, d: 0.15, c: 0xb0b0b0 },  // 실버 파우치
+    { x: 3.2, w: 0.16, h: 0.23, d: 0.14, c: 0x8030a0 }, // 보라 세로형
+    { x: 3.8, w: 0.3, h: 0.2, d: 0.2, c: 0x7a3030 }, // 와인 가방
+    { x: 4.6, w: 0.2, h: 0.16, d: 0.17, c: 0x506090 }, // 연파란 파우치
+    { x: 5.2, w: 0.28, h: 0.22, d: 0.19, c: 0x5a3a1a }, // 짙은갈 가방
+    { x: 5.9, w: 0.16, h: 0.14, d: 0.14, c: 0xf05060 }, // 분홍 미니백
+    { x: 6.5, w: 0.34, h: 0.19, d: 0.21, c: 0x303860 }, // 네이비 가방
+    { x: 7.1, w: 0.18, h: 0.16, d: 0.15, c: 0xb0b0b0 }, // 실버 파우치
   ];
   BAGS.forEach(({ x, w, h, d, c }) => {
     box(g, w, h, d, c, x, SY + 0.012 + h / 2, szc);
   });
 
   // 손잡이 디테일 (큰 가방들)
-  [[-7.0,0x6a3a1a],[-4.1,0x1a3a6a],[-1.1,0x303030],[1.1,0x5a5038],[3.8,0x5a2020],[6.5,0x202840]].forEach(([bx, c]) => {
+  [
+    [-7.0, 0x6a3a1a],
+    [-4.1, 0x1a3a6a],
+    [-1.1, 0x303030],
+    [1.1, 0x5a5038],
+    [3.8, 0x5a2020],
+    [6.5, 0x202840],
+  ].forEach(([bx, c]) => {
     box(g, 0.11, 0.025, 0.025, c, bx, SY + 0.012 + 0.26, szc);
   });
 
   // ── 옷걸이 고리 — 창 사이 기둥 7곳, 짐선반 아래 ──
-  const HKY = 1.93;                       // 걸이 y (선반 2.08 아래)
-  const hkZi = zw - sg * 0.090;           // 벽 안쪽 면에서 충분히 띄움 (z-fighting 방지)
-  const hkD  = -sg;                       // 실내 방향
-  const hkG  = new THREE.Group();
-  [-5.7, -3.8, -1.9, 0, 1.9, 3.8, 5.7].forEach(hx => {
-    box(hkG, 0.034, 0.054, 0.010, 0x787888, hx, HKY,        hkZi);              // 고정판
-    box(hkG, 0.011, 0.011, 0.065, 0xb0b0c0, hx, HKY - 0.013, hkZi + hkD*0.0325); // 수평 암
-    box(hkG, 0.011, 0.028, 0.011, 0xb0b0c0, hx, HKY - 0.001, hkZi + hkD*0.065);  // 위로 꺾인 끝
+  const HKY = 1.93; // 걸이 y (선반 2.08 아래)
+  const hkZi = zw - sg * 0.09; // 벽 안쪽 면에서 충분히 띄움 (z-fighting 방지)
+  const hkD = -sg; // 실내 방향
+  const hkG = new THREE.Group();
+  [-5.7, -3.8, -1.9, 0, 1.9, 3.8, 5.7].forEach((hx) => {
+    box(hkG, 0.034, 0.054, 0.01, 0x787888, hx, HKY, hkZi); // 고정판
+    box(
+      hkG,
+      0.011,
+      0.011,
+      0.065,
+      0xb0b0c0,
+      hx,
+      HKY - 0.013,
+      hkZi + hkD * 0.0325,
+    ); // 수평 암
+    box(
+      hkG,
+      0.011,
+      0.028,
+      0.011,
+      0xb0b0c0,
+      hx,
+      HKY - 0.001,
+      hkZi + hkD * 0.065,
+    ); // 위로 꺾인 끝
   });
   g.add(hkG);
   wallHooks[sg] = hkG;
@@ -534,39 +728,83 @@ function shell() {
 // 쭈그려 앉기 가능한 신문지 스팟 위치 (actor.js·game.js에서 참조)
 // 가족사진 있는 뒤쪽 벽에만 신문지 (지도 있는 앞쪽은 제외)
 const SQUAT_SPOTS = [
-  { id: 'sq_m1_p1', x: -(CAR.L/2 - 0.72), z:  2.22, yaw:  Math.PI / 2 },
-  { id: 'sq_m1_m1', x: -(CAR.L/2 - 0.72), z: -2.22, yaw: -Math.PI / 2 },
+  { id: "sq_m1_p1", x: -(CAR.L / 2 - 0.72), z: 2.22, yaw: Math.PI / 2 },
+  { id: "sq_m1_m1", x: -(CAR.L / 2 - 0.72), z: -2.22, yaw: -Math.PI / 2 },
 ];
 // 클릭 판정용 메쉬
 const sqHits = [];
 
 // 신문지 캔버스 텍스처 생성
 function _makeNewspaperTex() {
-  const cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 200;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#e8dfc0';
+  const cv = document.createElement("canvas");
+  cv.width = 256;
+  cv.height = 200;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#e8dfc0";
   ctx.fillRect(0, 0, 256, 200);
-  ctx.fillStyle = '#2a2a2a';
-  ctx.font = 'bold 15px serif';
-  ctx.fillText('느린 기차 신문', 18, 20);
-  ctx.font = '8px serif';
-  ctx.fillStyle = '#555';
-  ctx.fillText('2024년 12월 • 제1호', 18, 32);
-  ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(8, 36); ctx.lineTo(248, 36); ctx.stroke();
+  ctx.fillStyle = "#2a2a2a";
+  ctx.font = "bold 15px serif";
+  ctx.fillText("느린 기차 신문", 18, 20);
+  ctx.font = "8px serif";
+  ctx.fillStyle = "#555";
+  ctx.fillText("2024년 12월 • 제1호", 18, 32);
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(8, 36);
+  ctx.lineTo(248, 36);
+  ctx.stroke();
   const cols = [
-    ['기차가 천천히', '달립니다. 창밖', '풍경이 고요해', '요. 느리게 가', '는 여행이란 이', '런 것일까요.', '', '따뜻한 커피를', '마시며 창밖을', '바라보는 여유.'],
-    ['오늘의 날씨:', '맑음 기온 18도', '', '열차 정보:', '무궁화호 운행', '중. 일반실 여', '유 있음.', '', '다음 역까지', '30분 남았어요.'],
-    ['간식 코너:', '따뜻한 국수와', '커피 판매 중.', '', '승객 여러분', '안전한 여행', '되세요. 감사', '합니다.', '', '느린기차 드림.'],
+    [
+      "기차가 천천히",
+      "달립니다. 창밖",
+      "풍경이 고요해",
+      "요. 느리게 가",
+      "는 여행이란 이",
+      "런 것일까요.",
+      "",
+      "따뜻한 커피를",
+      "마시며 창밖을",
+      "바라보는 여유.",
+    ],
+    [
+      "오늘의 날씨:",
+      "맑음 기온 18도",
+      "",
+      "열차 정보:",
+      "무궁화호 운행",
+      "중. 일반실 여",
+      "유 있음.",
+      "",
+      "다음 역까지",
+      "30분 남았어요.",
+    ],
+    [
+      "간식 코너:",
+      "따뜻한 국수와",
+      "커피 판매 중.",
+      "",
+      "승객 여러분",
+      "안전한 여행",
+      "되세요. 감사",
+      "합니다.",
+      "",
+      "느린기차 드림.",
+    ],
   ];
-  ctx.fillStyle = '#333'; ctx.font = '7px serif';
+  ctx.fillStyle = "#333";
+  ctx.font = "7px serif";
   cols.forEach((lines, ci) => {
     lines.forEach((l, li) => ctx.fillText(l, 10 + ci * 82, 48 + li * 11));
   });
-  ctx.beginPath(); ctx.moveTo(8, 165); ctx.lineTo(248, 165); ctx.stroke();
-  ctx.font = '7px serif'; ctx.fillStyle = '#888'; ctx.textAlign = 'center';
-  ctx.fillText('느린기차 신문사 발행 · 무단 전재 금지', 128, 177);
+  ctx.beginPath();
+  ctx.moveTo(8, 165);
+  ctx.lineTo(248, 165);
+  ctx.stroke();
+  ctx.font = "7px serif";
+  ctx.fillStyle = "#888";
+  ctx.textAlign = "center";
+  ctx.fillText("느린기차 신문사 발행 · 무단 전재 금지", 128, 177);
   return new THREE.CanvasTexture(cv);
 }
 
@@ -577,7 +815,11 @@ function buildCornerNewspapers() {
     // 신문지 평면
     const paper = new THREE.Mesh(
       new THREE.PlaneGeometry(0.72, 0.56),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.92 }),
+      new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.92,
+      }),
     );
     paper.rotation.x = -Math.PI / 2;
     paper.rotation.z = Math.random() * 0.18 - 0.09; // 살짝 비뚤게
@@ -1195,6 +1437,40 @@ function _buildRearCar(cx, L) {
       p.position.set((i - 3.5) * pitch, 1.4, zw);
       g.add(p);
     }
+
+    // ── 커튼 (장식용, 열린 상태 고정) ──
+    const zci = zw - sg * 0.09; // 벽 안쪽 약간 띄움
+    for (let i = 0; i < 8; i++) {
+      const wx = (i - 3.5) * pitch;
+      // 커튼 레일
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.022, 0.022), mat(0x888888));
+      rail.position.set(wx, 1.905, zci); g.add(rail);
+      // 커튼 (열린 상태: 왼쪽에 얇게 모여 있음)
+      const curtain = new THREE.Mesh(new THREE.BoxGeometry(1.08, 1.0, 0.018), mat(0xf0dfc0));
+      curtain.position.set(wx - 0.432, 1.4, zci);
+      curtain.scale.x = 0.20;
+      g.add(curtain);
+    }
+
+    // ── 짐선반 (장식용) ──
+    const SY = 2.08, SD = 0.195;
+    const szc = zw - sg * (0.075 + SD / 2);
+    const frz = zw - sg * 0.257;
+    box(g, L - 0.3, 0.024, SD, 0xb89060, 0, SY, szc, false);         // 선반 판
+    box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.13, frz, false); // 앞 안전봉
+    box(g, L - 0.3, 0.024, 0.022, 0x8a8a8a, 0, SY + 0.06, frz, false); // 보조 가로봉
+    for (let i = 0; i < 8; i++)
+      box(g, 0.018, 0.145, SD, 0x8a8a8a, (i - 3.5) * pitch, SY + 0.072, szc, false); // 브라켓
+    // 짐 소품 (간략화)
+    [
+      { x: -6.5, w: 0.34, h: 0.22, d: 0.19, c: 0x8a4a2a },
+      { x: -4.8, w: 0.28, h: 0.20, d: 0.20, c: 0x2a4a7a },
+      { x: -2.8, w: 0.44, h: 0.24, d: 0.21, c: 0x484848 },
+      { x: -0.5, w: 0.22, h: 0.19, d: 0.18, c: 0x2a6a2a },
+      { x:  1.3, w: 0.38, h: 0.21, d: 0.20, c: 0x7a6a4a },
+      { x:  3.2, w: 0.30, h: 0.20, d: 0.20, c: 0x7a3030 },
+      { x:  5.4, w: 0.28, h: 0.22, d: 0.19, c: 0x5a3a1a },
+    ].forEach(({ x, w, h, d, c }) => box(g, w, h, d, c, x, SY + 0.012 + h / 2, szc, false));
   }
   // 양 끝 벽
   for (const e of [-1, 1]) {
@@ -1660,14 +1936,16 @@ const END_WALL_ADS = [
       src: "images/family.png",
       bg: "#f0e6d0",
       fg: "#2a1a0e",
+      caption: "2025.10 디즈니월드",
     },
     {
       label: "기차 간식\n모음전",
       sub: "따뜻한 커피 한 잔",
       emoji: "☕",
-      src: "images/family2.png",
+      src: "images/trainArt.png",
       bg: "#f5e8d8",
       fg: "#3a1a06",
+      caption: "느린 기차, 다섯 봉우리를 지나",
     },
   ],
   // ── 앞쪽 벽: 흰보드 + 지도 이미지 ──
@@ -1689,21 +1967,52 @@ const END_WALL_ADS = [
 // SIDE_BANNERS[eIdx][si]: eIdx 0=뒤쪽, 1=앞쪽 / si 0=z음수, 1=z양수
 const SIDE_BANNERS = [
   [
-    { label: '창밖을 즐기세요',    sub: '느린 기차의 여유',      emoji: '🌾', bg: '#f7ecd4', fg: '#5a3800', accent: '#c89040' },
-    { label: '따뜻한 간식 한 잔', sub: '판매원을 불러보세요',    emoji: '☕', bg: '#f5e4d4', fg: '#5a2800', accent: '#b85830' },
+    {
+      label: "창밖을 즐기세요",
+      sub: "느린 기차의 여유",
+      emoji: "🌾",
+      bg: "#f7ecd4",
+      fg: "#5a3800",
+      accent: "#c89040",
+    },
+    {
+      label: "따뜻한 간식 한 잔",
+      sub: "판매원을 불러보세요",
+      emoji: "☕",
+      bg: "#f5e4d4",
+      fg: "#5a2800",
+      accent: "#b85830",
+    },
   ],
   [
-    { label: '느리게 가도 괜찮아', sub: '여유 있게, 더 깊이',    emoji: '🌿', bg: '#e8f2e6', fg: '#1a4020', accent: '#4a9040' },
-    { label: 'metamoa',           sub: '디지털 세상을 모아모아', emoji: '🌐', bg: '#ece8ff', fg: '#3a1a7a', accent: '#7c54c8', brand: true },
+    {
+      label: "느리게 가도 괜찮아",
+      sub: "여유 있게, 더 깊이",
+      emoji: "🌿",
+      bg: "#e8f2e6",
+      fg: "#1a4020",
+      accent: "#4a9040",
+    },
+    {
+      label: "metamoa",
+      sub: "디지털 세상을 모아모아",
+      emoji: "🌐",
+      bg: "#ece8ff",
+      fg: "#3a1a7a",
+      accent: "#7c54c8",
+      brand: true,
+    },
   ],
 ];
 
 // 작은 배너 캔버스 텍스처 생성
 function _makeBannerTex(ad, cb) {
-  const W = 320, H = 86;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
+  const W = 320,
+    H = 86;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d");
 
   // 배경
   ctx.fillStyle = ad.bg;
@@ -1714,59 +2023,59 @@ function _makeBannerTex(ad, cb) {
   ctx.fillRect(0, 0, 8, H);
 
   // 테두리
-  ctx.strokeStyle = ad.accent + 'aa';
+  ctx.strokeStyle = ad.accent + "aa";
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, W - 2, H - 2);
 
   if (ad.brand) {
     // 브랜드 광고 레이아웃: 중앙 집중형
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     // 이모지
-    ctx.font = '28px sans-serif';
+    ctx.font = "28px sans-serif";
     ctx.fillText(ad.emoji, W * 0.18, H / 2);
 
     // 브랜드명 (크게)
     ctx.fillStyle = ad.fg;
-    ctx.font = 'bold 28px sans-serif';
+    ctx.font = "bold 28px sans-serif";
     ctx.fillText(ad.label, W * 0.56, H / 2 - 12);
 
     // 서브
-    ctx.fillStyle = ad.fg + '99';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = ad.fg + "99";
+    ctx.font = "12px sans-serif";
     ctx.fillText(ad.sub, W * 0.56, H / 2 + 14);
 
     // 우측 "AD" 태그
-    ctx.fillStyle = ad.accent + '88';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText('AD', W - 10, H / 2);
+    ctx.fillStyle = ad.accent + "88";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("AD", W - 10, H / 2);
   } else {
     // 이모지
-    ctx.font = '30px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
+    ctx.font = "30px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
     ctx.fillText(ad.emoji, 18, H / 2 - 4);
 
     // 메인 텍스트
     ctx.fillStyle = ad.fg;
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
+    ctx.font = "bold 22px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
     ctx.fillText(ad.label, 62, H / 2 - 11);
 
     // 서브 텍스트
-    ctx.fillStyle = ad.fg + '99';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = ad.fg + "99";
+    ctx.font = "13px sans-serif";
     ctx.fillText(ad.sub, 62, H / 2 + 14);
 
     // 우측 브랜딩
     ctx.fillStyle = ad.accent;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('느린 기차', W - 10, H / 2);
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText("느린 기차", W - 10, H / 2);
   }
 
   cb(new THREE.CanvasTexture(cv));
@@ -1842,6 +2151,16 @@ function _makeAdTex(ad, cb) {
       ctx.strokeStyle = "#c8a870";
       ctx.lineWidth = 5;
       ctx.strokeRect(4, 4, W - 8, H - 8);
+      // 오른쪽 아래 제목 캡션
+      if (ad.caption) {
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "right";
+        const tw = ctx.measureText(ad.caption).width;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(W - tw - 22, H - 26, tw + 10, 18);
+        ctx.fillStyle = "#fffde8";
+        ctx.fillText(ad.caption, W - 16, H - 13);
+      }
     } else {
       // 외부 테두리
       ctx.strokeStyle = "#c8a870";
@@ -1925,75 +2244,84 @@ let whiteboardMesh = null; // 텍스처 갱신용
 
 // 포스트잇이 붙은 화이트보드 canvas 텍스처 생성
 function _drawWhiteboardTex(posts, cb) {
-  const W = 256, H = 192;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
+  const W = 256,
+    H = 192;
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d");
 
   // 흰 배경 + 테두리
-  ctx.fillStyle = '#f9f9f9';
+  ctx.fillStyle = "#f9f9f9";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = '#b0b0b0';
+  ctx.strokeStyle = "#b0b0b0";
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, W - 6, H - 6);
   // 가로 줄선
-  ctx.strokeStyle = '#dddddd';
+  ctx.strokeStyle = "#dddddd";
   ctx.lineWidth = 1;
   for (let ly = 32; ly < H - 10; ly += 26) {
-    ctx.beginPath(); ctx.moveTo(16, ly); ctx.lineTo(W - 16, ly); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(16, ly);
+    ctx.lineTo(W - 16, ly);
+    ctx.stroke();
   }
 
   // 포스트잇 최대 9개 (3열×3행) — 보드 전체 채움
-  const COLS = ['#fffde7', '#fce4ec', '#e8f5e9', '#e3f2fd', '#f3e5f5'];
-  const pw = 72, ph = 52;   // 포스트잇 크기
-  const gx = 6,  gy = 7;   // 열·행 간격
-  const mx = 8,  my = 7;   // 좌·상 여백
+  const COLS = ["#fffde7", "#fce4ec", "#e8f5e9", "#e3f2fd", "#f3e5f5"];
+  const pw = 72,
+    ph = 52; // 포스트잇 크기
+  const gx = 6,
+    gy = 7; // 열·행 간격
+  const mx = 8,
+    my = 7; // 좌·상 여백
   const TILTS = [-4, 3, -2, 5, -3, 4, -5, 2, -1]; // 각 슬롯 고정 기울기(deg)
   posts.slice(-9).forEach((p, i) => {
-    const col = i % 3, row = Math.floor(i / 3);
+    const col = i % 3,
+      row = Math.floor(i / 3);
     const bx = mx + col * (pw + gx);
     const by = my + row * (ph + gy);
-    const angle = TILTS[i] * Math.PI / 180;
+    const angle = (TILTS[i] * Math.PI) / 180;
 
     ctx.save();
     ctx.translate(bx + pw / 2, by + ph / 2);
     ctx.rotate(angle);
     // 그림자
-    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    ctx.fillStyle = "rgba(0,0,0,0.13)";
     ctx.fillRect(-pw / 2 + 2, -ph / 2 + 3, pw, ph);
     // 포스트잇 본체
     ctx.fillStyle = p.color || COLS[i % COLS.length];
     ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
     // 접착 테이프 느낌 (상단 반투명)
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
     ctx.fillRect(-pw / 2, -ph / 2, pw, 7);
     // 이모티콘
     if (p.emoji) {
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
       ctx.fillText(p.emoji, 0, -ph / 2 + 8);
     }
     // 텍스트 (최대 10자)
-    ctx.font = 'bold 8px sans-serif';
-    ctx.fillStyle = '#333';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const short = p.text.length > 10 ? p.text.slice(0, 9) + '…' : p.text;
+    ctx.font = "bold 8px sans-serif";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const short = p.text.length > 10 ? p.text.slice(0, 9) + "…" : p.text;
     ctx.fillText(short, 0, -ph / 2 + (p.emoji ? 25 : 10));
     // 날짜
-    ctx.font = '6.5px sans-serif';
-    ctx.fillStyle = '#888';
+    ctx.font = "6.5px sans-serif";
+    ctx.fillStyle = "#888";
     ctx.fillText(p.date, 0, ph / 2 - 9);
     ctx.restore();
   });
 
   // 포스트잇 없으면 안내 문구
   if (posts.length === 0) {
-    ctx.fillStyle = '#c0c0c0';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('White Board', W / 2, H - 8);
+    ctx.fillStyle = "#c0c0c0";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("White Board", W / 2, H - 8);
   }
 
   cb(new THREE.CanvasTexture(cv));
@@ -2002,7 +2330,7 @@ function _drawWhiteboardTex(posts, cb) {
 // 외부(whiteboard.js)에서 호출: 포스트잇 추가 후 3D 텍스처 갱신
 function updateWhiteboardTex(posts) {
   if (!whiteboardMesh) return;
-  _drawWhiteboardTex(posts, tex => {
+  _drawWhiteboardTex(posts, (tex) => {
     whiteboardMesh.material.map = tex;
     whiteboardMesh.material.needsUpdate = true;
   });
@@ -2065,7 +2393,7 @@ function buildEndWallDecor() {
           adHits.push(p);
         }
         // 화이트보드 패널 → whiteboardHits에 등록, 메쉬 참조 저장
-        if (END_WALL_ADS[eIdx][si].type === 'whiteboard') {
+        if (END_WALL_ADS[eIdx][si].type === "whiteboard") {
           whiteboardMesh = p;
           whiteboardHits.push(p);
         }
@@ -2075,7 +2403,11 @@ function buildEndWallDecor() {
       _makeBannerTex(SIDE_BANNERS[eIdx][si], (tex) => {
         const bp = new THREE.Mesh(
           new THREE.PlaneGeometry(1.3, 0.37),
-          new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+          new THREE.MeshBasicMaterial({
+            map: tex,
+            transparent: true,
+            depthWrite: false,
+          }),
         );
         bp.position.set(inX, 1.95, pz);
         bp.rotation.y = ry;

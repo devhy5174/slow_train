@@ -73,11 +73,11 @@ function makeVendor() {
   const MI = [
     (x,y,z)=>{ msph(0.095,0xfdf7ea,x,y+0.108,z,0.82,1.1); msph(0.026,0xf5c030,x,y+0.185,z+0.062); }, // 삶은 계란
     (x,y,z)=>{ mcyl(0.065,0.270,0x3cb96a,x,y+0.144,z); mcyl(0.068,0.096,0xffffff,x,y+0.144,z); mcyl(0.063,0.022,0xc8d4d8,x,y+0.267,z); }, // 사이다
-    (x,y,z)=>{ box(c,0.174,0.274,0.068,0xf2b632,x,y+0.153,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.274,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.028,z); }, // 과자
+    (x,y,z)=>{ box(c,0.174,0.274,0.068,0xf2b632,x,y+0.153,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.274,z); box(c,0.155,0.060,0.074,0xe8553d,x,y+0.028,z); const ec=document.createElement('canvas'); ec.width=128; ec.height=160; const ex=ec.getContext('2d'); ex.font='100px serif'; ex.textAlign='center'; ex.textBaseline='middle'; ex.fillText('🍪',64,80); const ep=new THREE.Mesh(new THREE.PlaneGeometry(0.155,0.195),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(ec),transparent:true,depthWrite:false})); ep.position.set(x,y+0.153,z+0.036); c.add(ep); }, // 과자
     (x,y,z)=>{ mcyl(0.063,0.158,0xf4efe3,x,y+0.087,z); mcyl(0.067,0.070,0x8b5e3c,x,y+0.061,z); mcyl(0.065,0.020,0x1c1c1c,x,y+0.163,z); }, // 커피
     (x,y,z)=>{ box(c,0.190,0.095,0.128,0xe8553d,x,y+0.051,z); box(c,0.174,0.028,0.112,0xf4efe3,x,y+0.093,z); }, // 도시락
     (x,y,z)=>{ box(c,0.088,0.282,0.026,0xf47c20,x,y+0.151,z); box(c,0.088,0.038,0.030,0xd45a08,x,y+0.282,z); box(c,0.088,0.038,0.030,0xd45a08,x,y+0.020,z); }, // 쫀드기
-    (x,y,z)=>{ const bm=new THREE.MeshLambertMaterial({color:0xc8dff0,transparent:true,opacity:0.30}); const bg=new THREE.Mesh(new THREE.BoxGeometry(0.168,0.248,0.028),bm); bg.position.set(x,y+0.133,z); c.add(bg); box(c,0.128,0.108,0.018,0xd4a373,x,y+0.115,z); }, // 말린오징어
+    (x,y,z)=>{ const bm=new THREE.MeshLambertMaterial({color:0xc8dff0,transparent:true,opacity:0.30}); const bg=new THREE.Mesh(new THREE.BoxGeometry(0.168,0.248,0.028),bm); bg.position.set(x,y+0.133,z); c.add(bg); box(c,0.128,0.108,0.018,0xd4a373,x,y+0.115,z); const ec=document.createElement('canvas'); ec.width=128; ec.height=160; const ex=ec.getContext('2d'); ex.font='110px serif'; ex.textAlign='center'; ex.textBaseline='middle'; ex.fillText('🦑',64,80); const ep=new THREE.Mesh(new THREE.PlaneGeometry(0.155,0.230),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(ec),transparent:true,depthWrite:false})); ep.position.set(x,y+0.133,z+0.015); c.add(ep); }, // 말린오징어
     (x,y,z)=>{ mcyl(0.013,0.228,0xc8a060,x,y+0.098,z); mcyl(0.067,0.142,0xe02828,x,y+0.157,z); }, // 소시지
   ];
   // 4열(0.17 간격) × 5행(0.19 간격) — 위치 기반 결정론적 배치 (모든 클라이언트 동일)

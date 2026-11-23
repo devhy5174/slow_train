@@ -145,6 +145,26 @@ const BgCar = (() => {
 
     // 장식 손님 10명 생성
     DEFS.forEach(_spawnNpc);
+
+    // ── 천장 조명 — 메인 객차와 동일한 주기 배치, DayNight에 등록 ──
+    for (const lx of [-6, -3, 0, 3, 6]) {
+      // PointLight — 초기 intensity=0, DayNight이 낮밤에 따라 제어
+      const light = new THREE.PointLight(0xfffde8, 0, 5.5, 2);
+      light.position.set(OX + lx, 2.4, 0);
+      light.visible = false;
+      scene.add(light);
+      DayNight.addInteriorLight(light);
+
+      // 발광 패널 (장식) — 천장에 붙어있는 형광등 플레이트
+      for (const lz of [-1.625, 1.625]) {
+        const panel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22, 0.02, 0.1),
+          new THREE.MeshBasicMaterial({ color: 0xfffde8 }),
+        );
+        panel.position.set(OX + lx, 2.535, lz);
+        scene.add(panel);
+      }
+    }
   }
 
   // 매 프레임 애니메이션 (update 에서 호출)

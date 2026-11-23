@@ -39,6 +39,13 @@ function makeSnack(name) {
     box(g, 0.13, 0.026, 0.058, 0xe8553d, 0, -0.118, 0, false);
     // 라벨 흰 선 (귀여운 디테일)
     box(g, 0.11, 0.008, 0.066, 0xfff8e0, 0, 0.03, 0, false);
+    // 봉지 앞면 🍪 이모티콘
+    const ec = document.createElement('canvas'); ec.width = 128; ec.height = 160;
+    const ex = ec.getContext('2d'); ex.font = '100px serif';
+    ex.textAlign = 'center'; ex.textBaseline = 'middle'; ex.fillText('🍪', 64, 80);
+    const ep = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.15),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ec), transparent: true, depthWrite: false }));
+    ep.position.set(0, -0.01, 0.034); g.add(ep);
   }
   else if (name === '커피') {
     // 종이컵 몸통 (약간 위가 넓은 테이퍼 형태 근사)
@@ -71,6 +78,14 @@ function makeSnack(name) {
     box(g, 0.11, 0.08, 0.012, 0xd4a060, 0, 0.03, 0, false);
     // 오징어 다리 5개
     [-0.04, -0.02, 0, 0.02, 0.04].forEach(x => box(g, 0.016, 0.075, 0.011, 0xb88040, x, -0.055, 0, false));
+    // 봉지 앞면 🦑 이모티콘
+    // 봉지 앞면 🦑 이모티콘 (봉지 가득)
+    const ec = document.createElement('canvas'); ec.width = 128; ec.height = 160;
+    const ex = ec.getContext('2d'); ex.font = '110px serif';
+    ex.textAlign = 'center'; ex.textBaseline = 'middle'; ex.fillText('🦑', 64, 80);
+    const ep = new THREE.Mesh(new THREE.PlaneGeometry(0.148, 0.185),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ec), transparent: true, depthWrite: false }));
+    ep.position.set(0, 0.01, 0.013); g.add(ep);
   }
   else if (name === '소시지') {
     // 나무 막대 (손 아래로 쭉 뻗음)

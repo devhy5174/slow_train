@@ -236,6 +236,9 @@ const DayNight = (() => {
     _applyLerp(PRESETS[zone], PRESETS[zone], 1);
   }
 
-  return { init, tick, setZone };
+  // 외부에서 추가 조명 등록 (배경 객차 등) — _applyLerp 에서 동일하게 제어됨
+  function addInteriorLight(light) { _interiorLights.push(light); }
+
+  return { init, tick, setZone, addInteriorLight };
 
 })();
