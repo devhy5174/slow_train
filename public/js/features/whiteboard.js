@@ -5,13 +5,19 @@
    - "메모 남기기" → 쓰기 모드
    ===================================================== */
 
-const POSTIT_TEXTS = [
-  "지나가다 들렸어요",
-  "창밖 풍경이 예뻤어요",
-  "또 타고 싶어요!",
-  "느린 여행, 좋았어요",
-  "기차 안이 아늑해요",
+// 직접 입력 최대 글자 수
+const POSTIT_MAX_LEN = 20;
+
+// 욕설·비방 필터 (한글·영문 공통 패턴)
+const _BAD = [
+  '씨발','시발','씨팔','시팔','ㅅㅂ','ㅆㅂ','개새','개색','개쉐','개세',
+  '병신','ㅂㅅ','지랄','ㅈㄹ','꺼져','뒤져','죽어','죽여','미쳤','미친',
+  '창녀','보지','자지','섹스','섹쓰','fuck','shit','bitch','asshole','dick','cunt','nigger','faggot',
 ];
+function _hasBadWord(text) {
+  const t = text.toLowerCase().replace(/\s/g, '');
+  return _BAD.some(w => t.includes(w.toLowerCase()));
+}
 
 const POSTIT_EMOJIS = [
   "🌸",
@@ -174,24 +180,22 @@ function _renderWriteMode() {
   header.innerHTML = `<span class="wb-title">✏️ 메모 남기기</span><span class="wb-date">${_todayStr()}</span>`;
   body.appendChild(header);
 
-  // 문구 선택
+  // 직접 입력 필드
   const tSec = document.createElement("div");
   tSec.className = "wb-section";
-  tSec.innerHTML = '<div class="wb-label">문구 선택</div>';
-  POSTIT_TEXTS.forEach((t) => {
-    const b = document.createElement("button");
-    b.className = "wb-text-btn";
-    b.textContent = t;
-    b.onclick = () => {
-      _selText = t;
-      body
-        .querySelectorAll(".wb-text-btn")
-        .forEach((el) => el.classList.remove("on"));
-      b.classList.add("on");
-      _updatePreview();
-    };
-    tSec.appendChild(b);
-  });
+  tSec.innerHTML = `<div class="wb-label">한 줄 메모 <span class="wb-len-hint" id="wbLenHint">0 / ${POSTIT_MAX_LEN}</span></div>`;
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.className = "wb-input";
+  inp.maxLength = POSTIT_MAX_LEN;
+  inp.placeholder = "짧게 한 줄만 써주세요 🖊";
+  inp.oninput = () => {
+    _selText = inp.value.trim() || null;
+    const hint = document.getElementById("wbLenHint");
+    if (hint) hint.textContent = `${inp.value.length} / ${POSTIT_MAX_LEN}`;
+    _updatePreview();
+  };
+  tSec.appendChild(inp);
   body.appendChild(tSec);
 
   // 이모티콘 선택
@@ -206,9 +210,7 @@ function _renderWriteMode() {
     b.textContent = em;
     b.onclick = () => {
       _selEmoji = em;
-      body
-        .querySelectorAll(".wb-emoji-btn")
-        .forEach((el) => el.classList.remove("on"));
+      body.querySelectorAll(".wb-emoji-btn").forEach((el) => el.classList.remove("on"));
       b.classList.add("on");
       _updatePreview();
     };
@@ -221,8 +223,7 @@ function _renderWriteMode() {
   const preview = document.createElement("div");
   preview.id = "wbPreview";
   preview.className = "wb-preview";
-  preview.innerHTML =
-    '<span class="wb-preview-hint">문구를 선택하면 미리보기가 나타나요</span>';
+  preview.innerHTML = '<span class="wb-preview-hint">메모를 입력하면 미리보기가 나타나요</span>';
   body.appendChild(preview);
 
   // 버튼
@@ -275,6 +276,10 @@ function _updatePreview() {
 
 async function _submitPostit() {
   if (!_selText) return;
+  if (_hasBadWord(_selText)) {
+    toast("⚠️ 부적절한 표현이 포함돼 있어요. 다시 작성해 주세요.");
+    return;
+  }
   const sb = document.getElementById("wbSubmit");
   if (sb) {
     sb.disabled = true;

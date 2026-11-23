@@ -15,10 +15,10 @@ function buildUI() {
     const b = document.createElement('button'); b.textContent = t;
     b.onclick = () => { speak(P, t, 4); Multi.broadcastSpeak(t, 4); ph.hidden = true; }; ph.appendChild(b);
   });
-  // 간식 메뉴 버튼: 누르면 가상 구매 → 손에 듦
+  // 간식 메뉴 버튼: 그리드 카드 형식, 누르면 가상 구매 → 손에 듦
   MENU.forEach(([n, pr, em]) => {
     const b = document.createElement('button'); b.className = 'item';
-    b.innerHTML = `<span>${em} ${n}</span><span>${pr.toLocaleString()}원</span>`;
+    b.innerHTML = `<span class="item-em">${em}</span><span class="item-nm">${n}</span><span class="item-pr">${pr.toLocaleString()}원</span>`;
     b.onclick = () => { mn.hidden = true; setHeld(P, n); toast(`${n}을(를) 샀어요! (가상 구매 · 결제 없음)`); }; mn.appendChild(b);
   });
   // 하단 바 버튼 연결

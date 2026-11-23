@@ -116,16 +116,16 @@ function brain(n, dt) {
   }
   if (n.timer > 0 || n.path.length) return;
   if (n.state === "sit") {
-    if (Math.random() < 0.5) standUp(n);
-    else n.timer = rnd(6, 14);
+    if (Math.random() < 0.25) standUp(n); // 일어날 확률 낮춤 (50% → 25%)
+    else n.timer = rnd(20, 45);            // 더 오래 앉아 있음 (6~14s → 20~45s)
     return;
   }
-  if (Math.random() < 0.55) {
+  if (Math.random() < 0.60) {
     const free = SEATS.filter((s) => !GameState.occ[s.id]);
     if (free.length && goSeat(n, pick(free))) return;
   }
   goFloor(n, rnd(-XMAX, XMAX), rnd(-AISLE, AISLE));
-  n.timer = rnd(2, 6);
+  n.timer = rnd(10, 22); // 다음 행동까지 대기 (2~6s → 10~22s)
 }
 
 // 통로에서 서 있는/걷는 사람끼리 겹치지 않게 밀어냄(NPC·플레이어·판매원·승무원 충돌 처리)

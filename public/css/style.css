@@ -661,20 +661,38 @@ svg.lucide {
   background: #fff3cf;
   border-color: #f2b632;
 }
-/* 간식 메뉴 — 한 줄 전체, 직사각형 */
+/* 간식 메뉴 — 2열 그리드 카드 */
+#menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 7px;
+}
+#menu h2 {
+  grid-column: 1 / -1;
+}
 .panel button.item {
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  border-radius: 6px;
-  padding: 9px 13px;
-  font-size: 14px;
+  gap: 3px;
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
 }
-.panel button.item span:last-child {
+.panel button.item .item-em {
+  font-size: 24px;
+  line-height: 1;
+}
+.panel button.item .item-nm {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d2f4f;
+}
+.panel button.item .item-pr {
+  font-size: 11px;
   font-weight: 700;
   color: #2f62b0;
-  font-size: 13px;
 }
 .panel button:focus-visible {
   outline: 3px solid #f2b632;
@@ -1053,6 +1071,23 @@ svg.lucide {
 }
 .wb-text-btn:hover { background: #fffde7; border-color: #f2b632; }
 .wb-text-btn.on { background: #fffde7; border-color: #f2b632; color: #1d2f4f; font-weight: 700; }
+
+.wb-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1.5px solid #e0d8cc;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  color: #1d2f4f;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.wb-input:focus { border-color: #f2b632; }
+.wb-input::placeholder { color: #bbb; font-size: 13px; }
+.wb-len-hint { float: right; font-size: 11px; color: #bbb; font-weight: 400; }
 
 .wb-emoji-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .wb-emoji-btn {

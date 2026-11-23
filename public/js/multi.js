@@ -193,7 +193,7 @@ const Multi = (() => {
       if (n.path.length > 0 || s.moving) return true; // 이동 중이었거나 현재 이동 중
       if (Math.abs(n.g.position.x - s.x) > 0.01) return true;
       if (Math.abs(n.g.position.z - s.z) > 0.01) return true;
-      if ((n.bub ? n.bubText : null) !== s.bubText) return true;
+      // 말풍선은 각자 로컬로만 표시 — 동기화 불필요
     }
     return false;
   }
@@ -207,8 +207,7 @@ const Multi = (() => {
       x: n.g.position.x, z: n.g.position.z, ry: n.g.rotation.y,
       state: n.state, seatId: n.seat ? n.seat.id : null,
       moving: n.state !== 'sit' && n.path.length > 0,
-      bubText: n.bub ? (n.bubText || null) : null,
-      bubSec: n.bub ? n.bubT : 0,
+      // bubText 제외 — NPC 말풍선은 각자 로컬에서만 표시
     }));
     _npcLastSnaps = snaps;
     _channel.send({ type: 'broadcast', event: 'npc_states', payload: { npcs: snaps } });
@@ -238,8 +237,7 @@ const Multi = (() => {
         active: V.active, visible: V.g.visible,
         x: V.g.position.x, z: V.g.position.z, ry: V.g.rotation.y,
         moving: V.active && !V.pause && V.path.length > 0,
-        bubText: V.bub ? (V.bubText || null) : null,
-        bubSec: V.bub ? V.bubT : 0,
+        // bubText 제외 — 판매원 말풍선은 각자 로컬에서만 표시
       },
     });
   }
@@ -376,9 +374,7 @@ const Multi = (() => {
         if (payload.z  != null) { V._tz  = payload.z;  if (freshAppear) V.g.position.z = payload.z; }
         if (payload.ry != null) { V._try = payload.ry; if (freshAppear) V.g.rotation.y = payload.ry; }
         _vMoving = !!payload.moving;
-        // 말풍선: 텍스트가 새로 생겼을 때만 speak() 호출
-        if (payload.bubText && (!V.bub || V.bubText !== payload.bubText))
-          speak(V, payload.bubText, Math.max(0.5, payload.bubSec || 3));
+        // 판매원 말풍선은 각자 로컬에서만 표시 — 동기화하지 않음
       } else {
         _vMoving = false;
         V._tx = null; // 비활성화 시 초기화 → 다음 등장 때 freshAppear = true
@@ -421,9 +417,7 @@ const Multi = (() => {
           n._tz  = snap.z;
           n._try = snap.ry;
         }
-        // NPC 말풍선 동기화
-        if (snap.bubText && (!n.bub || n.bubText !== snap.bubText))
-          speak(n, snap.bubText, Math.max(0.5, snap.bubSec || 3));
+        // NPC 말풍선은 각자 로컬에서만 표시 — 동기화하지 않음
       }
     });
 

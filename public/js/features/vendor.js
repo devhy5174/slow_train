@@ -6,28 +6,68 @@
 
 const VENDOR_GAP = 25; // 판매원이 다시 등장하는 간격(초)
 // 간식 메뉴: [이름, 가격(원), 이모지]
-const MENU = [['삶은 계란', 1500, '🥚'], ['사이다', 1500, '🥤'], ['과자', 1800, '🍪'], ['커피', 2000, '☕'], ['도시락', 5500, '🍱']];
+const MENU = [['삶은 계란', 1500, '🥚'], ['사이다', 1500, '🥤'], ['과자', 1800, '🍪'], ['커피', 2000, '☕'], ['도시락', 5500, '🍱'], ['쫀드기', 1000, '🍬'], ['말린오징어', 3000, '🦑'], ['소시지', 2000, '🌭']];
 
 // 간식 판매원과 카트(바퀴 포함) 생성. 처음엔 숨겨 두고 vendorTick이 등장시킴
 function makeVendor() {
-  V = mkActor('vendor', '판매원', { npc: true, label: '간식 판매원', shirt: 0xff8a3d, hair: 0x5a3a1a, skin: 0xf1c79e, pants: 0x3b3b4a, avatarType: 'vendor' });
+  V = mkActor('vendor', '판매원', { npc: true, label: '간식 판매원', shirt: 0x1a1a2e, hair: 0x2a1a0e, skin: 0xf1c79e, pants: 0x1a1a2e, avatarType: 'vendor' });
   const c = new THREE.Group(); c.position.set(0, 0, 0.8); V.wheels = [];
-  box(c, 0.8, 0.45, 0.55, 0xc9d6e2, 0, 0.5, 0); box(c, 0.84, 0.05, 0.6, 0xe8553d, 0, 0.76, 0); box(c, 0.7, 0.04, 0.04, 0x333333, 0, 0.9, -0.28); // 카트 몸체/윗판/손잡이
-  [[-0.2, 0xf4efe3], [0, 0xf2b632], [0.2, 0x8fbf6a]].forEach(([x, col]) => box(c, 0.16, 0.14, 0.2, col, x, 0.86, 0)); // 윗판 위 간식 상자
-  // 바퀴 2개(이동 중 회전)
-  for (const sx of [-0.38, 0.38]) {
-    const w = new THREE.Group(); w.position.set(sx, 0.14, 0);
-    const cy = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.06, 12), mat(0x333333)); cy.rotation.z = Math.PI / 2; w.add(cy); c.add(w); V.wheels.push(w);
+
+  const FR = 0x151515; // 프레임 색(거의 검정)
+  const W = 0.70, D = 1.16, TH = 0.022; // 카트 폭·깊이·프레임 두께 (깊이를 앞으로 길게)
+
+  // 모서리 기둥 4개
+  for (const [sx, sz] of [[-1,1],[1,1],[-1,-1],[1,-1]])
+    box(c, TH, 1.04, TH, FR, sx*(W/2-TH/2), 0.52, sz*(D/2-TH/2));
+
+  // 3단 선반 (y = 아래쪽부터 0.13 / 0.43 / 0.73)
+  const SY = [0.13, 0.43, 0.73];
+  const IH = 0.27; // 선반 내부 높이
+  SY.forEach(sy => {
+    box(c, W-TH*2, TH, D-TH*2, 0x222222, 0, sy, 0); // 선반 바닥판
+    // 앞·뒤 철망: 수직 바 3개 + 상단 가로 레일
+    for (const sz of [-(D/2-TH*1.5), D/2-TH*1.5]) {
+      for (const bx of [-(W/2-0.10), 0, W/2-0.10])
+        box(c, TH*0.8, IH, TH*0.8, FR, bx, sy+IH/2+TH/2, sz);
+      box(c, W-TH*2, TH*0.9, TH*0.9, FR, 0, sy+IH+TH/2, sz);
+    }
+    // 좌·우 측면: 깊이 방향 수직 바 5개 + 가로 레일
+    for (const sx of [-(W/2-TH*1.5), W/2-TH*1.5]) {
+      for (const bz of [-(D/2-0.10), -(D/2-0.10)+D*0.25, 0, (D/2-0.10)-D*0.25, D/2-0.10])
+        box(c, TH*0.8, IH, TH*0.8, FR, sx, sy+IH/2+TH/2, bz);
+      box(c, TH*0.9, TH*0.9, D-TH*2, FR, sx, sy+IH+TH/2, 0);
+    }
+  });
+
+  // 손잡이 (상단 뒷면)
+  box(c, W*0.85, TH*1.5, TH*1.5, FR, 0, 1.01, -(D/2-TH));
+
+  // 바퀴 4개 (이동 중 회전)
+  for (const [sx, sz] of [[-1,1],[1,1],[-1,-1],[1,-1]]) {
+    const w = new THREE.Group(); w.position.set(sx*(W/2-0.07), 0.07, sz*(D/2-0.07));
+    const cy = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 10), mat(0x111111));
+    cy.rotation.z = Math.PI/2; w.add(cy); c.add(w); V.wheels.push(w);
   }
-  // 카트 앞면 텍스트
-  const _cv = document.createElement('canvas'); _cv.width = 256; _cv.height = 80;
-  const _ctx = _cv.getContext('2d');
-  _ctx.fillStyle = '#c9d6e2'; _ctx.fillRect(0, 0, 256, 80);
-  _ctx.fillStyle = '#1d3a5a'; _ctx.font = 'bold 34px sans-serif';
-  _ctx.textAlign = 'center'; _ctx.textBaseline = 'middle'; _ctx.fillText('매점카트', 128, 40);
-  const _cl = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.15),
-    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(_cv) }));
-  _cl.position.set(0, 0.5, 0.276); c.add(_cl);
+
+  // 아이템 x 위치 3열, z 위치 5행 (앞으로 2칸 더)
+  const IX = [-0.22, 0, 0.22];
+  const IZ = [0.44, 0.22, 0, -0.22, -0.44];
+
+  // 맨 아래 선반: 핑크·보라 계열 (캔디류) — 3×5=15개
+  const botC = [0xe91e8c,0x9c27b0,0x03a9f4, 0xf06292,0x7c4dff,0x40c4ff, 0xe040fb,0xea80fc,0xce93d8, 0xf48fb1,0xb39ddb,0x80deea, 0xff80ab,0xea80fc,0x82b1ff];
+  const botH = [0.17,0.20,0.17, 0.17,0.20,0.17, 0.20,0.17,0.20, 0.17,0.20,0.17, 0.20,0.17,0.20];
+  IX.forEach((x,xi) => IZ.forEach((z,zi) => { const i=zi*3+xi; box(c,0.13,botH[i],0.13,botC[i],x,SY[0]+TH+botH[i]/2,z); }));
+
+  // 중간 선반: 원색 (과자·음료) — 3×5=15개
+  const midC = [0x4caf50,0xffeb3b,0xf44336, 0xff9800,0x8bc34a,0x2196f3, 0xe91e63,0x00bcd4,0xffc107, 0x76ff03,0xffea00,0xff6d00, 0x69f0ae,0xeeff41,0xff4081];
+  const midH = [0.21,0.22,0.21, 0.21,0.21,0.22, 0.22,0.21,0.22, 0.21,0.22,0.21, 0.22,0.21,0.22];
+  IX.forEach((x,xi) => IZ.forEach((z,zi) => { const i=zi*3+xi; box(c,0.13,midH[i],0.13,midC[i],x,SY[1]+TH+midH[i]/2,z); }));
+
+  // 맨 위 선반: 갈색·크림 계열 (삶은 계란·컵라면 등) — 3×5=15개
+  const topC = [0x8d6e63,0xf5deb3,0xd32f2f, 0xa1887f,0xffe0b2,0xf9a825, 0xef9a9a,0xffcc02,0xbcaaa4, 0x8d6e63,0xf5deb3,0xe57373, 0xd7ccc8,0xffcc80,0xa5d6a7];
+  const topH = [0.16,0.18,0.16, 0.16,0.18,0.18, 0.16,0.18,0.16, 0.18,0.16,0.18, 0.16,0.18,0.16];
+  IX.forEach((x,xi) => IZ.forEach((z,zi) => { const i=zi*3+xi; box(c,0.12,topH[i],0.12,topC[i],x,SY[2]+TH+topH[i]/2,z); }));
+
   V.g.add(c); V.g.visible = false; V.active = false; V.timer = 6; V.dir = 1; V.speed = 0.8;
 }
 
